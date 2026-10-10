@@ -40,3 +40,13 @@ export function usageFormFromDraft(input) {
     nodeId: traffic && draft.serverId && draft.nodeId ? `${draft.serverId}:${draft.nodeId}` : "",
   };
 }
+
+/** 编辑只使用公开来源信息；所有凭据留空，由后端保留原值。
+ * @param {import('./usage').UsageSource} source
+ * @returns {Record<string, string>}
+ */
+export function usageFormFromSource(source) {
+  const form = usageFormFromDraft({ name: source.name, type: source.type });
+  if (form.type === "3x-ui" || form.type === "subscription") form.nodeId = source.nodeId ?? "";
+  return form;
+}

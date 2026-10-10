@@ -1,13 +1,21 @@
 import { chooseOption } from "./select-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { _electron as electron } from "playwright";
 import { completeOnboarding } from "./onboarding-helper.mjs";
 
 const directory = await mkdtemp(join(tmpdir(), "nanpad-usage-flow-"));
+await writeFile(
+  join(directory, "local-usage.json"),
+  JSON.stringify({ version: 1, enabled: false, events: [], checkpoints: [], records: [] }),
+);
+await writeFile(
+  join(directory, "preferences.json"),
+  JSON.stringify({ locale: "zh", notifications: false, closeToTray: false }),
+);
 let forbidden = true;
 let loginRequests = 0;
 const server = createServer((req, res) => {
@@ -110,18 +118,34 @@ try {
   await page.getByLabel("面板用户名", { exact: true }).fill("qa-user");
   await page.getByLabel("面板密码", { exact: true }).fill("qa-only-panel-secret");
   await page.getByRole("button", { name: "保存并验证连接", exact: true }).click();
-  await page.locator('[data-usage-connection="saved"]').waitFor();
+  await page
+    .getByRole("dialog", { name: "连接用量来源", exact: true })
+    .waitFor({ state: "detached" });
+  assert.equal(
+    await page.getByRole("tab", { name: /订阅与来源/ }).getAttribute("aria-selected"),
+    "true",
+    "保存失败也应关闭弹窗并定位到可操作的来源卡",
+  );
+  const sourceCard = page.locator(".usage-source-card").filter({
+    has: page.getByRole("heading", { name: "QA-HY2", exact: true }),
+  });
+  await sourceCard.getByRole("alert").waitFor();
   assert.equal(loginRequests, 1, "点击保存后只发起一次验证");
-  assert.match(await page.locator("[data-usage-connection]").innerText(), /3x-ui 登录 HTTP 403/);
-  assert.doesNotMatch(await page.locator("[data-usage-connection]").innerText(), /Admin Key/);
+  assert.match(await sourceCard.getByRole("alert").innerText(), /3x-ui 登录 HTTP 403/);
+  assert.doesNotMatch(await sourceCard.getByRole("alert").innerText(), /Admin Key/);
+  assert.equal(
+    await sourceCard.getByRole("button", { name: "编辑 QA-HY2", exact: true }).isEnabled(),
+    true,
+  );
   let usage = await page.evaluate(() => window.sinan.usage.list());
   assert.equal(usage.sources.length, 1, "验证失败保留来源供重试");
   assert.match(usage.sources[0].nodeId, /^qa-node-host:nod-/);
   assert.equal(usage.records.length, 0, "失败不伪造用量");
   assert.doesNotMatch(JSON.stringify(usage), /qa-only-panel-secret/);
   forbidden = false;
-  await page.getByRole("button", { name: "重试连接", exact: true }).click();
-  await page.locator('[data-usage-connection="connected"]').waitFor();
+  await sourceCard.getByRole("button", { name: "刷新 QA-HY2", exact: true }).click();
+  await sourceCard.getByRole("alert").waitFor({ state: "detached" });
+  await sourceCard.getByText("3x-ui 面板 · 已连接", { exact: true }).waitFor();
   usage = await page.evaluate(() => window.sinan.usage.list());
   assert.equal(usage.sources.length, 1);
   assert.equal(usage.records[0].upload, 1024);
@@ -133,9 +157,10 @@ try {
     .click();
   await page.getByText("流量统计已连接", { exact: true }).waitFor();
   await page.getByRole("button", { name: "查看流量记录", exact: true }).click();
+  await page.getByRole("tab", { name: /订阅与来源/ }).click();
   forbidden = true;
   await page.getByRole("button", { name: "刷新 QA-HY2", exact: true }).click();
-  await page.getByText(/采集失败，以下保留上次数据/).waitFor();
+  await sourceCard.getByText(/采集失败，保留上次有效数据/).waitFor();
   usage = await page.evaluate(() => window.sinan.usage.list());
   assert.equal(usage.records[0].download, 4096, "后续连接失败保留上次真实用量");
   await page.getByRole("button", { name: "连接用量来源", exact: true }).click();

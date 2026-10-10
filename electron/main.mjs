@@ -12,6 +12,7 @@ import {
 import { ImageBed } from "./services/image-bed.mjs";
 import { checkNode } from "./services/node-check.mjs";
 import { UsageStore } from "./services/usage.mjs";
+import { V2raynUsage } from "./services/v2rayn-usage.mjs";
 import { createRefreshBatch } from "./services/refresh-batch.mjs";
 import { LocalUsageMonitor } from "./services/local-usage.mjs";
 import { DocumentsStore } from "./services/documents.mjs";
@@ -773,6 +774,20 @@ function registerIpc() {
   handle("ai-accounts:finish", (id, code) => aiAccounts.finish(id, code));
   handle("ai-accounts:cancel", (id) => aiAccounts.cancel(id));
   const usage = new UsageStore(join(app.getPath("userData"), "usage-history.json"), vault);
+  const v2raynUsage = new V2raynUsage({
+    configFile: join(app.getPath("userData"), "v2rayn-usage.json"),
+    ...(process.env.NANPAD_TEST_DATA_DIR ? { discoverDirectories: async () => [] } : {}),
+  });
+  handle("usage:v2rayn-status", (force) => v2raynUsage.status({ force: force === true }));
+  handle("usage:v2rayn-directory", async () => {
+    const selection = await dialog.showOpenDialog(win, {
+      title: "选择 v2rayN 程序所在文件夹",
+      properties: ["openDirectory"],
+    });
+    if (selection.canceled || !selection.filePaths[0]) return null;
+    return v2raynUsage.selectDirectory(selection.filePaths[0]);
+  });
+  handle("usage:subscription-details", (id) => usage.subscriptionDetails(id));
   const localUsage = new LocalUsageMonitor({
     file: join(app.getPath("userData"), "local-usage.json"),
     // 隔离测试只能读取自身数据目录内的合成日志，不触碰用户日志。
@@ -836,7 +851,7 @@ function registerIpc() {
   localTimer.unref();
   void refreshLocalUsage().catch(() => {});
   app.once("before-quit", () => clearInterval(localTimer));
-  for (const method of ["add", "remove", "refresh"])
+  for (const method of ["add", "update", "remove", "refresh"])
     handle("usage:" + method, async (...args) => {
       try {
         return await usage[method](...args);

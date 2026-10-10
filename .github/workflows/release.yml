@@ -105,6 +105,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/local-usage-packaged-integration.mjs "release/v$version/win-unpacked/Zhiyu.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/subscription-desktop-integration.mjs "release/v$version/win-unpacked/Zhiyu.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: 验证浏览器插件真实交互
         run: node scripts/browser-companion-integration.mjs
       - name: 校验文件与发布

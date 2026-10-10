@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeUsageDraft, usageFormFromDraft } from "../src/lib/usage-setup.mjs";
+import * as setup from "../src/lib/usage-setup.mjs";
 
 test("节点连接向导带入正确归属，凭据不会通过页面跳转传递", () => {
   const input = {
@@ -40,4 +41,22 @@ test("异常上下文不写入对象和无限长名称", () => {
   assert.equal(result.name.length, 160);
   assert.equal(result.nodeId, undefined);
   assert.equal(result.serverId, undefined);
+});
+
+test("编辑表单只回填公开字段，已有凭据始终留空", () => {
+  const form = setup.usageFormFromSource({
+    id: "airport",
+    name: "我的机场",
+    type: "subscription",
+    nodeId: "server:node",
+    url: "https://private.example/token",
+    password: "secret",
+    apiKey: "secret",
+    username: "private",
+  });
+  assert.equal(form.name, "我的机场");
+  assert.equal(form.type, "subscription");
+  assert.equal(form.nodeId, "server:node");
+  for (const field of ["url", "password", "apiKey", "username"]) assert.equal(form[field], "");
+  assert.doesNotMatch(JSON.stringify(form), /secret|private/);
 });

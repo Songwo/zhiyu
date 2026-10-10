@@ -14,7 +14,7 @@
 
 ## 版本准备
 
-更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.7.1.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
+更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.7.2.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
 
 ## 必须验证
 
@@ -44,9 +44,9 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-打包脚本将主进程及编译后的界面放入系统临时目录中的独立暂存区，使用仓库锁文件版本安装 `ssh2`、`electron-updater`、`imapflow`、`openai`、`minisearch`、`nodemailer`、`mailparser`、`html-to-text`、`sanitize-html`、`unified`、`remark-parse`、`remark-gfm` 及其运行依赖，再通过 electron-builder 内置的目录遍历器收集依赖，避免将网页构建工具装进桌面包。暂存区先解析真实路径，npm 子进程只通过工作目录定位项目，避免 macOS 符号链接路径与 `--prefix` 解析不一致。排除可选原生加速模块，SSH 使用库自带的 JavaScript 实现；无需 Visual Studio 编译环境。复用本机已安装的同版本 Electron，输出到 `release/v版本号/`；构建结束清理暂存区。
+打包脚本将主进程及编译后的界面放入系统临时目录中的独立暂存区，使用仓库锁文件版本安装 `ssh2`、`electron-updater`、`imapflow`、`openai`、`minisearch`、`nodemailer`、`mailparser`、`html-to-text`、`sanitize-html`、`unified`、`remark-parse`、`remark-gfm`、`js-yaml` 及其运行依赖，再通过 electron-builder 内置的目录遍历器收集依赖，避免将网页构建工具装进桌面包。暂存区先解析真实路径，npm 子进程只通过工作目录定位项目，避免 macOS 符号链接路径与 `--prefix` 解析不一致。排除可选原生加速模块，SSH 使用库自带的 JavaScript 实现；无需 Visual Studio 编译环境。复用本机已安装的同版本 Electron，输出到 `release/v版本号/`；构建结束清理暂存区。
 
-安装包生成后检查版本和包内容，运行 `node scripts/release-smoke.mjs release/v1.7.1/win-unpacked/Zhiyu.exe` 验证打包程序，计算 SHA256，补齐 Release 说明中的验证记录。该脚本使用独立临时数据目录，不修改日常资料。发布时显式选择源码、文档和必要资源，不提交临时截图、日志、用户数据或运行目录。将发布标签指向已经验证的提交，再上传 `Zhiyu-1.7.1-setup.exe`、浏览器扩展包与 `SHA256SUMS.txt`，以及下文要求的应用内更新附件。
+安装包生成后检查版本和包内容，运行 `node scripts/release-smoke.mjs release/v1.7.2/win-unpacked/Zhiyu.exe` 验证打包程序，计算 SHA256，补齐 Release 说明中的验证记录。该脚本使用独立临时数据目录，不修改日常资料。发布时显式选择源码、文档和必要资源，不提交临时截图、日志、用户数据或运行目录。将发布标签指向已经验证的提交，再上传 `Zhiyu-1.7.2-setup.exe`、浏览器扩展包与 `SHA256SUMS.txt`，以及下文要求的应用内更新附件。
 
 1.3.1 的 Windows 正式发布流水线额外运行 `passwords-desktop-integration.mjs` 验证实际打包程序的 CSV、加密库、后台资产同步、锁库与文档保存，并在 `extension:build` 后运行 `browser-companion-integration.mjs` 加载真实扩展，覆盖原生表单整页导航、多账号填写与文档提示。依赖中文界面标签的 Electron 测试必须显式设置 `locale: "zh-CN"`，不能依赖开发机的系统语言。测试只使用独立临时资料和合成账号，不读取真实浏览器密码库；真实浏览器原生 CSV 导入结果与第三方在线文档兼容性应单独记录。
 
@@ -178,3 +178,35 @@ OAuth 客户端 JSON 检查非普通文件、超过 256 KB、读取期间增长�
 版本一致性检查包括 package.json、锁文件根版本与 `packages[""].version`、浏览器插件清单和首条更新日志。Windows 安装包、扩展 ZIP、更新元数据及校验文件必须来自同次构建。官网正式版继续由已发布 Release 动态渲染；macOS 默认目标为 `mac-test-1.7.1.1` 独立 Pre-release，不影响 Windows 正式更新源。
 
 测试、正式包和 macOS 构建结果应在各命令完成后分别记录；1.7.0 的测试数量和实机反馈不能作为本版通过的证据。
+
+## 1.7.2 订阅来源与本机流量验证
+
+本版新增订阅来源管理、节点摘要和 v2rayN 本机流量。先完成上述类型、lint、中英文、完整测试及构建检查，再核对本版定向回归：
+
+```bash
+node --test electron/services/subscription-parser.test.mjs electron/services/usage-subscription.test.mjs electron/services/v2rayn-usage.test.mjs
+node --test scripts/usage-connect.test.mjs scripts/usage-setup.test.mjs scripts/usage-insights.test.mjs scripts/v2rayn-match.test.mjs
+```
+
+桌面界面构建完成后，使用源码主进程检查已有 3x-ui 配置流程和新的订阅管理交互：
+
+```bash
+node scripts/usage-usability-integration.mjs
+node scripts/subscription-desktop-integration.mjs
+```
+
+正式包生成后，必须另跑同一条订阅集成链路：
+
+```bash
+node scripts/subscription-desktop-integration.mjs release/v1.7.2/win-unpacked/Zhiyu.exe
+```
+
+`subscription-desktop-integration.mjs` 用第一个参数指定实际程序，使用独立临时资料并校验是否为打包实例。测试只启动本机合成订阅／指标服务，预先写入合成 v2rayN 目录，避免探测或读取日常客户端。`usage-subscription-ui-qa.mjs` 是由该脚本调用的交互检查模块，不作为独立启动命令。检查完成后查看 `screenshots/` 下本次生成的桌面与窄窗口截图；源码主进程通过不能替代正式包验证。
+
+检查新增／编辑弹窗、空凭据保留、同一规范化 URL 并发去重、同名来源独立、换 URL 后基线隔离、移除与历史保留、失败重试及旧采样提示。节点覆盖 URI、Base64、Clash、sing-box，拒绝超过 2 MiB 的正文，最多展示 1000 个可识别节点，普通缓存和返回值不得含订阅 URL、节点认证参数或原始正文。展开缓存和搜索不应额外发起订阅下载。筛选检查类型、来源、模型联动、无效选择清除、同名与已移除来源标签，模型不得影响流量与额度。
+
+v2rayN 回归检查只读打开数据库、手动目录选择与重启保留、无管理员／锁库状态读取、已保存 KB 和实时字节分开、跨日统计、节点唯一匹配、核心重置及切换时重新建立监测基线。只连接已有 Xray 回环指标接口，不修改客户端配置、不启用原本关闭的接口；统计关闭、读取失败、接口缺失及其他核心不支持时明确提示，不显示为零流量。机场总量、本机已保存统计与当前核心实时值不得相加，也不得描述成逐节点账单或所有设备总量。
+
+版本检查包括 package.json、锁文件根版本与 `packages[""].version`、浏览器插件和首条更新日志，插件本版只同步版本号。桌面包需包含订阅解析所需的 `js-yaml` 运行依赖与 Windows v2rayN 探测脚本。macOS 目标为 `mac-test-1.7.2.1` 独立未签名双架构 Pre-release；其构建、附件验证和实机结果分别记录，不能用 Windows 验证结果替代。
+
+本章节记录验证要求，不预填测试总数或通过结果。真实 v2rayN 客户端探测与合成桌面回归应分别记录范围；公开记录不包含用户节点、订阅地址、凭据、路径或用量数值。

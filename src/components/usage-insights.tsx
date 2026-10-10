@@ -11,7 +11,14 @@ import {
 } from "lucide-react";
 import type { UsageState } from "@/lib/usage";
 import { usageBytes } from "@/lib/usage";
-import { exportUsage, filterUsage, summarizeUsage, usageDay } from "@/lib/usage-insights.mjs";
+import {
+  exportUsage,
+  filterUsage,
+  normalizeUsageFilters,
+  summarizeUsage,
+  usageDay,
+  usageFilterOptions,
+} from "@/lib/usage-insights.mjs";
 import { downloadJson } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { UsageCharts } from "./usage-charts";
@@ -41,14 +48,22 @@ function localDayStart() {
 export function UsageInsights({
   data,
   localHistoryRequest = 0,
+  active = true,
 }: {
   data: UsageState;
   localHistoryRequest?: number;
+  active?: boolean;
 }) {
-  const [category, setCategory] = useState("all");
-  const [source, setSource] = useState("all");
-  const [period, setPeriod] = useState("30");
-  const [model, setModel] = useState("all");
+  const [filters, setFilters] = useState({
+    category: "all",
+    source: "all",
+    period: "30",
+    model: "all",
+  });
+  const { category, source, period, model } = useMemo(
+    () => normalizeUsageFilters(data, filters),
+    [data, filters],
+  );
   const [page, setPage] = useState(0);
   const [dayStart, setDayStart] = useState(localDayStart);
   useEffect(() => {
@@ -75,10 +90,7 @@ export function UsageInsights({
   }, []);
   useEffect(() => {
     if (!localHistoryRequest) return;
-    setCategory("local");
-    setSource("all");
-    setPeriod("all");
-    setModel("all");
+    setFilters({ category: "local", source: "all", period: "all", model: "all" });
     setPage(0);
   }, [localHistoryRequest]);
   const base = useMemo(
@@ -89,69 +101,70 @@ export function UsageInsights({
   const rows = useMemo(() => filterUsage(base, { category, period: "all" }), [base, category]);
   const lastPage = Math.max(0, Math.ceil(rows.length / 20) - 1);
   const currentPage = Math.min(page, lastPage);
-  const sources = [
-    ...new Map(
-      [
-        ...data.sources,
-        ...data.records.map((row) => ({ id: row.sourceId, name: row.sourceName })),
-      ].map((item) => [item.id, item]),
-    ).values(),
-  ];
-  const models = [
-    ...new Set(
-      data.records.map((row) => row.model).filter((value): value is string => Boolean(value)),
-    ),
-  ].sort();
-  function select(setter: (value: string) => void, value: string) {
-    setter(value);
+  const { sources, models } = useMemo(
+    () => usageFilterOptions(data, { category, source }),
+    [data, category, source],
+  );
+  const sourceLabels = new Map(
+    sources.map((item) => [
+      item.id,
+      `${item.name}${item.duplicate ? ` · ${item.type} · ${item.id.slice(-8)}` : ""}${item.removed ? ` · ${t("已移除")}` : ""}`,
+    ]),
+  );
+  function select(key: keyof typeof filters, value: string) {
+    setFilters(normalizeUsageFilters(data, { category, source, period, model, [key]: value }));
     setPage(0);
   }
   const values = [
     summary.trafficSamples ? usageBytes(summary.upload + summary.download) : "—",
     number(summary.api),
     number(summary.local),
-    `${summary.quota} 个账号`,
+    t("{0} 个账号", summary.quota),
   ];
   return (
-    <section className="usage-insights" aria-label="用量分析">
+    <section className="usage-insights" aria-label={t("用量分析")}>
       <div className="usage-filter-panel">
         <div className="usage-filter-heading">
           <strong>{t("统计范围")}</strong>
-          <span>{t("日期、来源、模型筛选同时应用于统计卡片、图表和明细。")}</span>
+          <span>{t("日期与来源应用于统计、图表和明细；模型仅筛选 Token，不影响流量与额度。")}</span>
         </div>
         <div className="usage-filters">
           <Select
             aria-label="用量类型"
             value={category}
-            onValueChange={(value) => select(setCategory, value)}
-            options={[{ value: "all", label: "全部类型" }, ...categories]}
+            onValueChange={(value) => select("category", value)}
+            options={[
+              { value: "all", label: t("全部类型") },
+              ...categories.map((item) => ({ value: item.value, label: t(item.label) })),
+            ]}
           />
           <Select
             aria-label="来源筛选"
             value={source}
-            onValueChange={(value) => select(setSource, value)}
+            onValueChange={(value) => select("source", value)}
             options={[
-              { value: "all", label: "全部来源" },
-              ...sources.map((item) => ({ value: item.id, label: item.name })),
+              { value: "all", label: t("全部来源") },
+              ...sources.map((item) => ({ value: item.id, label: sourceLabels.get(item.id)! })),
             ]}
           />
           <Select
             aria-label="时间范围"
             value={period}
-            onValueChange={(value) => select(setPeriod, value)}
+            onValueChange={(value) => select("period", value)}
             options={[
-              { value: "1", label: "今天" },
-              { value: "7", label: "最近 7 天" },
-              { value: "30", label: "最近 30 天" },
-              { value: "all", label: "全部历史" },
+              { value: "1", label: t("今天") },
+              { value: "7", label: t("最近 7 天") },
+              { value: "30", label: t("最近 30 天") },
+              { value: "all", label: t("全部历史") },
             ]}
           />
           <Select
             aria-label="模型筛选"
             value={model}
-            onValueChange={(value) => select(setModel, value)}
+            onValueChange={(value) => select("model", value)}
+            disabled={!models.length}
             options={[
-              { value: "all", label: "全部模型" },
+              { value: "all", label: models.length ? t("全部模型") : t("此类型无模型筛选") },
               ...models.map((value) => ({ value, label: value })),
             ]}
           />
@@ -164,19 +177,19 @@ export function UsageInsights({
             type="button"
             className="usage-metric"
             aria-pressed={category === item.value}
-            onClick={() => select(setCategory, category === item.value ? "all" : item.value)}
+            onClick={() => select("category", category === item.value ? "all" : item.value)}
           >
             <span className="usage-metric-label">
               <item.icon className="size-4" />
-              {item.label}
+              {t(item.label)}
               <span className="usage-selection-dot" />
             </span>
             <strong>{values[index]}</strong>
-            <span className="usage-metric-description">{item.detail}</span>
+            <span className="usage-metric-description">{t(item.detail)}</span>
           </button>
         ))}
       </div>
-      <UsageCharts rows={base} category={category} now={dayStart} />
+      {active && <UsageCharts rows={base} category={category} now={dayStart} />}
       <div className="usage-history">
         <div className="usage-history-heading">
           <div>
@@ -228,7 +241,7 @@ export function UsageInsights({
                     <Icon className="size-4" />
                   </span>
                   <span className="usage-record-name">
-                    <strong>{row.sourceName}</strong>
+                    <strong>{sourceLabels.get(row.sourceId) ?? row.sourceName}</strong>
                     <small>
                       {row.model ?? row.label} ·{" "}
                       {row.kind === "tokens"
@@ -350,10 +363,7 @@ export function UsageInsights({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setCategory("all");
-                  setSource("all");
-                  setPeriod("all");
-                  setModel("all");
+                  setFilters({ category: "all", source: "all", period: "all", model: "all" });
                   setPage(0);
                 }}
               >

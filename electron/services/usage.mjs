@@ -1,6 +1,8 @@
-import { readFile, writeFile, mkdir, rename, stat } from "node:fs/promises";
+import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
+import { renameSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { MAX_SUBSCRIPTION_BYTES, parseSubscriptionNodes } from "./subscription-parser.mjs";
 
 const TYPES = new Set(["3x-ui", "subscription", "openai-api", "anthropic-api"]);
 const numeric = (x) => (typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : null);
@@ -63,6 +65,11 @@ function endpoint(value) {
     throw new Error("服务地址只支持 HTTP / HTTPS，账号密码请单独填写");
   return url;
 }
+function normalizedSubscriptionUrl(value) {
+  const url = endpoint(value);
+  url.hash = "";
+  return url.href;
+}
 async function request(fetchImpl, url, options = {}, json = true, context = "AI API 用量") {
   let response;
   try {
@@ -75,7 +82,7 @@ async function request(fetchImpl, url, options = {}, json = true, context = "AI 
     throw new Error(`${context}连接失败或超时，请检查服务地址、证书和网络`);
   }
   if (!response.ok) {
-    await response.body?.cancel();
+    await response.body?.cancel().catch(() => {});
     let hint = "";
     if ([401, 403].includes(response.status)) {
       if (context === "3x-ui 登录")
@@ -94,13 +101,11 @@ async function request(fetchImpl, url, options = {}, json = true, context = "AI 
       hint += "；响应标记为 Cloudflare challenge，当前请求遇到了浏览器验证";
     throw new Error(context + " HTTP " + response.status + hint);
   }
-  if (!json) {
-    const result = subscriptionUsage(response.headers.get("subscription-userinfo"));
-    await response.body?.cancel();
-    return result;
-  }
   let body = "",
     size = 0;
+  const subscription = json === "subscription";
+  const limit = subscription ? MAX_SUBSCRIPTION_BYTES : 8 * 1024 * 1024;
+  const sizeMessage = subscription ? "订阅响应超过 2 MiB，未保存不完整数据" : "用量响应超过 8 MiB";
   const reader = response.body?.getReader();
   if (reader) {
     const decoder = new TextDecoder();
@@ -109,24 +114,71 @@ async function request(fetchImpl, url, options = {}, json = true, context = "AI 
         const { done, value } = await reader.read();
         if (done) break;
         size += value.byteLength;
-        if (size > 8 * 1024 * 1024) throw new Error("用量响应超过 8 MiB");
+        if (size > limit) throw new Error(sizeMessage);
         body += decoder.decode(value, { stream: true });
       }
       body += decoder.decode();
+    } catch (error) {
+      if (subscription && error.message !== sizeMessage)
+        throw new Error("机场订阅读取失败或超时，请检查网络后重试");
+      throw error;
     } finally {
       await reader.cancel().catch(() => {});
     }
   }
-  if (json === "text") return { data: body, response };
+  if (json === "text" || subscription) return { data: body, response };
   try {
     return { data: JSON.parse(body), response };
   } catch {
     throw new Error("用量接口未返回有效 JSON");
   }
 }
+async function collectSubscription(config, fetchImpl) {
+  const { data, response } = await request(
+    fetchImpl,
+    endpoint(config.url),
+    {},
+    "subscription",
+    "机场订阅",
+  );
+  let rows = [],
+    trafficMessage;
+  try {
+    rows = subscriptionUsage(response.headers.get("subscription-userinfo"));
+  } catch {
+    trafficMessage = "机场未提供有效的 subscription-userinfo 用量头，当前流量未知";
+  }
+  let parsed;
+  try {
+    parsed = parseSubscriptionNodes(data);
+  } catch {
+    parsed = {
+      format: "unknown",
+      nodes: [],
+      truncated: false,
+      nodesMessage: "订阅节点格式无法识别",
+    };
+  }
+  if (!rows.length && !parsed.nodes.length)
+    throw new Error("机场未提供有效用量，订阅正文中也未识别到可用节点");
+  return {
+    rows,
+    subscription: {
+      fetchedAt: new Date().toISOString(),
+      format: parsed.format,
+      trafficAvailable: rows.length > 0,
+      ...(trafficMessage ? { trafficMessage } : {}),
+      ...(parsed.nodesMessage || !parsed.nodes.length
+        ? { nodesMessage: parsed.nodesMessage || "订阅正文中未识别到可用节点" }
+        : {}),
+      nodeCount: parsed.nodes.length,
+      truncated: parsed.truncated,
+      nodes: parsed.nodes,
+    },
+  };
+}
 export async function collectUsage(config, fetchImpl = fetch, now = Date.now()) {
-  if (config.type === "subscription")
-    return request(fetchImpl, endpoint(config.url), {}, false, "机场订阅");
+  if (config.type === "subscription") return (await collectSubscription(config, fetchImpl)).rows;
   if (config.type === "3x-ui") {
     const base = endpoint(config.url);
     base.pathname = base.pathname.replace(/\/?$/, "/");
@@ -272,12 +324,92 @@ function fileVersion(info) {
   return `${info.mtimeMs}:${info.ctimeMs}:${info.size}:${info.ino}`;
 }
 
+function sourceConfig(input, previous = {}) {
+  const type = input.type ?? previous.type;
+  if (!TYPES.has(type)) throw new Error("用量来源类型无效");
+  const config = { type };
+  if (["3x-ui", "subscription"].includes(type)) {
+    const value =
+      typeof input.url === "string" && input.url.trim() ? input.url.trim() : previous.url;
+    config.url = type === "subscription" ? normalizedSubscriptionUrl(value) : endpoint(value).href;
+  }
+  if (type === "3x-ui") {
+    const username = input.username ? String(input.username) : previous.username;
+    const password = input.password ? String(input.password) : previous.password;
+    if (!username || !password) throw new Error("请填写面板用户名和密码");
+    Object.assign(config, {
+      username,
+      password,
+      inboundId: String(input.inboundId ?? previous.inboundId ?? ""),
+      clientEmail: String(input.clientEmail ?? previous.clientEmail ?? ""),
+    });
+  }
+  if (type.endsWith("-api")) {
+    config.apiKey = String(input.apiKey ?? "").trim() || previous.apiKey;
+    if (!config.apiKey) throw new Error("请填写组织 Admin Key");
+  }
+  return config;
+}
+
+function emptySubscription(sourceId) {
+  return {
+    sourceId,
+    fetchedAt: null,
+    format: "unknown",
+    trafficAvailable: false,
+    trafficMessage: "尚未刷新订阅，当前流量未知",
+    nodesMessage: "刷新订阅后显示节点",
+    nodeCount: 0,
+    truncated: false,
+    nodes: [],
+  };
+}
+
+function appendRecords(state, source, rows, checkedAt) {
+  source.checkedAt = checkedAt;
+  source.error = "";
+  for (const row of rows) {
+    const old = [...state.records]
+      .reverse()
+      .find(
+        (record) =>
+          record.sourceId === source.id &&
+          record.key === row.key &&
+          (record.revision ?? 0) === (source.revision ?? 0),
+      );
+    const reset =
+      row.kind === "traffic" && old && (row.upload < old.upload || row.download < old.download);
+    const record = {
+      ...row,
+      sourceId: source.id,
+      sourceName: source.name,
+      revision: source.revision ?? 0,
+      checkedAt,
+      ...(row.kind === "traffic"
+        ? {
+            counterReset: Boolean(reset),
+            deltaUpload: old && !reset ? row.upload - old.upload : null,
+            deltaDownload: old && !reset ? row.download - old.download : null,
+          }
+        : {}),
+    };
+    if (row.kind === "tokens")
+      // API 返回同组织按日的完整快照；轮换凭据仍替换旧值，不能按 revision 重复累计。
+      state.records = state.records.filter(
+        (entry) => !(entry.sourceId === source.id && entry.key === row.key),
+      );
+    if (row.kind === "quota" && old?.sampleAt === row.sampleAt) continue;
+    state.records.push(record);
+  }
+}
+
 export class UsageStore {
   #file;
   #vault;
   #fetch;
   #queue = Promise.resolve();
   #active = new Map();
+  #generations = new Map();
   #cache = null;
   constructor(file, vault, fetchImpl = fetch) {
     this.#file = file;
@@ -299,62 +431,176 @@ export class UsageStore {
       throw e;
     }
   }
-  #write(fn) {
+  #write(fn, { beforeCommit, persist, rollback } = {}) {
     const task = this.#queue.then(async () => {
       // 写事务使用副本，落盘失败不得污染此前读到的有效缓存。
       const state = structuredClone(await this.#read());
       const result = await fn(state);
-      await mkdir(dirname(this.#file), { recursive: true });
-      await writeFile(this.#file + ".tmp", JSON.stringify(state));
-      await rename(this.#file + ".tmp", this.#file);
-      this.#cache = null;
-      return result;
+      let persisted = false;
+      try {
+        beforeCommit?.();
+        await mkdir(dirname(this.#file), { recursive: true });
+        await writeFile(this.#file + ".tmp", JSON.stringify(state));
+        beforeCommit?.();
+        if (persist) {
+          await persist();
+          persisted = true;
+        }
+        beforeCommit?.();
+        // 校验到提交之间不让锁库、编辑或删除插入异步回调。
+        renameSync(this.#file + ".tmp", this.#file);
+        this.#cache = null;
+        return structuredClone(result);
+      } catch (error) {
+        if (persisted && rollback) await rollback().catch(() => {});
+        throw error;
+      }
     });
     this.#queue = task.catch(() => {});
     return task;
   }
   async list() {
     await this.#queue;
-    return structuredClone(await this.#read());
+    const { sources, records } = await this.#read();
+    return structuredClone({ sources, records });
+  }
+  #assertSession(session) {
+    if (this.#vault.unlocked === false || this.#vault.session !== session)
+      throw new Error("密钥库已锁定或会话已变化，操作已取消");
+  }
+  #invalidate(id) {
+    this.#generations.set(id, (this.#generations.get(id) ?? 0) + 1);
+    this.#active.delete(id);
+  }
+  async #duplicateSubscription(state, url, excludedId) {
+    for (const source of state.sources) {
+      if (source.type !== "subscription" || source.id === excludedId) continue;
+      const config = await this.#vault.get(source.id);
+      if (config?.url && normalizedSubscriptionUrl(config.url) === url) return source;
+    }
+    return null;
   }
   async add(input) {
     if (!TYPES.has(input?.type) || !String(input.name ?? "").trim())
       throw new Error("请填写来源名称和类型");
-    const config = { type: input.type };
-    if (["3x-ui", "subscription"].includes(input.type)) config.url = endpoint(input.url).href;
-    if (input.type === "3x-ui") {
-      if (!input.username || !input.password) throw new Error("请填写面板用户名和密码");
-      Object.assign(config, {
-        username: String(input.username),
-        password: String(input.password),
-        inboundId: String(input.inboundId ?? ""),
-        clientEmail: String(input.clientEmail ?? ""),
-      });
-    }
-    if (input.type.endsWith("-api")) {
-      if (!input.apiKey?.trim()) throw new Error("请填写组织 Admin Key");
-      config.apiKey = input.apiKey.trim();
-    }
+    const config = sourceConfig(input);
     const id = "usage-" + randomUUID();
-    await this.#vault.set(id, config);
-    return this.#write((state) => {
-      const source = {
-        id,
-        name: String(input.name).trim().slice(0, 100),
-        type: input.type,
-        nodeId: typeof input.nodeId === "string" ? input.nodeId : "",
-        createdAt: new Date().toISOString(),
-      };
-      state.sources.push(source);
-      return source;
-    });
+    const session = this.#vault.session;
+    let added = false;
+    return this.#write(
+      async (state) => {
+        this.#assertSession(session);
+        if (input.type === "subscription") {
+          const existing = await this.#duplicateSubscription(state, config.url);
+          if (existing) return existing;
+        }
+        const source = {
+          id,
+          name: String(input.name).trim().slice(0, 100),
+          type: input.type,
+          nodeId: typeof input.nodeId === "string" ? input.nodeId : "",
+          createdAt: new Date().toISOString(),
+          revision: 0,
+        };
+        state.sources.push(source);
+        added = true;
+        return source;
+      },
+      {
+        beforeCommit: () => this.#assertSession(session),
+        persist: async () => {
+          if (added) await this.#vault.set(id, config);
+        },
+        rollback: async () => {
+          if (added) {
+            this.#assertSession(session);
+            await this.#vault.remove(id);
+          }
+        },
+      },
+    );
+  }
+  async update(id, input) {
+    if (!/^usage-[\w-]+$/.test(id)) throw new Error("来源标识无效");
+    const session = this.#vault.session;
+    let previous, config;
+    return this.#write(
+      async (state) => {
+        this.#assertSession(session);
+        const source = state.sources.find((entry) => entry.id === id);
+        if (!source) throw new Error("用量来源不存在");
+        if (!input || (input.type !== undefined && input.type !== source.type))
+          throw new Error("不能更改用量来源类型");
+        const name = String(input.name ?? source.name)
+          .trim()
+          .slice(0, 100);
+        if (!name) throw new Error("请填写来源名称");
+        previous = await this.#vault.get(id);
+        if (!previous) throw new Error("用量来源凭据不存在");
+        config = sourceConfig({ ...input, type: source.type }, previous);
+        if (
+          source.type === "subscription" &&
+          config.url !== normalizedSubscriptionUrl(previous.url) &&
+          (await this.#duplicateSubscription(state, config.url, id))
+        )
+          throw new Error("该订阅已存在，请编辑已有机场，避免重复统计");
+        this.#invalidate(id);
+        const changed = JSON.stringify(config) !== JSON.stringify(sourceConfig(previous));
+        source.name = name;
+        if (typeof input.nodeId === "string") source.nodeId = input.nodeId;
+        for (const record of state.records) if (record.sourceId === id) record.sourceName = name;
+        if (changed) {
+          source.revision = (source.revision ?? 0) + 1;
+          delete source.checkedAt;
+          delete source.attemptedAt;
+          source.error = "";
+          delete source.subscription;
+          if (state.subscriptions) delete state.subscriptions[id];
+        }
+        return source;
+      },
+      {
+        beforeCommit: () => this.#assertSession(session),
+        persist: () => this.#vault.set(id, config),
+        rollback: async () => {
+          this.#assertSession(session);
+          await this.#vault.set(id, previous);
+        },
+      },
+    );
+  }
+  async subscriptionDetails(id) {
+    if (!/^usage-[\w-]+$/.test(id)) throw new Error("来源标识无效");
+    await this.#queue;
+    const state = await this.#read();
+    const source = state.sources.find((entry) => entry.id === id);
+    if (!source) throw new Error("用量来源不存在");
+    if (source.type !== "subscription") throw new Error("该来源不是机场订阅");
+    return structuredClone(state.subscriptions?.[id] ?? emptySubscription(id));
   }
   async remove(id) {
     if (!/^usage-[\w-]+$/.test(id)) throw new Error("来源标识无效");
-    await this.#vault.remove(id);
-    return this.#write((state) => {
-      state.sources = state.sources.filter((s) => s.id !== id);
-    });
+    const session = this.#vault.session;
+    let previous;
+    return this.#write(
+      async (state) => {
+        this.#assertSession(session);
+        previous = await this.#vault.get(id);
+        this.#invalidate(id);
+        state.sources = state.sources.filter((s) => s.id !== id);
+        if (state.subscriptions) delete state.subscriptions[id];
+      },
+      {
+        beforeCommit: () => this.#assertSession(session),
+        persist: () => this.#vault.remove(id),
+        rollback: async () => {
+          if (previous) {
+            this.#assertSession(session);
+            await this.#vault.set(id, previous);
+          }
+        },
+      },
+    );
   }
   async record(id, rows, meta = {}) {
     const checkedAt = new Date().toISOString();
@@ -365,32 +611,7 @@ export class UsageStore {
         state.sources.push(source);
       }
       if (!source) return;
-      source.checkedAt = checkedAt;
-      source.error = "";
-      for (const row of rows) {
-        const old = [...state.records]
-          .reverse()
-          .find((r) => r.sourceId === id && r.key === row.key);
-        const reset =
-          row.kind === "traffic" && old && (row.upload < old.upload || row.download < old.download);
-        const record = {
-          ...row,
-          sourceId: id,
-          sourceName: source.name,
-          checkedAt,
-          ...(row.kind === "traffic"
-            ? {
-                counterReset: Boolean(reset),
-                deltaUpload: old && !reset ? row.upload - old.upload : null,
-                deltaDownload: old && !reset ? row.download - old.download : null,
-              }
-            : {}),
-        };
-        if (row.kind === "tokens")
-          state.records = state.records.filter((r) => !(r.sourceId === id && r.key === row.key));
-        if (row.kind === "quota" && old?.sampleAt === row.sampleAt) continue;
-        state.records.push(record);
-      }
+      appendRecords(state, source, rows, checkedAt);
     });
   }
   async markFailure(id, message) {
@@ -429,34 +650,71 @@ export class UsageStore {
   refresh(id, { force = true } = {}) {
     if (!/^usage-[\w-]+$/.test(id)) throw new Error("来源标识无效");
     const active = this.#active.get(id);
-    if (active) {
+    if (active && active.session === this.#vault.session) {
       // 人工刷新可升级正在检查缓存的自动任务，但共用已进行的网络请求。
       if (force) active.force = true;
       return active.promise;
     }
-    const job = { force, promise: null };
+    const job = {
+      force,
+      promise: null,
+      session: this.#vault.session,
+      generation: this.#generations.get(id) ?? 0,
+    };
+    const assertCurrent = () => {
+      this.#assertSession(job.session);
+      if ((this.#generations.get(id) ?? 0) !== job.generation)
+        throw new Error("用量来源已更新或删除，旧刷新结果已丢弃");
+    };
     const work = (async () => {
-      if (!job.force) {
-        const state = await this.list();
-        const source = state.sources.find((item) => item.id === id);
-        if (!job.force && source && !usageNeedsRefresh(source)) return state;
-      }
+      const current = await this.list();
+      assertCurrent();
+      const source = current.sources.find((item) => item.id === id);
+      if (!source) throw new Error("用量来源不存在");
+      if (!job.force && !usageNeedsRefresh(source)) return current;
       const config = await this.#vault.get(id);
+      assertCurrent();
       if (!config) throw new Error("用量来源凭据不存在");
       try {
-        await this.record(id, await collectUsage(config, this.#fetch));
-      } catch (e) {
-        await this.#write((state) => {
-          const source = state.sources.find((s) => s.id === id);
-          if (source) {
-            source.error = e.message;
-            source.attemptedAt = new Date().toISOString();
-          }
-        });
-        throw e;
+        const result =
+          config.type === "subscription"
+            ? await collectSubscription(config, this.#fetch)
+            : { rows: await collectUsage(config, this.#fetch) };
+        await this.#write(
+          (state) => {
+            assertCurrent();
+            const latest = state.sources.find((entry) => entry.id === id);
+            if (!latest || (latest.revision ?? 0) !== (source.revision ?? 0))
+              throw new Error("用量来源已更新或删除，旧刷新结果已丢弃");
+            appendRecords(state, latest, result.rows, new Date().toISOString());
+            if (result.subscription) {
+              state.subscriptions ??= {};
+              state.subscriptions[id] = { sourceId: id, ...result.subscription };
+              const { nodes: _nodes, ...summary } = result.subscription;
+              latest.subscription = summary;
+            }
+          },
+          { beforeCommit: assertCurrent },
+        );
+      } catch (error) {
+        assertCurrent();
+        await this.#write(
+          (state) => {
+            assertCurrent();
+            const latest = state.sources.find((entry) => entry.id === id);
+            if (latest && (latest.revision ?? 0) === (source.revision ?? 0)) {
+              latest.error = error.message;
+              latest.attemptedAt = new Date().toISOString();
+            }
+          },
+          { beforeCommit: assertCurrent },
+        );
+        throw error;
       }
       return this.list();
-    })().finally(() => this.#active.delete(id));
+    })().finally(() => {
+      if (this.#active.get(id) === job) this.#active.delete(id);
+    });
     job.promise = work;
     this.#active.set(id, job);
     return work;

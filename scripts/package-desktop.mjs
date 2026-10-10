@@ -27,6 +27,7 @@ const dependencies = Object.fromEntries(
     "unified",
     "remark-parse",
     "remark-gfm",
+    "js-yaml",
   ].map((name) => [name, lock.packages[`node_modules/${name}`].version]),
 );
 const appManifest = {

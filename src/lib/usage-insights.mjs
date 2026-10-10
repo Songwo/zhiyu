@@ -31,11 +31,128 @@ export function filterUsage(rows, filters = {}, now = Date.now()) {
       return (
         (category === "all" || category === rowCategory) &&
         (source === "all" || row.sourceId === source) &&
-        (model === "all" || row.model === model) &&
+        (model === "all" || row.kind !== "tokens" || row.model === model) &&
         inPeriod
       );
     })
     .sort((a, b) => (b.bucketStart ?? b.checkedAt).localeCompare(a.bucketStart ?? a.checkedAt));
+}
+
+/** @param {UsageRecord} row */
+function recordCategory(row) {
+  return row.kind === "tokens" ? (row.origin === "local" ? "local" : "api") : row.kind;
+}
+
+/** @param {string} type */
+function sourceCategory(type) {
+  if (type.startsWith("local-")) return "local";
+  if (type.endsWith("-api") || type === "api") return "api";
+  if (type === "oauth") return "quota";
+  if (type === "subscription" || type === "3x-ui" || type === "traffic") return "traffic";
+  return type;
+}
+
+/** 来源身份按 ID 保留；公开名称优先于历史记录中的旧名称。
+ * @param {import('./usage').UsageState} data
+ * @param {{category?: string, source?: string}} filters
+ */
+export function usageFilterOptions(data, { category = "all", source = "all" } = {}) {
+  const entries = new Map(
+    data.sources.map((item) => [
+      item.id,
+      {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        removed: false,
+        categories: new Set([sourceCategory(item.type)]),
+      },
+    ]),
+  );
+  for (const row of data.records) {
+    const kind = recordCategory(row);
+    const entry = entries.get(row.sourceId);
+    if (entry) entry.categories.add(kind);
+    else
+      entries.set(row.sourceId, {
+        id: row.sourceId,
+        name: row.sourceName,
+        type: kind === "local" ? "local-log" : kind === "quota" ? "oauth" : kind,
+        removed: true,
+        categories: new Set([kind]),
+      });
+  }
+  const nameCounts = new Map();
+  for (const item of entries.values())
+    nameCounts.set(item.name, (nameCounts.get(item.name) ?? 0) + 1);
+  const sources = [...entries.values()]
+    .filter((item) => category === "all" || item.categories.has(category))
+    .map(({ categories: _, ...item }) => ({ ...item, duplicate: nameCounts.get(item.name) > 1 }));
+  const models = [
+    ...new Set(
+      data.records
+        .filter(
+          (row) =>
+            row.kind === "tokens" &&
+            (category === "all" || recordCategory(row) === category) &&
+            (source === "all" || row.sourceId === source),
+        )
+        .map((row) => row.model)
+        .filter((value) => typeof value === "string")
+        .filter((value) => value.length > 0),
+    ),
+  ].sort();
+  return { sources, models };
+}
+
+/** 切换类型、来源或收到来源变更时，清理不可用的筛选条件。
+ * @param {import('./usage').UsageState} data
+ * @param {{category?: string, source?: string, period?: string, model?: string}} filters
+ */
+export function normalizeUsageFilters(data, filters) {
+  const next = { category: "all", source: "all", period: "30", model: "all", ...filters };
+  let options = usageFilterOptions(data, next);
+  if (next.source !== "all" && !options.sources.some((item) => item.id === next.source)) {
+    next.source = "all";
+    options = usageFilterOptions(data, next);
+  }
+  if (next.model !== "all" && !options.models.includes(next.model)) next.model = "all";
+  return next;
+}
+
+/** 机场累计额度只展示供应商计数，与本机客户端统计独立。
+ * @param {UsageRecord | undefined} row
+ * @param {number} now
+ */
+export function subscriptionTrafficSummary(row, now = Date.now()) {
+  const used = row ? (row.upload ?? 0) + (row.download ?? 0) : null;
+  const total = row?.total ?? null;
+  const limited = total != null && total > 0;
+  return {
+    used,
+    total,
+    unlimited: total === 0,
+    remaining: limited && used != null ? Math.max(total - used, 0) : null,
+    percent: limited && used != null ? Math.min(100, Math.max(0, (used / total) * 100)) : null,
+    exceeded: limited && used != null && used > total,
+    exhausted: limited && used != null && used >= total,
+    expired: Boolean(row?.expiresAt && Date.parse(row.expiresAt) <= now),
+  };
+}
+
+/** 连接信息变更后，历史流量不能作为新订阅当前套餐展示。
+ * @param {UsageRecord[]} rows
+ * @param {Pick<import('./usage').UsageSource, 'id' | 'revision'>} source
+ */
+export function latestSubscriptionRecord(rows, source) {
+  return rows
+    .filter(
+      (row) =>
+        row.sourceId === source.id &&
+        row.kind === "traffic" &&
+        (row.revision ?? 0) === (source.revision ?? 0),
+    )
+    .sort((a, b) => b.checkedAt.localeCompare(a.checkedAt))[0];
 }
 
 /** @param {UsageRecord[]} rows */
