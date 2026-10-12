@@ -1,0 +1,18 @@
+services:
+  probe:
+    build: .
+    image: zhiyu-probe:local
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./data:/data
+      - ./private:/run/zhiyu:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    stop_grace_period: 15s

@@ -23,6 +23,7 @@ import type {
   Mailbox,
   Secret,
   Server,
+  ServiceAsset,
   Snapshot,
 } from "@/lib/types";
 import { normalizeService } from "../../electron/services/service-assets.mjs";
@@ -960,6 +961,7 @@ function persist(
     case "domain": {
       const item: Domain = {
         id,
+        integration: (existing as Domain | null)?.integration,
         imageDataUrl: form.imageDataUrl || "",
         name: form.name,
         registrar: form.registrar,
@@ -1077,6 +1079,7 @@ function persist(
       s.upsertService(
         normalizeService({
           id,
+          integration: (existing as ServiceAsset | null)?.integration,
           name: form.name,
           category: form.category,
           url: form.url,

@@ -1,0 +1,7 @@
+.git
+data
+private
+*.db
+*.exe
+zhiyu-probe
+coverage*

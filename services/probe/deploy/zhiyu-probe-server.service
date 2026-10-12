@@ -1,0 +1,30 @@
+[Unit]
+Description=Zhiyu Probe Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zhiyu-probe
+Group=zhiyu-probe
+ExecStart=/usr/local/bin/zhiyu-probe server --listen 0.0.0.0:8008 --data /var/lib/zhiyu-probe/probe.db --admin-token-file /etc/zhiyu-probe/admin-token --tls-cert /etc/zhiyu-probe/tls.crt --tls-key /etc/zhiyu-probe/tls.key
+StateDirectory=zhiyu-probe
+StateDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=512M
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

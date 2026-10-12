@@ -15,6 +15,7 @@ import { Search, SquareTerminal, X, LayoutGrid, Table2, Network } from "lucide-r
 const AssetWorkspace = lazy(() =>
   import("./asset-workspace").then((module) => ({ default: module.AssetWorkspace })),
 );
+import { IntegrationsEntry } from "./integrations/entry";
 import { ServiceCard } from "./service-card";
 import { Overview } from "./overview";
 import { NAV } from "./sidebar";
@@ -66,6 +67,7 @@ export function MainView() {
           </div>
         }
       >
+        {view === "services" && <IntegrationsEntry />}
         <ViewBody />
       </Suspense>
     </div>

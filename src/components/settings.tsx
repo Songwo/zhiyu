@@ -11,7 +11,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { CalendarExport, DesktopSettings } from "./operations-panel";
@@ -32,10 +32,17 @@ import { cn, downloadJson } from "@/lib/utils";
 import { useVault } from "@/lib/vault-state";
 import { t, type LocaleChoice } from "@/lib/i18n";
 
+const IntegrationsSettings = lazy(() =>
+  import("./integrations/integrations-settings").then((module) => ({
+    default: module.IntegrationsSettings,
+  })),
+);
+
 type Tab =
   | "profile"
   | "appearance"
   | "monitoring"
+  | "integrations"
   | "vault"
   | "data"
   | "agent"
@@ -49,6 +56,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: "profile", label: "个人资料" },
   { id: "appearance", label: "外观" },
   { id: "monitoring", label: "监控采集" },
+  { id: "integrations", label: "云服务与探针" },
   { id: "vault", label: "密钥库" },
   { id: "data", label: "数据" },
   { id: "agent", label: "模型与知识库" },
@@ -70,14 +78,23 @@ export function Settings() {
       setTab("profile");
       setOpen(true);
     };
+    const showIntegrations = () => {
+      setTab("integrations");
+      setOpen(true);
+    };
     window.addEventListener("settings:profile", showProfile);
-    return () => window.removeEventListener("settings:profile", showProfile);
+    window.addEventListener("settings:integrations", showIntegrations);
+    return () => {
+      window.removeEventListener("settings:profile", showProfile);
+      window.removeEventListener("settings:integrations", showIntegrations);
+    };
   }, [setOpen]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape" && !e.defaultPrevented && !document.querySelector(".editor-dialog"))
+        setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -99,7 +116,10 @@ export function Settings() {
         role="dialog"
         aria-modal="true"
         aria-label={t("设置")}
-        className="settings-dialog anim-panel relative z-10 flex h-[min(620px,86vh)] w-full max-w-3xl overflow-hidden rounded-2xl bg-card shadow-float"
+        className={cn(
+          "settings-dialog anim-panel relative z-10 flex h-[min(620px,86vh)] w-full max-w-3xl overflow-hidden rounded-2xl bg-card shadow-float",
+          tab === "integrations" && "integrations-settings-dialog",
+        )}
       >
         <nav className="flex min-h-0 w-40 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line p-2">
           <h2 className="px-3 pb-2 pt-3 text-meta font-semibold tracking-tight">{t("设置")}</h2>
@@ -138,6 +158,11 @@ export function Settings() {
               ))}
             {tab === "appearance" && <Appearance />}
             {tab === "monitoring" && <Monitoring />}
+            {tab === "integrations" && (
+              <Suspense fallback={<p>{t("正在加载…")}</p>}>
+                <IntegrationsSettings />
+              </Suspense>
+            )}
             {tab === "vault" && <VaultSection />}
             {tab === "data" && <DataSection />}
             {tab === "agent" && <AgentSettings />}

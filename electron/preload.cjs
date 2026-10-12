@@ -23,6 +23,23 @@ function on(channel, handler) {
 }
 
 contextBridge.exposeInMainWorld("sinan", {
+  integrations: {
+    list: () => unwrap(ipcRenderer.invoke("integrations:list")),
+    save: (input) => unwrap(ipcRenderer.invoke("integrations:save", input)),
+    remove: (id) => unwrap(ipcRenderer.invoke("integrations:remove", id)),
+    inventory: (id, force = false) => unwrap(ipcRenderer.invoke("integrations:inventory", id, force)),
+    bind: (input) => unwrap(ipcRenderer.invoke("integrations:bind", input)),
+    unbind: (input) => unwrap(ipcRenderer.invoke("integrations:unbind", input)),
+    dnsList: (id, zoneId, force = false) => unwrap(ipcRenderer.invoke("integrations:dnsList", id, zoneId, force)),
+    dnsPreview: (input) => unwrap(ipcRenderer.invoke("integrations:dnsPreview", input)),
+    dnsApply: (ticket) => unwrap(ipcRenderer.invoke("integrations:dnsApply", ticket)),
+    probeHistory: (id, hostId, range) => unwrap(ipcRenderer.invoke("integrations:probeHistory", id, hostId, range)),
+    probeCheckHistory: (id, checkId, range) => unwrap(ipcRenderer.invoke("integrations:probeCheckHistory", id, checkId, range)),
+    probeEnroll: (id, name) => unwrap(ipcRenderer.invoke("integrations:probeEnroll", id, name)),
+    probeRevoke: (id, hostId) => unwrap(ipcRenderer.invoke("integrations:probeRevoke", id, hostId)),
+    probeSaveCheck: (id, input) => unwrap(ipcRenderer.invoke("integrations:probeSaveCheck", id, input)),
+    probeDeleteCheck: (id, checkId) => unwrap(ipcRenderer.invoke("integrations:probeDeleteCheck", id, checkId)),
+  },
   documentAccounts: {
     preview: (documentId) => unwrap(ipcRenderer.invoke("document-accounts:preview", documentId)),
     commit: (input) => unwrap(ipcRenderer.invoke("document-accounts:commit", input)),

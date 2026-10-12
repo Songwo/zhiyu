@@ -1,0 +1,39 @@
+syntax = "proto3";
+package zhiyu.probe.v1;
+option go_package = "github.com/Songwo/zhiyu/services/probe/proto;probepb";
+
+service ProbeService {
+  rpc ReportSystemInfo(SystemInfo) returns (Ack);
+  rpc ReportSystemState(stream SystemState) returns (stream Ack);
+}
+
+message SystemInfo {
+  string hostname = 1;
+  string os = 2;
+  string arch = 3;
+}
+
+// 时间由服务端接收时记录。字段缺省表示系统不支持或采集失败。
+message SystemState {
+  optional double cpu = 1;
+  optional double memory = 2;
+  optional double swap = 3;
+  optional double disk = 4;
+  optional double memory_total = 5;
+  optional double disk_total = 6;
+  optional double network_rx = 7;
+  optional double network_tx = 8;
+  optional double rx_rate = 9;
+  optional double tx_rate = 10;
+  optional double uptime = 11;
+  optional double load1 = 12;
+  optional double load5 = 13;
+  optional double load15 = 14;
+  optional double tcp = 15;
+  optional double udp = 16;
+  optional double processes = 17;
+  optional double temperature = 18;
+  optional double gpu = 19;
+}
+
+message Ack { string received_at = 1; }

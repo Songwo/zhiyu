@@ -1,4 +1,5 @@
 import { normalizeServices } from "./service-assets.mjs";
+import { normalizeIntegrationRef } from "./integration-ref.mjs";
 import { normalizePhoneNumbers } from "./phone-numbers.mjs";
 import { hostedImageUrl } from "./hosted-image.mjs";
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -155,6 +156,14 @@ export function normalizeSnapshotImages(
     result[key] = result[key].map((asset) => {
       if (!asset || typeof asset !== "object") return asset;
       const next = { ...asset };
+      if ((key === "servers" || key === "domains") && "integration" in asset) {
+        try {
+          next.integration = normalizeIntegrationRef(asset.integration);
+        } catch (error) {
+          if (strict) throw error;
+          delete next.integration;
+        }
+      }
       if (key === "mailboxes" && "senderAvatars" in asset) {
         /** @type {{ address: string, imageDataUrl: string }[]} */
         const avatars = [];

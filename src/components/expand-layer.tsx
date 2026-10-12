@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AiCard, CertCard, DomainCard, MailCard, SecretCard, ServerCard } from "./asset-card";
+const BoundIntegrationPanel = lazy(() =>
+  import("./integrations/bound-integration-panel").then((module) => ({
+    default: module.BoundIntegrationPanel,
+  })),
+);
 import { ServiceCard } from "./service-card";
 import { AccountPanel } from "./account-panel";
 import { MailStatus } from "./mail-status";
@@ -438,11 +443,43 @@ function ExpandedBody({ kind, id }: { kind: AssetKind; id: string }) {
   switch (kind) {
     case "server": {
       const d = servers.find((x) => x.id === id);
-      return d ? <ServerCard data={d} compact={false} /> : <Missing />;
+      return d ? (
+        <>
+          <ServerCard data={d} compact={false} />
+          {d.integration && (
+            <Suspense fallback={<p>{t("正在加载…")}</p>}>
+              <BoundIntegrationPanel
+                key={`${id}:${d.integration.connectionId}:${d.integration.resourceType}:${d.integration.remoteId}:${d.integration.accountId ?? ""}`}
+                kind="server"
+                id={id}
+                integration={d.integration}
+              />
+            </Suspense>
+          )}
+        </>
+      ) : (
+        <Missing />
+      );
     }
     case "domain": {
       const d = domains.find((x) => x.id === id);
-      return d ? <DomainCard data={d} compact={false} /> : <Missing />;
+      return d ? (
+        <>
+          <DomainCard data={d} compact={false} />
+          {d.integration && (
+            <Suspense fallback={<p>{t("正在加载…")}</p>}>
+              <BoundIntegrationPanel
+                key={`${id}:${d.integration.connectionId}:${d.integration.resourceType}:${d.integration.remoteId}:${d.integration.accountId ?? ""}`}
+                kind="domain"
+                id={id}
+                integration={d.integration}
+              />
+            </Suspense>
+          )}
+        </>
+      ) : (
+        <Missing />
+      );
     }
     case "mail": {
       const d = mailboxes.find((x) => x.id === id);
@@ -484,7 +521,23 @@ function ExpandedBody({ kind, id }: { kind: AssetKind; id: string }) {
     }
     case "service": {
       const d = services.find((x) => x.id === id);
-      return d ? <ServiceCard data={d} compact={false} /> : <Missing />;
+      return d ? (
+        <>
+          <ServiceCard data={d} compact={false} />
+          {d.integration && (
+            <Suspense fallback={<p>{t("正在加载…")}</p>}>
+              <BoundIntegrationPanel
+                key={`${id}:${d.integration.connectionId}:${d.integration.resourceType}:${d.integration.remoteId}:${d.integration.accountId ?? ""}`}
+                kind="service"
+                id={id}
+                integration={d.integration}
+              />
+            </Suspense>
+          )}
+        </>
+      ) : (
+        <Missing />
+      );
     }
     case "cert": {
       const d = certs.find((x) => x.id === id);

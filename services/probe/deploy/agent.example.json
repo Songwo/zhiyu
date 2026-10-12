@@ -1,0 +1,7 @@
+{
+  "endpoint": "https://probe.example.com:8008",
+  "id": "REPLACE_WITH_ENROLLED_HOST_ID",
+  "secret": "REPLACE_WITH_ONE_TIME_AGENT_SECRET",
+  "intervalSeconds": 3,
+  "allowInsecure": false
+}

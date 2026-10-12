@@ -82,7 +82,9 @@ export function ServiceCard({ data, compact = true }: { data: ServiceAsset; comp
         {data.tags.map((tag) => (
           <CardTag key={tag} tag={tag} />
         ))}
-        <span className="ml-auto text-2xs text-subtle">{t("手动记录状态")}</span>
+        <span className="ml-auto text-2xs text-subtle">
+          {data.integration ? t("已关联 · 打开查看最新状态") : t("手动记录状态")}
+        </span>
       </div>
     </article>
   );

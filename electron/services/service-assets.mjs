@@ -1,3 +1,4 @@
+import { normalizeIntegrationRef } from "./integration-ref.mjs";
 const CATEGORIES = new Set(["worker", "blog", "mail", "custom"]);
 const STATUSES = new Set(["online", "warning", "offline"]);
 
@@ -54,6 +55,7 @@ export function normalizeService(value) {
     tags: [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))],
     ...(typeof item.imageDataUrl === "string" ? { imageDataUrl: item.imageDataUrl } : {}),
     ...(item.demo === true ? { demo: true } : {}),
+    ...(item.integration == null ? {} : { integration: normalizeIntegrationRef(item.integration) }),
   };
 }
 

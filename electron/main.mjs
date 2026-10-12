@@ -10,6 +10,7 @@ import {
   migrateLegacyWindowsShortcut,
 } from "./services/windows-identity.mjs";
 import { ImageBed } from "./services/image-bed.mjs";
+import { Integrations, INTEGRATION_METHODS } from "./services/integrations.mjs";
 import { checkNode } from "./services/node-check.mjs";
 import { UsageStore } from "./services/usage.mjs";
 import { V2raynUsage } from "./services/v2rayn-usage.mjs";
@@ -265,6 +266,17 @@ function enqueueAssets(work) {
   return task;
 }
 
+function mutateWorkspaceAssets(mutate) {
+  return enqueueAssets(async () => {
+    const before = currentSnapshot;
+    const next = mutate(before);
+    await writeJson(dataFile(), { state: next, version: 0 });
+    currentSnapshot = next;
+    emit("assets:changed", { before, snapshot: next });
+    return { before, snapshot: next };
+  });
+}
+
 async function mergeBrowserAssets(snapshot) {
   if (!recoveredAccounts.size) return snapshot;
   const ids = new Set(await vault.list());
@@ -479,6 +491,15 @@ function handle(channel, fn, mainWindowOnly = true) {
 }
 
 function registerIpc() {
+  const integrations = new Integrations({
+    file: join(app.getPath("userData"), "integrations.json"),
+    secureStorage: safeStorage,
+    fetchImpl: (...args) => net.fetch(...args),
+    mutateAssets: mutateWorkspaceAssets,
+  });
+  for (const method of INTEGRATION_METHODS)
+    handle("integrations:" + method, (...args) => integrations[method](...args));
+  app.once("before-quit", () => integrations.stop());
   const images = new ImageBed({
     file: join(app.getPath("userData"), "image-bed.json"),
     secureStorage: safeStorage,
@@ -1059,15 +1080,7 @@ function registerIpc() {
   const workspaceActions = new WorkspaceActions({
     getSnapshot: () => currentSnapshot,
     documents,
-    mutateAssets: (mutate) =>
-      enqueueAssets(async () => {
-        const before = currentSnapshot;
-        const next = mutate(before);
-        await writeJson(dataFile(), { state: next, version: 0 });
-        currentSnapshot = next;
-        emit("assets:changed", { before, snapshot: next });
-        return { before, snapshot: next };
-      }),
+    mutateAssets: mutateWorkspaceAssets,
   });
   agent = new AgentService({
     directory: app.getPath("userData"),

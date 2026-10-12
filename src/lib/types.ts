@@ -21,6 +21,7 @@ export type ViewId =
 export type AssetKind = "server" | "domain" | "mail" | "ai" | "secret" | "cert" | "service";
 
 export interface ServiceAsset extends Taggable {
+  integration?: import("./integrations").IntegrationRef;
   id: string;
   name: string;
   category: "worker" | "blog" | "mail" | "custom";
@@ -78,6 +79,7 @@ export interface BoundSecretItem {
 }
 
 export interface Server extends ProbeMeta, Taggable {
+  integration?: import("./integrations").IntegrationRef;
   sshConfigured?: boolean;
   id: string;
   name: string;
@@ -106,6 +108,7 @@ export interface Server extends ProbeMeta, Taggable {
 }
 
 export interface Domain extends ProbeMeta, Taggable {
+  integration?: import("./integrations").IntegrationRef;
   id: string;
   name: string;
   registrar: string;
