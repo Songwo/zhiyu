@@ -77,3 +77,9 @@ Agent 使用 `client-uuid`、`client-secret` metadata，报告 CPU、内存、sw
 - Go 1.27.2 构建、格式、vet、14 项顶层测试、race、模块校验和 govulncheck 通过；Windows、Linux amd64/arm64 编译通过。
 - 独立审查发现的打包依赖缺失、转义 Token 反射、DNS 备注清空、高级类型编辑、h2c 首请求、检查公平调度与历史误清除已修复并复核。
 - Cloudflare 使用合成协议夹具测试，未使用真实账号 Token 或修改 DNS。Docker daemon 未启动，Docker 镜像启动及 Linux systemd 实机部署未验证；未改生产服务器、未生成安装包或发布版本。
+
+## 2026-10-12 本机 1.7.3 复验
+
+用户随后启动 Docker，并授权验证后更新本机安装。Docker 镜像构建及真实容器测试通过：非 root、只读文件系统、TLS CA/主机名校验、原生 Agent gRPC 上报、HTTP/TCP 故障恢复、容器重启保留历史、同一 Agent 自动重连及凭据撤销。故障路径也验证只清理本次测试容器、网络、卷和临时凭据。
+
+1.7.3 本机包的类型检查、译文检查、发布包冒烟、真实探针桌面联调及图标检查通过；新增 Docker 脚本的语法与 ESLint 通过。公开 GitHub 版本、下载页和生产服务未变更，Linux systemd 实机部署仍未验证。

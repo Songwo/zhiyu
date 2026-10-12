@@ -85,6 +85,16 @@ docker compose up -d
 
 镜像使用非 root UID `10001`，只读根文件系统、空 capability、独立持久化目录。`private/` 和 `data/` 已加入忽略规则。提供给 Docker 的证书链需要与域名匹配。服务端 CPU/内存限额在 Compose 中可按主机数量调整。不要把数据库放 NFS/SMB；bbolt 要求本机可靠文件锁。
 
+从仓库根目录可以运行独立 Docker 验收（需要已启动的 Linux Docker 引擎和当前平台的 Agent 程序）：
+
+```sh
+node scripts/probe-docker-integration.mjs
+```
+
+脚本会构建镜像，用临时 CA 和包含 SAN 的证书验证 TLS，通过本机原生 Agent 上报真实指标，并检查 HTTP/TCP 故障与恢复、容器重启后的历史以及凭据撤销。所有容器、网络、卷使用随机专属名称，完成或失败都会清理本次测试资源；不停止已有容器，不读取用户配置。根文件系统保持只读，端口仅绑定 `127.0.0.1`，不会向系统证书库安装测试 CA。
+
+可用 `ZHIYU_PROBE_BINARY` 指定 Agent 路径，`ZHIYU_DOCKER_BINARY` 指定 Docker CLI；`ZHIYU_PROBE_DOCKER_IMAGE` 指定测试镜像名。已有当前代码构建的镜像时，可设 `ZHIYU_PROBE_SKIP_DOCKER_BUILD=1` 复用。Windows 默认使用 `release/qa-probe/zhiyu-probe.exe`，Linux 默认使用 `release/qa-probe/zhiyu-probe-linux-amd64`；其他平台应显式指定路径。临时凭据写入系统临时目录，可用 `TEMP`/`TMP` 选择临时盘；镜像缓存使用 Docker 自身配置的存储目录。
+
 ## 桌面连接与 Agent 注册
 
 1. 在知屿的「云服务与探针」添加探针连接，填 `https://probe.example.com:8008` 和管理员 Token。桌面使用操作系统加密保存，不依赖资产密钥库解锁。

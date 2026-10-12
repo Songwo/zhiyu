@@ -12,6 +12,7 @@ import { completeOnboarding } from "./onboarding-helper.mjs";
 
 // 本测试只使用隔离数据与临时生成的凭据；不读取用户连接、主机或文档。
 const directory = await mkdtemp(join(tmpdir(), "zhiyu-probe-e2e-"));
+const packaged = process.argv[2];
 const binary = resolve(process.env.ZHIYU_PROBE_BINARY ?? "release/qa-probe/zhiyu-probe.exe");
 const token = randomBytes(32).toString("base64url");
 const tokenFile = join(directory, "admin-token");
@@ -66,19 +67,23 @@ let server, agent, instance;
 try {
   server = startServer();
   await waitFor(async () => (await fetch(endpoint + "/healthz")).ok);
-  const env = { ...process.env, NANPAD_TEST_DATA_DIR: join(directory, "desktop") };
+  const dataDirectory = join(directory, "desktop");
+  const env = { ...process.env, NANPAD_TEST_DATA_DIR: dataDirectory };
+  if (packaged) delete env.NANPAD_TEST_DATA_DIR;
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.SINAN_DEV_URL;
-  await mkdir(env.NANPAD_TEST_DATA_DIR, { recursive: true });
+  await mkdir(dataDirectory, { recursive: true });
   await writeFile(
-    join(env.NANPAD_TEST_DATA_DIR, "local-usage.json"),
+    join(dataDirectory, "local-usage.json"),
     JSON.stringify({ version: 1, enabled: false, events: [], checkpoints: [], records: [] }),
   );
-  instance = await electron.launch({ args: [resolve("electron/main.mjs")], env, timeout: 45000 });
-  assert.equal(
-    await instance.evaluate(({ app }) => app.getPath("userData")),
-    env.NANPAD_TEST_DATA_DIR,
-  );
+  instance = await electron.launch({
+    ...(packaged ? { executablePath: resolve(packaged) } : {}),
+    args: packaged ? [`--user-data-dir=${dataDirectory}`] : [resolve("electron/main.mjs")],
+    env,
+    timeout: 45000,
+  });
+  assert.equal(await instance.evaluate(({ app }) => app.getPath("userData")), dataDirectory);
   const page = await instance.firstWindow();
   page.setDefaultTimeout(15000);
   await instance.evaluate(({ BrowserWindow }) => {
@@ -196,7 +201,7 @@ try {
       .resources[0].host.status,
     "online",
   );
-  const raw = await readFile(join(env.NANPAD_TEST_DATA_DIR, "integrations.json"), "utf8");
+  const raw = await readFile(join(dataDirectory, "integrations.json"), "utf8");
   assert.equal(raw.includes(token), false);
   await page.evaluate(() => window.dispatchEvent(new CustomEvent("settings:integrations")));
   await page.getByText("本机真实探针验收", { exact: true }).first().waitFor();
