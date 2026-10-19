@@ -8,6 +8,7 @@ import {
   windowsAppId,
   initializeAppIdentity,
   migrateLegacyWindowsShortcut,
+  portableDataDirectory,
 } from "./services/windows-identity.mjs";
 import { ImageBed } from "./services/image-bed.mjs";
 import { Integrations, INTEGRATION_METHODS } from "./services/integrations.mjs";
@@ -76,7 +77,25 @@ const here = dirname(fileURLToPath(import.meta.url));
 const normalizeImage = createImageNormalizer(nativeImage);
 
 // 固定旧资料路径后再设置系统显示名，防止任务栏和通知重新生成旧 Nanpad 入口。
-initializeAppIdentity(app, { testDataDirectory: process.env.NANPAD_TEST_DATA_DIR });
+const portableDirectory = portableDataDirectory({ packaged: app.isPackaged });
+let PORTABLE = false;
+try {
+  PORTABLE = initializeAppIdentity(app, {
+    testDataDirectory: process.env.NANPAD_TEST_DATA_DIR,
+    portableDirectory,
+  }).portable;
+} catch (error) {
+  if (!portableDirectory) throw error;
+  dialog.showErrorBox(
+    "知屿便携版无法启动",
+    [
+      `无法写入资料目录：${portableDirectory}`,
+      "请把便携版解压到可写入的位置（例如 D:\\Zhiyu 或 U 盘），不要放在 C:\\Program Files 等受保护目录。",
+      error.message,
+    ].join("\n\n"),
+  );
+  process.exit(1);
+}
 // 驱动不兼容时可显式启用软件渲染，默认保留硬件加速。
 if (process.env.NANPAD_DISABLE_GPU === "1") app.disableHardwareAcceleration();
 
@@ -1176,6 +1195,7 @@ function registerIpc() {
     node: process.versions.node,
     userData: app.getPath("userData"),
     packaged: app.isPackaged,
+    portable: PORTABLE,
   }));
 
   const updateEngine = electronUpdater.autoUpdater;
@@ -1186,12 +1206,14 @@ function registerIpc() {
     private: false,
     releaseType: "release",
   });
-  if (process.platform === "win32" && app.isPackaged)
+  if (process.platform === "win32" && app.isPackaged && !PORTABLE)
     updateEngine.installDirectory = dirname(process.execPath);
   const updates = new DesktopUpdater({
     engine: updateEngine,
     current: APP_VERSION,
     supported: app.isPackaged && process.platform === "win32",
+    // 便携版只检查新版本，由用户下载新压缩包覆盖，不运行安装器。
+    manual: PORTABLE,
     publish: (state) => emit("app:update-status", state),
     prepare: async () => {
       await Promise.all([assetWrites, preferenceWrites, ...writes.values(), localUsage.queue]);
@@ -1424,11 +1446,17 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(async () => {
-    if (app.isPackaged && !process.argv.some((arg) => arg.startsWith("--user-data-dir=")))
+    // 便携版不写注册表，保持“解压即用、删除即走”。
+    if (
+      app.isPackaged &&
+      !PORTABLE &&
+      !process.argv.some((arg) => arg.startsWith("--user-data-dir="))
+    )
       app.setAsDefaultProtocolClient("nanpad");
     app.setAppUserModelId(windowsAppId(app.isPackaged));
     if (
       process.platform === "win32" &&
+      !PORTABLE &&
       !process.env.NANPAD_TEST_DATA_DIR &&
       !process.argv.some((arg) => arg === "--user-data-dir" || arg.startsWith("--user-data-dir="))
     ) {

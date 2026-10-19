@@ -3,6 +3,7 @@ import { createReadStream } from "node:fs";
 import { lstat } from "node:fs/promises";
 
 const PAGE = "https://github.com/Songwo/zhiyu/releases/latest";
+const MANUAL_UPDATE = "便携版请在发布页下载新的便携压缩包，解压覆盖程序文件，保留 data 文件夹。";
 
 /** 安装前再次核对已下载文件，拒绝被替换或截断的安装包。 */
 export async function verifyInstaller(file, expected) {
@@ -18,12 +19,20 @@ export async function verifyInstaller(file, expected) {
 
 /** 引擎只由主进程注入；渲染进程不能指定下载地址、文件路径或安装命令。 */
 export class DesktopUpdater {
-  constructor({ engine, current, supported, publish = () => {}, prepare = async () => {} }) {
+  constructor({
+    engine,
+    current,
+    supported,
+    manual = false,
+    publish = () => {},
+    prepare = async () => {},
+  }) {
     this.engine = engine;
     this.supported = supported;
+    this.manual = manual;
     this.publish = publish;
     this.prepare = prepare;
-    this.state = { state: "idle", current, page: PAGE };
+    this.state = { state: "idle", current, page: PAGE, ...(manual ? { manual: true } : {}) };
     this.job = null;
     this.downloaded = null;
     engine.autoDownload = false;
@@ -85,6 +94,7 @@ export class DesktopUpdater {
   }
   download() {
     return this.run(async () => {
+      if (this.manual) throw new Error(MANUAL_UPDATE);
       if (!this.supported || !this.available) throw new Error("请先检查可用的新版本。");
       if (this.state.state === "installing") return this.status();
       this.downloaded = null;
@@ -100,6 +110,7 @@ export class DesktopUpdater {
   install() {
     if (this.state.state === "installing") return Promise.resolve(this.status());
     return this.run(async () => {
+      if (this.manual) throw new Error(MANUAL_UPDATE);
       if (!this.supported || !this.downloaded || this.state.state !== "downloaded")
         throw new Error("请先完整下载并校验更新包。");
       await verifyInstaller(this.downloaded.file, this.downloaded.expected);

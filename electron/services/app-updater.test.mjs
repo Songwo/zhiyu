@@ -108,3 +108,16 @@ test("开发环境与无更新不允许下载；保存失败阻止安装", async
   assert.equal((await updater.check()).state, "current");
   assert.equal((await updater.download()).state, "error");
 });
+
+test("便携版只检查新版本，拒绝下载和运行安装器", async (t) => {
+  const { engine, installs } = await fixture(t);
+  const updater = new DesktopUpdater({ engine, current: "1.4.0", supported: true, manual: true });
+  assert.equal(updater.status().manual, true);
+  assert.equal((await updater.check()).state, "outdated");
+  const downloaded = await updater.download();
+  assert.equal(downloaded.state, "error");
+  assert.match(downloaded.reason, /便携/);
+  assert.equal((await updater.install()).state, "error");
+  await new Promise((done) => setTimeout(done, 350));
+  assert.equal(installs(), 0);
+});

@@ -119,3 +119,42 @@ test("其他应用、独立开发身份与正式版快捷方式保持原样", as
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("便携标记只在 Windows 正式程序旁生效，显式用户目录优先", () => {
+  const execPath = String.raw`D:\Tools\Zhiyu\Zhiyu.exe`;
+  const marker = String.raw`D:\Tools\Zhiyu\portable.txt`;
+  const exists = (path) => path === marker;
+  const base = { packaged: true, platform: "win32", execPath, argv: [execPath], exists };
+  assert.equal(identity.PORTABLE_MARKER, "portable.txt");
+  assert.equal(identity.portableDataDirectory(base), String.raw`D:\Tools\Zhiyu\data`);
+  assert.equal(identity.portableDataDirectory({ ...base, exists: () => false }), null);
+  assert.equal(identity.portableDataDirectory({ ...base, packaged: false }), null);
+  assert.equal(identity.portableDataDirectory({ ...base, platform: "darwin" }), null);
+  assert.equal(
+    identity.portableDataDirectory({ ...base, argv: [execPath, String.raw`--user-data-dir=E:\p`] }),
+    null,
+  );
+});
+
+test("便携模式的资料与会话都写入程序旁目录", async (t) => {
+  const { app, root } = await appFixture(t);
+  const portable = join(root, "Zhiyu", "data");
+  const result = identity.initializeAppIdentity(app, {
+    portableDirectory: portable,
+    platform: "win32",
+  });
+  assert.deepEqual(result, { portable: true });
+  assert.equal(app.getPath("userData"), portable);
+  assert.equal(app.getPath("sessionData"), portable);
+  await assert.rejects(stat(join(root, "Nanpad")), { code: "ENOENT" });
+});
+
+test("开发版忽略便携目录，安装版返回非便携状态", async (t) => {
+  const { app, root } = await appFixture(t, { packaged: false });
+  const result = identity.initializeAppIdentity(app, {
+    portableDirectory: join(root, "data"),
+    platform: "win32",
+  });
+  assert.deepEqual(result, { portable: false });
+  assert.equal(app.getPath("userData"), join(root, "Nanpad"));
+});

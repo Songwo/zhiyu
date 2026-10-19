@@ -132,6 +132,8 @@ export interface AppInfo {
   node: string;
   userData: string;
   packaged: boolean;
+  /** 程序目录有便携标记时，资料保存在程序旁的 data 文件夹。 */
+  portable?: boolean;
 }
 
 export interface UpdateCheck {
@@ -151,6 +153,8 @@ export interface UpdateCheck {
   current: string;
   latest?: string;
   page: string;
+  /** 便携版只提示新版本，由用户下载压缩包覆盖。 */
+  manual?: boolean;
   reason?: string;
 }
 

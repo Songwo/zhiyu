@@ -28,7 +28,8 @@
     "desktop": "node scripts/desktop-dev.mjs",
     "desktop:build": "node node_modules/vite/bin/vite.js build --config vite.desktop.config.ts",
     "desktop:pack": "npm run desktop:build && node scripts/package-desktop.mjs --dir --publish never",
-    "desktop:dist": "npm run desktop:build && node scripts/package-desktop.mjs --publish never"
+    "desktop:dist": "npm run desktop:build && node scripts/package-desktop.mjs --publish never",
+    "desktop:portable": "node scripts/package-portable.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

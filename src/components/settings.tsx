@@ -605,7 +605,32 @@ function About() {
       <Row label={t("当前版本")}>
         <span className="font-mono text-meta tabular-nums">{info?.version ?? "—"}</span>
       </Row>
+      <Row label={t("运行模式")}>
+        <span className="text-meta">
+          {!info ? "—" : info.portable ? t("便携版") : info.packaged ? t("安装版") : t("开发版")}
+        </span>
+      </Row>
       <AppUpdatePanel />
+      <Row
+        label={t("资料目录")}
+        hint={info?.portable ? t("便携版资料随程序目录一起移动。") : undefined}
+      >
+        <div className="flex max-w-72 min-w-0 items-center gap-2">
+          <span className="truncate font-mono text-2xs text-muted" title={info?.userData}>
+            {info?.userData ?? "—"}
+          </span>
+          {bridge && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("打开资料目录")}
+              onClick={() => void bridge.openDataDir()}
+            >
+              <FolderOpen className="size-3.5" />
+            </Button>
+          )}
+        </div>
+      </Row>
       <Row label={t("运行环境")}>
         <span className="font-mono text-2xs text-muted">
           {info ? `Electron ${info.electron} · Node ${info.node} · ${info.arch}` : "—"}

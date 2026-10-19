@@ -65,6 +65,8 @@ jobs:
         run: npm test
       - run: node scripts/updater-engine-integration.mjs
       - run: npm run desktop:dist
+      - name: 生成 Windows 便携版
+        run: npm run desktop:portable
       - name: 验证改名后的安装目录兼容
         run: node scripts/installer-directory-integration.mjs
       - name: 验证正式版彩色图标与任务栏分组
@@ -118,11 +120,14 @@ jobs:
           $directory = "release/v$version"
           $installer = "$directory/Zhiyu-$version-setup.exe"
           $extension = "$directory/Zhiyu-$version-browser-extension.zip"
+          $portable = "$directory/Zhiyu-$version-portable-x64.zip"
+          if (!(Test-Path $portable)) { throw 'Portable archive missing' }
           Compress-Archive -Path "$directory/zhiyu-browser-extension/*" -DestinationPath $extension
           $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
           $extensionHash = (Get-FileHash $extension -Algorithm SHA256).Hash.ToLower()
-          @("$hash  Zhiyu-$version-setup.exe", "$extensionHash  Zhiyu-$version-browser-extension.zip") | Set-Content "$directory/SHA256SUMS.txt" -Encoding utf8
+          $portableHash = (Get-FileHash $portable -Algorithm SHA256).Hash.ToLower()
+          @("$hash  Zhiyu-$version-setup.exe", "$portableHash  Zhiyu-$version-portable-x64.zip", "$extensionHash  Zhiyu-$version-browser-extension.zip") | Set-Content "$directory/SHA256SUMS.txt" -Encoding utf8
           $metadata = "$directory/latest.yml"
           $blockmap = "$installer.blockmap"
           if (!(Test-Path $metadata) -or !(Test-Path $blockmap)) { throw 'Update metadata missing' }
-          gh release create "v$version" $installer $extension $metadata $blockmap "$directory/SHA256SUMS.txt" --verify-tag --title "知屿 Zhiyu $version" --notes-file "docs/releases/v$version.md"
+          gh release create "v$version" $installer $portable $extension $metadata $blockmap "$directory/SHA256SUMS.txt" --verify-tag --title "知屿 Zhiyu $version" --notes-file "docs/releases/v$version.md"

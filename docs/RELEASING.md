@@ -60,7 +60,7 @@ npm run desktop:dist -- --win --x64 --publish never
 
 ## 1.4.0 应用内更新验证
 
-发布必须包含安装包、`.exe.blockmap`、`latest.yml`、配套插件 ZIP 和 SHA256SUMS。`latest.yml` 由同一次 electron-builder 构建生成，不手写摘要；安装包的 SHA512 和长度必须匹配元数据。只上传安装包会导致应用内检查或下载失败。验证默认监控及锁库采集、Markdown 导入与重启保存，并运行更新引擎真实下载和坏校验拒绝测试、更新 UI 与保存失败测试。
+发布必须包含安装包、`.exe.blockmap`、`latest.yml`、Windows 便携版 ZIP、配套插件 ZIP 和 SHA256SUMS。便携版由 `npm run desktop:portable` 从同一次构建的 `win-unpacked` 打包，附加 `portable.txt` 标记，不重新编译。`latest.yml` 由同一次 electron-builder 构建生成，不手写摘要；安装包的 SHA512 和长度必须匹配元数据。只上传安装包会导致应用内检查或下载失败。验证默认监控及锁库采集、Markdown 导入与重启保存，并运行更新引擎真实下载和坏校验拒绝测试、更新 UI 与保存失败测试。
 
 ## 1.5.0 工作区与缓存验证
 

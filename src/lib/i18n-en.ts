@@ -2517,4 +2517,16 @@ export const EN: Record<string, string> = {
   前进: "Forward",
   "后退（Alt+←）": "Back (Alt+←)",
   "前进（Alt+→）": "Forward (Alt+→)",
+  下载新版便携包: "Download new portable build",
+  "便携版不会自动安装。下载新的便携压缩包后，退出知屿，解压覆盖程序文件，保留 data 文件夹即可。":
+    "The portable build does not install updates. Download the new portable archive, quit Zhiyu, extract it over the program files and keep the data folder.",
+  "便携版请在发布页下载新的便携压缩包，解压覆盖程序文件，保留 data 文件夹。":
+    "For the portable build, download the new portable archive from the release page and extract it over the program files, keeping the data folder.",
+  运行模式: "Edition",
+  便携版: "Portable",
+  安装版: "Installed",
+  开发版: "Development",
+  资料目录: "Data folder",
+  打开资料目录: "Open data folder",
+  "便携版资料随程序目录一起移动。": "Portable data moves together with the program folder.",
 };

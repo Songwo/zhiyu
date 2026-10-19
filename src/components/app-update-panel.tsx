@@ -81,7 +81,18 @@ export function AppUpdatePanel() {
         />
       )}
       <div className="mt-4 flex flex-wrap gap-2">
-        {status?.state === "outdated" && (
+        {status?.state === "outdated" && status.manual && (
+          <Button
+            size="sm"
+            onClick={() =>
+              void api?.openExternal("https://github.com/Songwo/zhiyu/releases/latest")
+            }
+          >
+            <Download />
+            {t("下载新版便携包")}
+          </Button>
+        )}
+        {status?.state === "outdated" && !status.manual && (
           <Button size="sm" disabled={working} onClick={() => void run("download")}>
             <Download />
             {t("下载更新")}
@@ -112,6 +123,13 @@ export function AppUpdatePanel() {
           {t("发布页")}
         </Button>
       </div>
+      {status?.state === "outdated" && status.manual && (
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          {t(
+            "便携版不会自动安装。下载新的便携压缩包后，退出知屿，解压覆盖程序文件，保留 data 文件夹即可。",
+          )}
+        </p>
+      )}
       {status?.state === "downloaded" && (
         <p className="mt-3 text-xs leading-relaxed text-muted">
           {t("安装将关闭并重新打开知屿，请先结束正在进行的终端或其他任务。")}
