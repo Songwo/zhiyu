@@ -3,6 +3,7 @@ import {
   Phone,
   ChartNoAxesCombined,
   Bot,
+  Cloud,
   Globe,
   House,
   KeyRound,
@@ -48,27 +49,19 @@ export interface NavGroup {
   }[];
 }
 
+// 按使用场景分组：日常入口在前，同类资产相邻，低频工具收进可折叠分组。
 export const NAV_GROUPS: NavGroup[] = [
   {
-    title: "工作空间",
+    title: "工作台",
     items: [
       { id: "overview", label: "资产总览", icon: House, badgeKey: "total" },
       { id: "docs", label: "文档资产", icon: FileText },
-      { id: "usage", label: "用量记录", icon: ChartNoAxesCombined },
-      { id: "nodes", label: "自建节点", icon: Radio, countKey: "nodes" },
+      { id: "agent", label: "AI 助手", icon: MessagesSquare },
     ],
   },
   {
     title: "基础设施",
     items: [
-      {
-        id: "services",
-        label: "服务资产",
-        icon: Globe,
-        badgeKey: "services",
-        kind: "service",
-        countKey: "services",
-      },
       {
         id: "servers",
         label: "服务器",
@@ -77,6 +70,7 @@ export const NAV_GROUPS: NavGroup[] = [
         kind: "server",
         countKey: "servers",
       },
+      { id: "nodes", label: "自建节点", icon: Radio, countKey: "nodes" },
       {
         id: "domains",
         label: "域名",
@@ -93,13 +87,21 @@ export const NAV_GROUPS: NavGroup[] = [
         kind: "cert",
         countKey: "certs",
       },
+      {
+        id: "services",
+        label: "服务资产",
+        icon: Cloud,
+        badgeKey: "services",
+        kind: "service",
+        countKey: "services",
+      },
     ],
   },
   {
-    title: "智能与通信",
+    title: "账号与订阅",
     items: [
-      { id: "phones", label: "号码管理", icon: Phone, badgeKey: "phones" },
       { id: "ai", label: "AI 订阅", icon: Bot, badgeKey: "ai", kind: "ai", countKey: "aiAssets" },
+      { id: "usage", label: "用量记录", icon: ChartNoAxesCombined },
       {
         id: "mail",
         label: "邮箱",
@@ -108,6 +110,7 @@ export const NAV_GROUPS: NavGroup[] = [
         kind: "mail",
         countKey: "mailboxes",
       },
+      { id: "phones", label: "号码管理", icon: Phone, badgeKey: "phones" },
     ],
   },
   {
@@ -126,10 +129,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "工具",
-    items: [
-      { id: "agent", label: "AI 助手", icon: MessagesSquare },
-      { id: "terminal", label: "终端", icon: SquareTerminal },
-    ],
+    items: [{ id: "terminal", label: "终端", icon: SquareTerminal }],
   },
 ];
 
@@ -168,7 +168,7 @@ export function Sidebar({
   const toolsExpanded = useSettings((s) => s.toolsExpanded);
   const setToolsExpanded = useSettings((s) => s.setToolsExpanded);
   useEffect(() => {
-    if (view === "agent" || view === "terminal") setToolsExpanded(true);
+    if (view === "terminal") setToolsExpanded(true);
   }, [view, setToolsExpanded]);
 
   const totalNodesCount = useMemo(() => {
@@ -210,7 +210,7 @@ export function Sidebar({
         )}
         {...rest}
       >
-        {/* 5 大分组分层导航栏 */}
+        {/* 按场景分组的主导航 */}
         <nav
           aria-label={t("主导航")}
           className="sidebar-nav flex-1 space-y-4 overflow-y-auto px-3 py-5"

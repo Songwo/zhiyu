@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
-import { Search, Sun, Moon, Settings2, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Search,
+  Sun,
+  Moon,
+  Settings2,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { WindowControls } from "./window-controls";
 import { LogoMark } from "./logo";
 import { desktop } from "@/lib/desktop";
+import { goBack, goForward, useNavHistory } from "@/lib/nav-history";
 import { useAppStore } from "@/lib/store";
 import { useSettings } from "@/lib/settings";
 import { t } from "@/lib/i18n";
@@ -15,6 +26,8 @@ export function TitleBar() {
   const setTheme = useSettings((s) => s.setTheme);
   const sidebarCollapsed = useSettings((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettings((s) => s.setSidebarCollapsed);
+  const canBack = useNavHistory((s) => s.past.length > 0);
+  const canForward = useNavHistory((s) => s.future.length > 0);
   const [platform, setPlatform] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
@@ -58,6 +71,28 @@ export function TitleBar() {
         >
           <Menu className="size-5" />
         </button>
+        <div className="nav-history-actions hidden shrink-0 items-center md:flex">
+          <button
+            type="button"
+            className="chrome-action"
+            aria-label={t("后退")}
+            title={t("后退（Alt+←）")}
+            disabled={!canBack}
+            onClick={goBack}
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <button
+            type="button"
+            className="chrome-action"
+            aria-label={t("前进")}
+            title={t("前进（Alt+→）")}
+            disabled={!canForward}
+            onClick={goForward}
+          >
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
         <LogoMark className="size-6 shrink-0" />
         <span className={`truncate text-sm font-semibold ${bridge ? "hidden sm:inline" : ""}`}>
           {t("知屿")} <span className="hidden text-muted sm:inline">Zhiyu</span>

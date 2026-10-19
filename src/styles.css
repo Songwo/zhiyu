@@ -858,6 +858,13 @@
     color: var(--color-ink);
     font-weight: 600;
   }
+  .settings-tab-group {
+    padding: 8px 12px 4px;
+    color: var(--color-muted);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
 
   .theme-option {
     position: relative;
@@ -2263,10 +2270,14 @@ p {
   border-radius: var(--radius-sm);
   color: var(--color-muted);
 }
-.chrome-action:hover,
+.chrome-action:hover:not(:disabled),
 .workspace-search:hover {
   background: var(--color-line);
   color: var(--color-ink);
+}
+.chrome-action:disabled {
+  cursor: default;
+  opacity: 0.35;
 }
 @media (min-width: 768px) {
   .mobile-menu-button {

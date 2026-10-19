@@ -18,6 +18,7 @@ import { Onboarding } from "./onboarding";
 import { MainView, TopTabs } from "./views";
 import { desktop, isDesktop } from "@/lib/desktop";
 import { useLive } from "@/lib/live";
+import { startNavHistory } from "@/lib/nav-history";
 import { usePresence } from "@/lib/motion";
 import { refreshAll } from "@/lib/probes";
 import { migrateSecretValues } from "@/lib/vault-migrate";
@@ -40,6 +41,7 @@ import { t, subscribeLocale, getLocale } from "@/lib/i18n";
 export function AppShell() {
   const locale = useSyncExternalStore(subscribeLocale, getLocale, () => "zh" as const);
   useEffect(() => startLocaleSync(), []);
+  useEffect(() => startNavHistory(), []);
   useEffect(() => startDisplaySync((message) => toast(t("界面大小设置失败：{0}", message))), []);
   useEffect(() => {
     const bridge = desktop();

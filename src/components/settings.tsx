@@ -52,19 +52,40 @@ type Tab =
   | "about"
   | "changelog";
 
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: "profile", label: "个人资料" },
-  { id: "appearance", label: "外观" },
-  { id: "monitoring", label: "监控采集" },
-  { id: "integrations", label: "云服务与探针" },
-  { id: "vault", label: "密钥库" },
-  { id: "data", label: "数据" },
-  { id: "agent", label: "模型与知识库" },
-  { id: "mail-push", label: "邮件推送" },
-  { id: "extension", label: "浏览器插件" },
-  { id: "storage", label: "存储" },
-  { id: "about", label: "关于" },
-  { id: "changelog", label: "更新日志" },
+// 十余个设置项按用途分组，避免平铺列表难以定位。
+const TAB_GROUPS: Array<{ title: string; tabs: Array<{ id: Tab; label: string }> }> = [
+  {
+    title: "个人",
+    tabs: [
+      { id: "profile", label: "个人资料" },
+      { id: "appearance", label: "外观" },
+    ],
+  },
+  {
+    title: "连接与服务",
+    tabs: [
+      { id: "agent", label: "模型与知识库" },
+      { id: "integrations", label: "云服务与探针" },
+      { id: "monitoring", label: "监控采集" },
+      { id: "mail-push", label: "邮件推送" },
+      { id: "extension", label: "浏览器插件" },
+    ],
+  },
+  {
+    title: "数据与安全",
+    tabs: [
+      { id: "vault", label: "密钥库" },
+      { id: "data", label: "数据" },
+      { id: "storage", label: "存储" },
+    ],
+  },
+  {
+    title: "关于",
+    tabs: [
+      { id: "about", label: "关于知屿" },
+      { id: "changelog", label: "更新日志" },
+    ],
+  },
 ];
 
 export function Settings() {
@@ -123,15 +144,21 @@ export function Settings() {
       >
         <nav className="flex min-h-0 w-40 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line p-2">
           <h2 className="px-3 pb-2 pt-3 text-meta font-semibold tracking-tight">{t("设置")}</h2>
-          {TABS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              className={cn("settings-tab", tab === entry.id && "settings-tab-on")}
-              onClick={() => setTab(entry.id)}
-            >
-              {t(entry.label)}
-            </button>
+          {TAB_GROUPS.map((group) => (
+            <div key={group.title} role="group" aria-label={t(group.title)} className="mb-2">
+              <div className="settings-tab-group">{t(group.title)}</div>
+              {group.tabs.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-current={tab === entry.id ? "page" : undefined}
+                  className={cn("settings-tab", tab === entry.id && "settings-tab-on")}
+                  onClick={() => setTab(entry.id)}
+                >
+                  {t(entry.label)}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
