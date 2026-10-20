@@ -544,7 +544,14 @@ function AutoBackup() {
             type="checkbox"
             checked={status.enabled}
             disabled={busy}
-            onChange={(e) => void run(() => api.autoConfigure({ enabled: e.target.checked }))}
+            onChange={(e) => {
+              const enabled = e.target.checked;
+              // 先更新勾选状态再保存，避免等待主进程时复选框弹回；保存失败时还原。
+              setStatus({ ...status, enabled });
+              void run(() => api.autoConfigure({ enabled })).then((ok) => {
+                if (!ok) setStatus((current) => current && { ...current, enabled: !enabled });
+              });
+            }}
           />
           {t("启用自动备份")}
         </label>

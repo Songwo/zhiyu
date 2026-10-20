@@ -154,12 +154,18 @@ try {
   }, autoDirectory);
   settings = await openDataTab(page);
   await settings.getByText(/上次启动已从备份恢复/).waitFor();
+  const autoToggle = settings.getByRole("checkbox", { name: "启用自动备份" });
+  // 尚未选择文件夹时启用会失败，勾选状态必须还原。
+  await autoToggle.click();
+  await settings.getByText("请先选择备份文件夹。").waitFor();
+  assert.equal(await autoToggle.isChecked(), false);
   await settings.getByRole("button", { name: "选择文件夹", exact: true }).click();
   await settings.getByText(autoDirectory).waitFor();
   await settings.getByRole("textbox", { name: "自动备份密码", exact: true }).fill(PASSWORD);
   await settings.getByRole("button", { name: "保存密码", exact: true }).click();
   await settings.getByText("自动备份密码已由系统加密保存在本机。").waitFor();
-  await settings.getByRole("checkbox", { name: "启用自动备份" }).check();
+  await autoToggle.check();
+  await page.waitForFunction(async () => (await window.sinan.backup.autoStatus()).enabled);
   await settings.getByRole("button", { name: "立即备份", exact: true }).click();
   await page.getByText("已完成一次自动备份").waitFor();
   const autoFiles = await readdir(autoDirectory);
