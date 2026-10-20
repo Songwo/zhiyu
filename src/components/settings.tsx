@@ -17,6 +17,7 @@ import { Button } from "./ui/button";
 import { CalendarExport, DesktopSettings } from "./operations-panel";
 import { AgentSettings } from "./agent-settings";
 import { StorageSettings } from "./storage-settings";
+import { BackupSettings } from "./backup-settings";
 import { MailPushSettings } from "./mail-push-settings";
 import { ExtensionSettings } from "./extension-settings";
 import { AppUpdatePanel } from "./app-update-panel";
@@ -191,7 +192,12 @@ export function Settings() {
               </Suspense>
             )}
             {tab === "vault" && <VaultSection />}
-            {tab === "data" && <DataSection />}
+            {tab === "data" && (
+              <>
+                <DataSection />
+                <BackupSettings />
+              </>
+            )}
             {tab === "agent" && <AgentSettings />}
             {tab === "mail-push" && <MailPushSettings />}
             {tab === "extension" && <ExtensionSettings />}
@@ -545,7 +551,10 @@ function DataSection() {
           </Button>
         </Row>
       )}
-      <Row label={t("导出 JSON")} hint={t("只导出资产记录；账号密码与 SSH 凭据不会跟着出去。")}>
+      <Row
+        label={t("导出 JSON")}
+        hint={t("只导出资产记录；账号密码与 SSH 凭据不会跟着出去。完整迁移请使用下方的加密备份。")}
+      >
         <Button
           variant="outline"
           size="sm"

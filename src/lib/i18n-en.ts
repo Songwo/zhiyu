@@ -1,4 +1,5 @@
 import { INTEGRATIONS_EN } from "./i18n-integrations-en.ts";
+import { BACKUP_EN } from "./i18n-backup-en.ts";
 
 /**
  * English strings, keyed by the Chinese source text.
@@ -12,6 +13,7 @@ import { INTEGRATIONS_EN } from "./i18n-integrations-en.ts";
  */
 export const EN: Record<string, string> = {
   ...INTEGRATIONS_EN,
+  ...BACKUP_EN,
   "管理远程用量来源需要先解锁密钥库。": "Unlock your vault to manage remote usage source credentials.",
   "v2rayN 本机流量": "v2rayN local traffic",
   "只读客户端统计，不修改代理设置": "Reads client statistics without changing proxy settings",
@@ -1598,8 +1600,6 @@ export const EN: Record<string, string> = {
     "SSH credentials, per-service account passwords and full secret values all live here.",
   "登录验证通过 · 收件箱 {0} 封，未读 {1} 封":
     "Sign-in verified · {0} messages in the inbox, {1} unread",
-  "只导出资产记录；账号密码与 SSH 凭据不会跟着出去。":
-    "Exports asset records only; account passwords and SSH credentials do not come along.",
   "资产记录是明文 JSON，凭据在同目录下单独加密保存。":
     "Asset records are plain JSON; credentials are encrypted separately in the same folder.",
   "SSH 命令 · ssh config 片段 · 私钥": "SSH command · ssh config block · private key",

@@ -43,7 +43,7 @@ import { BrowserPasswords } from "./services/browser-passwords.mjs";
 import { saveBrowserDocument } from "./services/browser-documents.mjs";
 import { readFileSync, renameSync } from "node:fs";
 import { readFile, writeFile, rename, mkdir, stat, readdir, rm, open } from "node:fs/promises";
-import { dirname, join, posix, relative, isAbsolute } from "node:path";
+import { basename, dirname, join, posix, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SshManager } from "./services/ssh.mjs";
 import { probeCertificate, probeDomain } from "./services/net-probe.mjs";
@@ -72,6 +72,19 @@ import { DocumentAccountImports } from "./services/document-account-imports.mjs"
 import { parseDocumentAccounts } from "./services/document-accounts.mjs";
 import { readMonitorMinutes, validateMonitorMinutes } from "./services/server-monitor.mjs";
 import { mergeDemo, DEMO_KNOWLEDGE } from "./services/demo.mjs";
+import {
+  BACKUP_EXTENSION,
+  applyPendingRestore,
+  assertBackupPassword,
+  backupStamp,
+  createBackup,
+  openBackup,
+  readBackupFile,
+  secureStorageUsable,
+  stageRestore,
+  writeBackupFile,
+} from "./services/backup.mjs";
+import { BackupScheduler } from "./services/backup-schedule.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const normalizeImage = createImageNormalizer(nativeImage);
@@ -142,6 +155,9 @@ let quitting = false;
 let notificationTimer;
 let mailPushTimer;
 let currentSnapshot = {};
+// 启动时替换资料的结果，供设置页和启动提示展示。
+let restoreOutcome = null;
+let restartingForRestore = false;
 let preferences = {
   closeToTray: true,
   notifications: true,
@@ -1219,6 +1235,153 @@ function registerIpc() {
       await Promise.all([assetWrites, preferenceWrites, ...writes.values(), localUsage.queue]);
     },
   });
+  // ---- encrypted backup ---------------------------------------------------
+  const userData = app.getPath("userData");
+  const say = (zh, en) => (preferences.locale === "en" ? en : zh);
+  const insideUserData = (path) => {
+    const fromData = relative(userData, path);
+    return !fromData.startsWith("..") && !isAbsolute(fromData);
+  };
+  // 各存储都用"临时文件 + 改名"原子写入；打包前等排队中的写入落盘，读到的就是一致的最新版本。
+  const flushWrites = async () => {
+    await Promise.all([
+      assetWrites,
+      preferenceWrites,
+      ...writes.values(),
+      localUsage.queue,
+      profile.queue,
+      agent.writes,
+    ]);
+    await Promise.all([documents.listMetadata().catch(() => {}), vault.status().catch(() => {})]);
+  };
+  let backupBusy = false;
+  const exclusiveBackup = async (work) => {
+    if (restartingForRestore) throw new Error("正在重启以完成恢复，请稍候。");
+    if (backupBusy) throw new Error("另一个备份或恢复操作正在进行，请稍候。");
+    backupBusy = true;
+    try {
+      return await work();
+    } finally {
+      backupBusy = false;
+    }
+  };
+  const produceBackup = async ({ password, includeSecure, kind }) => {
+    await flushWrites();
+    return createBackup({
+      root: userData,
+      password,
+      appVersion: APP_VERSION,
+      kind,
+      secureStorage: includeSecure ? safeStorage : null,
+    });
+  };
+  const backupSchedule = new BackupScheduler({
+    file: join(userData, "backup-schedule.json"),
+    secureStorage: safeStorage,
+    // 自动备份无人值守，不解密系统保护的凭据；需要时由用户手动创建完整备份。
+    run: (password) =>
+      exclusiveBackup(
+        async () => (await produceBackup({ password, includeSecure: false, kind: "auto" })).data,
+      ),
+  });
+  backupSchedule.start();
+  app.once("before-quit", () => backupSchedule.stop());
+  handle("backup:info", () => ({
+    lastRestore: restoreOutcome,
+    secureAvailable: secureStorageUsable(safeStorage),
+  }));
+  handle("backup:create", (input) =>
+    exclusiveBackup(async () => {
+      assertBackupPassword(input?.password);
+      const includeSecure = input?.includeSecure === true;
+      if (includeSecure && !vault.unlocked)
+        throw new Error("包含系统保护的凭据前，请先解锁密钥库。");
+      if (includeSecure && !secureStorageUsable(safeStorage))
+        throw new Error("系统加密存储不可用，无法读取系统保护的凭据。");
+      const assertCurrent = includeSecure ? unlockedSession() : () => {};
+      const selected = await dialog.showSaveDialog(win, {
+        title: say("保存加密备份", "Save encrypted backup"),
+        defaultPath: join(
+          app.getPath("documents"),
+          `${say("知屿备份", "zhiyu-backup")}-${backupStamp()}.${BACKUP_EXTENSION}`,
+        ),
+        filters: [{ name: say("知屿加密备份", "Zhiyu backup"), extensions: [BACKUP_EXTENSION] }],
+      });
+      if (selected.canceled || !selected.filePath) return null;
+      if (insideUserData(selected.filePath))
+        throw new Error("请把备份保存到资料目录之外，例如另一块磁盘或 U 盘。");
+      assertCurrent();
+      const { data, preview } = await produceBackup({
+        password: input.password,
+        includeSecure,
+        kind: "manual",
+      });
+      assertCurrent();
+      await writeBackupFile(selected.filePath, data);
+      return { file: basename(selected.filePath), preview };
+    }),
+  );
+  const restoreTickets = new Map();
+  const restorePath = (ticket) => {
+    const item = restoreTickets.get(ticket);
+    if (!item || item.expiresAt < Date.now()) {
+      restoreTickets.delete(ticket);
+      throw new Error("请重新选择备份文件。");
+    }
+    return item.path;
+  };
+  handle("backup:pick", async () => {
+    const selected = await dialog.showOpenDialog(win, {
+      title: say("选择知屿备份", "Choose a Zhiyu backup"),
+      properties: ["openFile"],
+      filters: [{ name: say("知屿加密备份", "Zhiyu backup"), extensions: [BACKUP_EXTENSION] }],
+    });
+    if (selected.canceled || !selected.filePaths[0]) return null;
+    const path = selected.filePaths[0];
+    const info = await stat(path);
+    // 渲染进程只拿到票据，恢复时读取的始终是用户在对话框里选中的文件。
+    const ticket = randomUUID();
+    restoreTickets.clear();
+    restoreTickets.set(ticket, { path, expiresAt: Date.now() + 15 * 60_000 });
+    return { ticket, file: basename(path), size: info.size };
+  });
+  handle("backup:inspect", async (ticket, password) => {
+    const backup = await openBackup(await readBackupFile(restorePath(ticket)), password);
+    return backup.preview;
+  });
+  handle("backup:cancel", (ticket) => {
+    restoreTickets.delete(ticket);
+  });
+  handle("backup:restore", (ticket, password) =>
+    exclusiveBackup(async () => {
+      const backup = await openBackup(await readBackupFile(restorePath(ticket)), password);
+      await flushWrites();
+      const result = await stageRestore({ root: userData, backup, secureStorage: safeStorage });
+      restoreTickets.clear();
+      restartingForRestore = true;
+      // 先把结果返回给界面，再退出；替换在下次启动、任何服务读取资料之前完成。
+      setTimeout(() => {
+        lockVault();
+        app.relaunch();
+        app.quit();
+      }, 800);
+      return result;
+    }),
+  );
+  handle("backup:auto-status", () => backupSchedule.status());
+  handle("backup:auto-configure", (input) => backupSchedule.configure(input));
+  handle("backup:auto-directory", async () => {
+    const selected = await dialog.showOpenDialog(win, {
+      title: say("选择自动备份文件夹", "Choose the auto-backup folder"),
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (selected.canceled || !selected.filePaths[0]) return null;
+    if (insideUserData(selected.filePaths[0]))
+      throw new Error("请选择资料目录之外的文件夹，例如另一块磁盘或网盘同步目录。");
+    return backupSchedule.setDirectory(selected.filePaths[0]);
+  });
+  handle("backup:auto-run", () => backupSchedule.runNow());
+
   handle("app:check-update", () => updates.check());
   handle("app:update-status", () => updates.status());
   handle("app:download-update", () => updates.download());
@@ -1454,6 +1617,13 @@ if (!app.requestSingleInstanceLock()) {
     )
       app.setAsDefaultProtocolClient("nanpad");
     app.setAppUserModelId(windowsAppId(app.isPackaged));
+    // 必须先于读取偏好、资产和创建任何服务：此时没有进程持有资料文件。
+    try {
+      restoreOutcome = await applyPendingRestore(app.getPath("userData"));
+    } catch (error) {
+      restoreOutcome = { status: "failed", message: String(error?.message ?? error) };
+      console.error("backup:restore", error);
+    }
     if (
       process.platform === "win32" &&
       !PORTABLE &&
@@ -1507,6 +1677,12 @@ if (!app.requestSingleInstanceLock()) {
       console.error("tray:create", err.message);
     }
     await createWindow();
+    if (
+      restoreOutcome &&
+      restoreOutcome.status !== "discarded" &&
+      !process.env.NANPAD_TEST_DATA_DIR
+    )
+      void showRestoreOutcome(restoreOutcome);
     notificationTimer = setInterval(notifyAttention, 60_000);
     mailPushTimer = setInterval(() => void mailPush.tick(), 60_000);
     notifyAttention();
@@ -1533,6 +1709,32 @@ if (!app.requestSingleInstanceLock()) {
     ssh?.closeAll();
     tray?.destroy();
     tray = null;
+  });
+}
+
+function showRestoreOutcome(outcome) {
+  const en = preferences.locale === "en";
+  const where = join(app.getPath("userData"), outcome.snapshot ?? "");
+  if (outcome.status === "applied")
+    return dialog.showMessageBox(win, {
+      type: "info",
+      title: en ? "Restored from backup" : "已从备份恢复",
+      message: en ? "Your data was restored from the backup." : "资料已从备份恢复。",
+      detail: en
+        ? `Unlock the vault with the master password that was in use when the backup was made.\n\nThe data you had before restoring is kept in:\n${where}`
+        : `请使用创建备份时的主密码解锁密钥库。\n\n恢复前的资料已保存在：\n${where}`,
+      buttons: [en ? "OK" : "知道了"],
+      noLink: true,
+    });
+  return dialog.showMessageBox(win, {
+    type: "error",
+    title: en ? "Restore incomplete" : "恢复未完成",
+    message: en ? "The backup could not be applied." : "备份未能完整替换当前资料。",
+    detail: en
+      ? `${outcome.message}\n\nNothing was deleted: earlier data is in the restore-snapshots folder and the prepared files are in .restore-pending inside the data folder. Restart Zhiyu to retry.`
+      : `${outcome.message}\n\n没有删除任何资料：原资料在资料目录的 restore-snapshots 中，待恢复的文件在 .restore-pending 中。重新启动知屿会继续尝试。`,
+    buttons: [en ? "OK" : "知道了"],
+    noLink: true,
   });
 }
 
