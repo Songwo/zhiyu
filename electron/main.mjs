@@ -1082,7 +1082,7 @@ function registerIpc() {
       mail: mailClient?.cacheStats() ?? { folders: 0, pages: 0, messages: 0, bytes: 0 },
     };
   });
-  handle("storage:clear", async (_event, scope) => {
+  handle("storage:clear", async (scope) => {
     if (scope === "mail") {
       mailClient?.clearCaches();
       return "mail";
