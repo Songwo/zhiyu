@@ -232,6 +232,7 @@ export interface DesktopBridge {
   mailboxes: import("./mailbox").MailboxesBridge;
   mailClient: import("./mailbox").MailClientBridge;
   mailPush: import("./mail-push").MailPushBridge;
+  backup: import("./backup").BackupBridge;
   storage: {
     stats(): Promise<{
       files: Record<string, number>;

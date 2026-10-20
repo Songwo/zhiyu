@@ -150,6 +150,18 @@ contextBridge.exposeInMainWorld("sinan", {
     save: (input) => unwrap(ipcRenderer.invoke("mail-push:save", input)),
     test: () => unwrap(ipcRenderer.invoke("mail-push:test")),
   },
+  backup: {
+    info: () => unwrap(ipcRenderer.invoke("backup:info")),
+    create: (input) => unwrap(ipcRenderer.invoke("backup:create", input)),
+    pick: () => unwrap(ipcRenderer.invoke("backup:pick")),
+    inspect: (ticket, password) => unwrap(ipcRenderer.invoke("backup:inspect", ticket, password)),
+    cancel: (ticket) => unwrap(ipcRenderer.invoke("backup:cancel", ticket)),
+    restore: (ticket, password) => unwrap(ipcRenderer.invoke("backup:restore", ticket, password)),
+    autoStatus: () => unwrap(ipcRenderer.invoke("backup:auto-status")),
+    autoConfigure: (input) => unwrap(ipcRenderer.invoke("backup:auto-configure", input)),
+    autoDirectory: () => unwrap(ipcRenderer.invoke("backup:auto-directory")),
+    autoRun: () => unwrap(ipcRenderer.invoke("backup:auto-run")),
+  },
   storage: {
     stats: () => unwrap(ipcRenderer.invoke("storage:stats")),
     clear: (scope) => unwrap(ipcRenderer.invoke("storage:clear", scope)),

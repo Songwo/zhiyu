@@ -560,3 +560,6 @@ function open(key, rec) {
 }
 
 export const vaultPath = (userData) => join(userData, "vault.enc");
+
+// 加密备份沿用同一套 scrypt 参数边界与派生实现，不另起一套强度标准。
+export { CURRENT_KDF, MAX_MASTER_LENGTH, MIN_MASTER_LENGTH, deriveKey, normalizeKdf };
