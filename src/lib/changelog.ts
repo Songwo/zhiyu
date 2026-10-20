@@ -13,6 +13,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.7.5",
+    date: "2026-10-20",
+    title: "修复存储清理",
+    changes: [
+      "修复「设置 → 存储」中「清空邮件会话缓存」和「清理网页缓存」总是提示「未知的清理范围」、无法清理的问题。",
+      "发布流程新增存储清理回归测试。",
+    ],
+  },
+  {
     version: "1.7.4",
     date: "2026-10-19",
     title: "导航分组、后退前进与 Windows 便携版",

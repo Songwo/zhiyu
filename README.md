@@ -10,18 +10,18 @@
 
 喜欢知屿的话，欢迎 [Star 本项目](https://github.com/Songwo/zhiyu)、提交 Issue 或贡献改进。
 
-## 最新版本：1.7.4
+## 最新版本：1.7.5
 
 - 左侧导航按工作台、基础设施、账号与订阅、安全与整理重新分组，设置页按用途分组；标题栏新增后退与前进，支持 Alt+←/→ 和鼠标侧键。
 - 新增 Windows 便携版：解压即用，资料保存在程序旁的 `data` 文件夹，详见 [使用教程 · 便携版](docs/USER-GUIDE.md#便携版免安装)。
 - 「用量记录」分为「用量概览」与「订阅与来源」；机场卡片展示额度、到期与节点摘要，可只读查看 v2rayN 本机流量。
 - 「设置 → 云服务与探针」管理 Cloudflare 域名、Workers、Pages 与 Tunnel；可独立部署知屿探针，查看主机指标与服务检查。配置见 [云服务与探针指南](docs/CLOUD-PROBE.md)，部署见 [探针服务端文档](services/probe/README.md)。
 
-具体调整见 [1.7.4 发布说明](docs/releases/v1.7.4.md)。已有资料沿用原数据目录。1.4.0 起支持应用内更新；1.2.3 用户需先安装一次新版。
+1.7.5 修复了「设置 → 存储」中的两个清理按钮无法使用的问题，见 [1.7.5 发布说明](docs/releases/v1.7.5.md)；功能调整见 [1.7.4 发布说明](docs/releases/v1.7.4.md)。已有资料沿用原数据目录。1.4.0 起支持应用内更新；1.2.3 用户需先安装一次新版。
 
 ## 安装与首次使用
 
-1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.7.4-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.7.4-portable-x64.zip`。
+1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.7.5-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.7.5-portable-x64.zip`。
 2. 运行安装程序，选择安装位置。当前安装包未做代码签名，请核对发布者、下载地址和 Release 中的 SHA256 校验文件。
 3. 首次启动可选择「使用 Linux.do 登录」绑定主身份，也可直接使用默认工作区名称。创建 10 至 256 位本地主密码并再次确认，头像可稍后设置；Linux.do 登录不代替主密码，也不能找回主密码。
 4. 已有密钥库的用户确认工作区名称及原主密码即可继续，升级不会自动删除资产或演示记录。
@@ -193,7 +193,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-安装包输出到 `release/v版本号/`，本版为 `release/v1.7.4/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.7.2 发布说明](docs/releases/v1.7.2.md)。
+安装包输出到 `release/v版本号/`，本版为 `release/v1.7.5/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.7.2 发布说明](docs/releases/v1.7.2.md)。
 
 ## 项目结构
 

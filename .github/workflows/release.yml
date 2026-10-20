@@ -94,6 +94,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/sidebar-centering-integration.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/storage-clear-integration.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: npm run extension:build
       - name: 验证正式程序的密码迁移与浏览器接口
         shell: pwsh
