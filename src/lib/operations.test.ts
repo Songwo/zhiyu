@@ -120,3 +120,31 @@ test("号码日历以本地日期筛选30天窗口，不输出号码备注或关
   assert.ok(!JSON.stringify(items).includes("private phone note"));
   assert.ok(!JSON.stringify(items).includes("private-linked-ai"));
 });
+
+test("日历导出包含服务器与服务资产的到期日，且与主机异常提醒不冲突", () => {
+  const snapshot = {
+    ...empty,
+    servers: [
+      {
+        id: "vps",
+        name: "东京 VPS",
+        host: "203.0.113.5",
+        status: "online",
+        cpu: 1,
+        memory: 1,
+        expiresAt: "2026-10-30",
+      },
+      { id: "far", name: "far", status: "online", cpu: 1, memory: 1, expiresAt: "2027-03-01" },
+    ],
+    services: [{ id: "img", name: "图床", status: "online", expiresAt: "2026-10-22" }],
+  } as unknown as Snapshot;
+  const items = calendarItems(snapshot, new Date(2026, 9, 20, 9));
+  assert.deepEqual(
+    items.map((x) => [x.id, x.date]),
+    [
+      ["service-expiry:img", "2026-10-22"],
+      ["server-expiry:vps", "2026-10-30"],
+    ],
+  );
+  assert.ok(createCalendar(items).includes("SUMMARY:东京 VPS"));
+});

@@ -31,6 +31,9 @@ interface SettingsState {
   zoomPercent: ZoomPercent;
   zoomReady: boolean;
   setZoomPercent: (value: ZoomPercent) => Promise<void>;
+  /** 1 美元兑多少人民币；为空时续费视图按币种分开合计，不做换算。 */
+  usdToCny: number | null;
+  setUsdToCny: (rate: number | null) => void;
   assetLayout: "cards" | "table" | "graph";
   setAssetLayout: (layout: "cards" | "table" | "graph") => void;
   language: LocaleChoice;
@@ -40,6 +43,12 @@ interface SettingsState {
   resolved: ResolvedTheme;
   setTheme: (theme: ThemeChoice) => void;
   setResolved: (resolved: ResolvedTheme) => void;
+}
+
+function readRate(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 && value < 1000
+    ? value
+    : null;
 }
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -89,6 +98,8 @@ export const useSettings = create<SettingsState>()(
           set({ zoomPercent });
         }
       },
+      usdToCny: null,
+      setUsdToCny: (rate) => set({ usdToCny: readRate(rate) }),
       assetLayout: "cards",
       setAssetLayout: (assetLayout) => set({ assetLayout }),
       language: "system",
@@ -114,6 +125,7 @@ export const useSettings = create<SettingsState>()(
           serverMonitorMinutes: s.serverMonitorMinutes,
           language: s.language,
           assetLayout: s.assetLayout,
+          usdToCny: s.usdToCny,
           zoomPercent: s.zoomPercent,
           toolsExpanded: s.toolsExpanded,
           sidebarCollapsed: s.sidebarCollapsed,
@@ -131,6 +143,7 @@ export const useSettings = create<SettingsState>()(
           toolsExpanded: saved?.toolsExpanded === true,
           sidebarCollapsed: saved?.sidebarCollapsed === true,
           documentListCollapsed: saved?.documentListCollapsed === true,
+          usdToCny: readRate(saved?.usdToCny),
         };
       },
       onRehydrateStorage: () => (state) => {

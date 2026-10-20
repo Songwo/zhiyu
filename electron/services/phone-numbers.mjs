@@ -1,3 +1,4 @@
+import { normalizeBilling } from "./renewals.mjs";
 /** @param {unknown} value @param {number} limit */
 function text(value, limit) {
   if (value === undefined || value === null) return "";
@@ -33,6 +34,7 @@ export function normalizePhoneNumber(input) {
   ];
   const createdAt = text(value.createdAt, 40);
   const updatedAt = text(value.updatedAt, 40);
+  const billing = normalizeBilling(value.billing);
   if (!Number.isFinite(Date.parse(createdAt)) || !Number.isFinite(Date.parse(updatedAt)))
     throw new Error("号码记录时间无效");
   return {
@@ -45,6 +47,7 @@ export function normalizePhoneNumber(input) {
     subscriptionIds,
     createdAt,
     updatedAt,
+    ...(billing ? { billing } : {}),
   };
 }
 /** @param {unknown} value @param {boolean} [strict] @returns {import("../../src/lib/types").PhoneNumber[]} */

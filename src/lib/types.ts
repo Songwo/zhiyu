@@ -4,6 +4,7 @@ export type ViewId =
   | "phones"
   | "docs"
   | "relations"
+  | "renewals"
   | "usage"
   | "overview"
   | "nodes"
@@ -20,6 +21,17 @@ export type ViewId =
 
 export type AssetKind = "server" | "domain" | "mail" | "ai" | "secret" | "cert" | "service";
 
+export type BillingCurrency = "CNY" | "USD";
+/** 一次性费用（如买断、永久号码）不计入月度和年度支出。 */
+export type BillingCycle = "month" | "year" | "once";
+
+/** 用户填写的续费金额。旧记录没有这个字段，视为未填写。 */
+export interface Billing {
+  amount: number;
+  currency: BillingCurrency;
+  cycle: BillingCycle;
+}
+
 export interface ServiceAsset extends Taggable {
   integration?: import("./integrations").IntegrationRef;
   id: string;
@@ -29,6 +41,9 @@ export interface ServiceAsset extends Taggable {
   provider: string;
   status: Status;
   notes: string;
+  /** 订阅或托管到期日 YYYY-MM-DD。 */
+  expiresAt?: string;
+  billing?: Billing;
 }
 
 /** How the desktop app authenticates to a host. The secret itself is in the vault. */
@@ -105,6 +120,9 @@ export interface Server extends ProbeMeta, Taggable {
   docs?: string;
   nodes?: ProxyNode[];
   customSecrets?: BoundSecretItem[];
+  /** VPS 到期日 YYYY-MM-DD。 */
+  expiresAt?: string;
+  billing?: Billing;
 }
 
 export interface Domain extends ProbeMeta, Taggable {
@@ -120,6 +138,7 @@ export interface Domain extends ProbeMeta, Taggable {
   notes: string;
   statuses?: string[];
   createdAt?: string;
+  billing?: Billing;
 }
 
 export interface Mailbox extends Taggable {
@@ -219,6 +238,7 @@ export interface PhoneNumber {
   subscriptionIds: string[];
   createdAt: string;
   updatedAt: string;
+  billing?: Billing;
 }
 
 export interface Snapshot {

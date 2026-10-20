@@ -1,6 +1,8 @@
 import { hasServerObservation } from "@/lib/server-observation.mjs";
 import { StatusBadge } from "./ui/status-badge";
-import { subscriptionCost } from "@/lib/subscription-cost";
+import { combinedInCny, renewalTimeline, spendSummary } from "../../electron/services/renewals.mjs";
+import { formatMoney } from "@/lib/billing";
+import { useSettings } from "@/lib/settings";
 import { useMemo } from "react";
 import {
   ArrowUpRight,
@@ -9,6 +11,7 @@ import {
   Globe,
   Radio,
   Bot,
+  CalendarClock,
   FileText,
   Phone,
   ChartNoAxesCombined,
@@ -26,11 +29,32 @@ import { createAsset } from "@/lib/create-asset";
 export function Overview() {
   const servers = useAppStore((s) => s.servers);
   const domains = useAppStore((s) => s.domains);
-  const aiAssets = useAppStore((s) => s.aiAssets);
+  const costs = useAppStore(
+    useShallow((s) => ({
+      servers: s.servers,
+      domains: s.domains,
+      services: s.services,
+      phoneNumbers: s.phoneNumbers,
+      aiAssets: s.aiAssets,
+      certs: s.certs,
+    })),
+  );
+  const usdToCny = useSettings((s) => s.usdToCny);
   const counts = useAppStore(useShallow(attentionOf));
   const setView = useAppStore((s) => s.setView);
   const nodes = useMemo(() => servers.flatMap((server) => server.nodes ?? []), [servers]);
-  const monthly = useMemo(() => subscriptionCost(aiAssets), [aiAssets]);
+  const spend = useMemo(() => {
+    const summary = spendSummary(costs);
+    const combined = combinedInCny(summary, usdToCny);
+    const parts = (["CNY", "USD"] as const)
+      .filter((currency) => summary.byCurrency[currency].count > 0)
+      .map((currency) => formatMoney(summary.byCurrency[currency].monthly, currency));
+    return {
+      value:
+        combined && parts.length > 1 ? formatMoney(combined.monthly, "CNY") : parts.join(" + "),
+      due: renewalTimeline(costs, { withinDays: 30 }).filter((entry) => entry.days >= 0).length,
+    };
+  }, [costs, usdToCny]);
   const stats: {
     label: string;
     value: number | string;
@@ -67,16 +91,11 @@ export function Overview() {
       view: "nodes",
     },
     {
-      label: "AI 月度订阅",
-      value:
-        monthly.known === 0 && monthly.missing > 0
-          ? t("月费未填写")
-          : "$" + monthly.total.toFixed(2),
-      detail: monthly.missing
-        ? t("另有 {0} 个订阅未提供月费", monthly.missing)
-        : t("{0} 项订阅", aiAssets.length),
-      icon: Bot,
-      view: "ai",
+      label: "每月支出",
+      value: spend.value || t("未填写费用"),
+      detail: t("30 天内 {0} 项到期", spend.due),
+      icon: CalendarClock,
+      view: "renewals",
     },
   ];
   return (

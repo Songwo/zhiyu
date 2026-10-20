@@ -1,4 +1,5 @@
 import { phoneExpiry } from "../../electron/services/phone-numbers.mjs";
+import { extraExpiryCandidates } from "../../electron/services/renewals.mjs";
 import { serverNeedsAttention } from "./server-observation.mjs";
 import type { AssetKind, Snapshot } from "./types.ts";
 import { t } from "./i18n.ts";
@@ -136,6 +137,15 @@ export function calendarItems(s: Snapshot, now = new Date()): CalendarItem[] {
         );
     }
   }
+  // VPS 与服务资产的到期日与 AI 订阅相同，提前 21 天进入提醒；id 与异常提醒区分开。
+  for (const x of extraExpiryCandidates(s, now))
+    add(
+      `${x.kind}-expiry`,
+      x.id,
+      x.name,
+      x.date,
+      t(x.kind === "server" ? "服务器到期，请确认续费" : "服务到期，请确认续费"),
+    );
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 

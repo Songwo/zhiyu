@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { phoneExpiry } from "../../electron/services/phone-numbers.mjs";
+import { billingFromForm } from "../../electron/services/renewals.mjs";
+import { billingFormValues, formatBilling } from "@/lib/billing";
+import { BillingFields } from "./billing-fields";
 import { phonePage, visiblePhoneNumbers, type PhoneFilter } from "@/lib/phone-view.mjs";
 import { useAppStore } from "@/lib/store";
 import type { PhoneNumber } from "@/lib/types";
@@ -240,9 +243,14 @@ export function PhoneWorkspace() {
                       {[record.label, record.provider].filter(Boolean).join(" · ")}
                     </p>
                   )}
-                  {record.expiresAt && (
+                  {(record.expiresAt || record.billing) && (
                     <p className="mt-1 text-meta text-muted">
-                      {t("到期日：{0}", record.expiresAt)}
+                      {[
+                        record.expiresAt && t("到期日：{0}", record.expiresAt),
+                        record.billing && formatBilling(record.billing),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   )}
                 </div>
@@ -405,6 +413,7 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
     expiresAt: record?.expiresAt ?? "",
     notes: record?.notes ?? "",
     subscriptionIds: record?.subscriptionIds ?? [],
+    ...billingFormValues(record?.billing),
   }));
   const [error, setError] = useState("");
   const [accountQuery, setAccountQuery] = useState("");
@@ -432,8 +441,14 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
     setError("");
     try {
       const now = new Date().toISOString();
+      const { billingAmount, billingCurrency, billingCycle, ...fields } = form;
       save({
-        ...form,
+        ...fields,
+        billing: billingFromForm({
+          amount: billingAmount,
+          currency: billingCurrency,
+          cycle: billingCycle,
+        }),
         id: record?.id ?? crypto.randomUUID(),
         createdAt: record?.createdAt ?? now,
         updatedAt: now,
@@ -492,6 +507,10 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
                 onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
               />
             </Field>
+            <BillingFields
+              values={form}
+              set={(key, value) => setForm((current) => ({ ...current, [key]: value }))}
+            />
           </div>
           <fieldset className="mt-4">
             <legend className="text-meta font-medium text-muted">

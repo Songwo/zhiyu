@@ -1,4 +1,5 @@
 import { phoneExpiry } from "./phone-numbers.mjs";
+import { extraExpiryCandidates } from "./renewals.mjs";
 
 export function notificationCandidates(snapshot, now = Date.now()) {
   const out = [];
@@ -32,6 +33,17 @@ export function notificationCandidates(snapshot, now = Date.now()) {
         days,
       });
     }
+  }
+  // 服务器（VPS）和服务资产的到期日是可选字段，只在填写后提醒。
+  for (const x of extraExpiryCandidates(snapshot, new Date(now))) {
+    out.push({
+      key: `${x.kind}:${x.id}:expiry:${x.date}:${x.days <= 0 ? "expired" : x.days <= 7 ? "week" : "soon"}`,
+      kind: x.kind,
+      id: x.id,
+      name: x.name,
+      reason: "expiry",
+      days: x.days,
+    });
   }
   for (const phone of snapshot.phoneNumbers ?? []) {
     const { days, status } = phoneExpiry(phone.expiresAt, new Date(now));
