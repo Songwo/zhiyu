@@ -57,6 +57,7 @@ jobs:
             sleep 1
           done
           npm run check:auth &&
+          node scripts/overview-hydration-integration.mjs &&
           node scripts/agent-composer-integration.mjs &&
           node scripts/agent-access-ui-integration.mjs &&
           node scripts/usage-live-chart-integration.mjs

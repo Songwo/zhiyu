@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 import { ChevronLeft, ChevronRight, History } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import {
@@ -23,8 +30,26 @@ const categories = [
   ["system", "其他活动"],
 ] as const;
 
+const placeholderDays = Array.from({ length: 14 }, (_, index) => index);
+const subscribeNothing = () => () => {};
+
+/**
+ * SSR 与 hydration 首帧为 false，此后（以及纯客户端渲染）为 true。
+ *
+ * 日期桶、条数和时间文字都取决于“现在”、本机时区和示例数据生成的时刻，
+ * 服务端与浏览器不可能一致；跨午夜时数字不同，React 就会整页报 hydration 失败。
+ */
+function useMounted() {
+  return useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  );
+}
+
 export function ActivityJournal() {
   const activity = useAppStore((state) => state.activity);
+  const mounted = useMounted();
   const [clock, setClock] = useState(() => Date.now());
   const chartRef = useRef<HTMLDivElement>(null);
   const [date, setDate] = useState("");
@@ -44,7 +69,9 @@ export function ActivityJournal() {
     observer.observe(chart);
     return () => observer.disconnect();
   }, []);
-  const { records, days, result, dates } = useMemo(() => {
+  const view = useMemo(() => {
+    // 首帧只渲染与时间无关的占位，挂载后再按浏览器时钟计算。
+    if (!mounted) return null;
     const now = new Date(Math.max(clock, Date.now()));
     const records = retainActivity(activity, now);
     return {
@@ -55,7 +82,8 @@ export function ActivityJournal() {
         .sort()
         .reverse(),
     };
-  }, [activity, clock, date, kind, page]);
+  }, [mounted, activity, clock, date, kind, page]);
+  const days = view?.days ?? [];
   const largest = Math.max(1, ...days.map((day) => day.count));
   const total = days.reduce((sum, day) => sum + day.count, 0);
   const activeDays = days.filter((day) => day.count > 0).length;
@@ -65,7 +93,11 @@ export function ActivityJournal() {
   };
 
   return (
-    <section className="workspace-panel activity-journal" aria-label={t("每日活动")}>
+    <section
+      className="workspace-panel activity-journal"
+      aria-label={t("每日活动")}
+      aria-busy={!view}
+    >
       <div className="panel-heading">
         <h2 className="flex items-center gap-2">
           <History className="size-4 text-muted" />
@@ -74,8 +106,8 @@ export function ActivityJournal() {
         <span className="text-xs text-muted">{t("保留近 90 天，最多 3000 条")}</span>
       </div>
       <div className="activity-chart-heading">
-        <p>{t("近 14 天 · {0} 条活动", total)}</p>
-        <span>{t("{0} 天有活动", activeDays)}</span>
+        <p>{view ? t("近 14 天 · {0} 条活动", total) : <>&nbsp;</>}</p>
+        <span>{view ? t("{0} 天有活动", activeDays) : ""}</span>
       </div>
       <div
         ref={chartRef}
@@ -111,6 +143,20 @@ export function ActivityJournal() {
               </span>
             </button>
           ))}
+          {!view &&
+            placeholderDays.map((index) => (
+              <span key={index} className="activity-day" aria-hidden="true">
+                <span className="activity-day-count" />
+                <span className="activity-day-track">
+                  <span
+                    className="activity-day-fill"
+                    style={{ "--activity-height": "4%" } as CSSProperties}
+                    data-empty
+                  />
+                </span>
+                <span className="activity-day-date">&nbsp;</span>
+              </span>
+            ))}
         </div>
       </div>
       <div className="activity-filters">
@@ -120,7 +166,7 @@ export function ActivityJournal() {
           onValueChange={changeDate}
           options={[
             { value: "", label: t("全部日期") },
-            ...[...new Set([...dates, ...(date ? [date] : [])])]
+            ...[...new Set([...(view?.dates ?? []), ...(date ? [date] : [])])]
               .sort()
               .reverse()
               .map((value) => ({ value, label: value })),
@@ -148,20 +194,24 @@ export function ActivityJournal() {
           </Button>
         )}
       </div>
-      {result.items.length ? (
+      {!view ? (
+        <p className="activity-empty" aria-hidden="true">
+          &nbsp;
+        </p>
+      ) : view.result.items.length ? (
         <ul
-          key={`${date}:${kind}:${result.page}`}
+          key={`${date}:${kind}:${view.result.page}`}
           className="activity-entries"
           tabIndex={0}
           aria-label={t("活动明细")}
         >
-          {result.items.map((entry) => (
+          {view.result.items.map((entry) => (
             <li key={entry.id}>
               <div className="activity-entry-meta">
                 <span>
                   {t(categories.find(([value]) => value === entry.kind)?.[1] ?? "其他活动")}
                 </span>
-                <time dateTime={entry.at} suppressHydrationWarning>
+                <time dateTime={entry.at}>
                   {new Date(entry.at).toLocaleString(intlLocale(), {
                     month: "2-digit",
                     day: "2-digit",
@@ -177,22 +227,31 @@ export function ActivityJournal() {
         </ul>
       ) : (
         <p className="activity-empty">
-          {records.length
+          {view.records.length
             ? t("这一天或类别下没有活动。")
             : t("暂无活动。查看资产、保存修改或手动检查后会在这里记录。")}
         </p>
       )}
       <div className="activity-pagination">
         <span aria-live="polite">
-          {t("共 {0} 条 · 第 {1} / {2} 页", result.total, result.page, result.totalPages)}
+          {view ? (
+            t(
+              "共 {0} 条 · 第 {1} / {2} 页",
+              view.result.total,
+              view.result.page,
+              view.result.totalPages,
+            )
+          ) : (
+            <>&nbsp;</>
+          )}
         </span>
         <div className="flex gap-1">
           <Button
             variant="ghost"
             size="icon-sm"
             aria-label={t("上一页活动")}
-            disabled={result.page <= 1}
-            onClick={() => setPage(result.page - 1)}
+            disabled={!view || view.result.page <= 1}
+            onClick={() => view && setPage(view.result.page - 1)}
           >
             <ChevronLeft />
           </Button>
@@ -200,8 +259,8 @@ export function ActivityJournal() {
             variant="ghost"
             size="icon-sm"
             aria-label={t("下一页活动")}
-            disabled={result.page >= result.totalPages}
-            onClick={() => setPage(result.page + 1)}
+            disabled={!view || view.result.page >= view.result.totalPages}
+            onClick={() => view && setPage(view.result.page + 1)}
           >
             <ChevronRight />
           </Button>
