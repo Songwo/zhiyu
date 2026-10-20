@@ -1,4 +1,5 @@
 import { normalizeIntegrationRef } from "./integration-ref.mjs";
+import { calendarDay, normalizeBilling } from "./renewals.mjs";
 const CATEGORIES = new Set(["worker", "blog", "mail", "custom"]);
 const STATUSES = new Set(["online", "warning", "offline"]);
 
@@ -44,6 +45,8 @@ export function normalizeService(value) {
     tags.some((tag) => typeof tag !== "string" || tag.length > 100)
   )
     throw new Error("服务标签无效。");
+  const expiresAt = calendarDay(item.expiresAt);
+  const billing = normalizeBilling(item.billing);
   return {
     id,
     name,
@@ -56,6 +59,8 @@ export function normalizeService(value) {
     ...(typeof item.imageDataUrl === "string" ? { imageDataUrl: item.imageDataUrl } : {}),
     ...(item.demo === true ? { demo: true } : {}),
     ...(item.integration == null ? {} : { integration: normalizeIntegrationRef(item.integration) }),
+    ...(expiresAt ? { expiresAt } : {}),
+    ...(billing ? { billing } : {}),
   };
 }
 

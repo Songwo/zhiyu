@@ -7,6 +7,7 @@ import type {
   ActivityItem,
   AiAsset,
   AssetKind,
+  Billing,
   Certificate,
   Domain,
   Mailbox,
@@ -30,6 +31,7 @@ import {
   normalizePhoneNumbers,
 } from "../../electron/services/phone-numbers.mjs";
 import { normalizeUsageDraft } from "./usage-setup.mjs";
+import { calendarDay, normalizeBilling } from "../../electron/services/renewals.mjs";
 import { retainActivity } from "./activity-history.mjs";
 
 export interface UsageSetupDraft {
@@ -407,8 +409,8 @@ export const useAppStore = create<AppState>()(
         set({
           links: normalizeLinks(snap.links, snap),
           phoneNumbers: normalizePhoneNumbers(snap.phoneNumbers),
-          servers: snap.servers ?? [],
-          domains: snap.domains ?? [],
+          servers: withServerExpiry(snap.servers ?? []),
+          domains: withBilling(snap.domains ?? []),
           mailboxes: snap.mailboxes ?? [],
           mailFolders: normalizeMailFolders(snap.mailFolders),
           secretFolders: normalizeSecretFolders(snap.secretFolders),
@@ -436,8 +438,8 @@ export const useAppStore = create<AppState>()(
           ...saved,
           activity: retainActivity(saved.activity ?? current.activity),
           phoneNumbers: normalizePhoneNumbers(saved.phoneNumbers, false),
-          servers: withTags(saved.servers),
-          domains: withTags(saved.domains),
+          servers: withServerExpiry(withTags(saved.servers)),
+          domains: withBilling(withTags(saved.domains)),
           mailboxes: withTags(saved.mailboxes),
           mailFolders: normalizeMailFolders(saved.mailFolders),
           secretFolders: normalizeSecretFolders(saved.secretFolders),
@@ -476,6 +478,23 @@ export const useAppStore = create<AppState>()(
 
 function withTags<T extends { tags?: string[] }>(list: T[] | undefined): T[] {
   return (list ?? []).map((x) => (Array.isArray(x.tags) ? x : { ...x, tags: [] }));
+}
+
+/** 费用是后加的可选字段：缺失保持缺失，残缺或非法的值直接去掉。 */
+function withBilling<T extends { billing?: Billing }>(list: T[]): T[] {
+  return list.map((x) => {
+    const { billing: raw, ...rest } = x;
+    const billing = normalizeBilling(raw);
+    return { ...rest, ...(billing ? { billing } : {}) } as T;
+  });
+}
+
+/** 服务器的 VPS 到期日同样是可选字段，统一成 YYYY-MM-DD。 */
+function withServerExpiry(list: Server[]): Server[] {
+  return withBilling(list).map(({ expiresAt: raw, ...rest }) => {
+    const expiresAt = calendarDay(raw);
+    return expiresAt ? { ...rest, expiresAt } : rest;
+  });
 }
 
 function upsert<T extends { id: string }>(list: T[], item: T): T[] {

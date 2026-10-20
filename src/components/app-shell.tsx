@@ -119,6 +119,7 @@ export function AppShell() {
     view === "phones" ||
     view === "agent" ||
     view === "overview" ||
+    view === "renewals" ||
     view === "relations";
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
   const vaultUnlocked = useVault((s) => s.unlocked);

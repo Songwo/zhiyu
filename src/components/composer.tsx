@@ -7,6 +7,7 @@ import { MailLogin } from "./mail-login";
 import { SmartPaste } from "./smart-paste";
 import { AiAccountsPanel } from "./ai-accounts";
 import { ImagePicker } from "./image-picker";
+import { BillingFields } from "./billing-fields";
 import { Button } from "./ui/button";
 import { Field, Input, Select, Textarea } from "./ui/input";
 import { accountId, credentialId, desktop, isDesktop } from "@/lib/desktop";
@@ -18,6 +19,7 @@ import { useAppStore } from "@/lib/store";
 import type {
   AiAsset,
   AssetKind,
+  Billing,
   Certificate,
   Domain,
   Mailbox,
@@ -29,6 +31,8 @@ import type {
 import { normalizeService } from "../../electron/services/service-assets.mjs";
 import { SERVICE_LABELS } from "@/lib/services";
 import { uid } from "@/lib/utils";
+import { billingFormValues } from "@/lib/billing";
+import { billingFromForm } from "../../electron/services/renewals.mjs";
 import { t } from "@/lib/i18n";
 import { accountMetadataFromForm, clearAccountDraft } from "@/lib/account-record.mjs";
 import {
@@ -212,6 +216,14 @@ function ComposerBody({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (imageBusy || saving) return;
+    if (["server", "domain", "service"].includes(kind)) {
+      try {
+        billingOf(form);
+      } catch (error) {
+        toast.error(t(error instanceof Error ? error.message : String(error)));
+        return;
+      }
+    }
     if (standaloneAccount && !isDesktop()) {
       toast.error(t("账号密码需要桌面版的加密密钥库，网页版不会保存账号凭据。"));
       return;
@@ -633,6 +645,7 @@ function ServerFields({
           />
         </div>
       )}
+      <BillingFields values={form} set={set} date={{ key: "expiresAt", label: t("VPS 到期日") }} />
       <details className="rounded-xl border border-line p-3">
         <summary className="cursor-pointer text-meta font-medium">{t("更多信息（可选）")}</summary>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -758,6 +771,12 @@ function kindFields(
             ]}
           />
         </Field>,
+        <BillingFields
+          key="_billing"
+          values={form}
+          set={set}
+          date={{ key: "expiresAt", label: t("到期日") }}
+        />,
         F("tags", t("标签（逗号分隔）"), { span: true }),
         F("notes", t("说明"), { span: true, area: true }),
         <p key="privacy" className="text-meta text-muted sm:col-span-2">
@@ -770,6 +789,7 @@ function kindFields(
         F("registrar", t("注册商")),
         F("dns", "DNS"),
         F("expiresAt", t("到期日 YYYY-MM-DD"), { span: true }),
+        <BillingFields key="_billing" values={form} set={set} />,
         F("tags", t("标签（逗号分隔）"), { span: true }),
         F("notes", t("说明"), { span: true, area: true }),
       ];
@@ -872,6 +892,9 @@ function defaults(kind: AssetKind, existing: unknown): Record<string, string> {
     }
     if (kind === "server" && o.authKind) out._authKind = String(o.authKind);
     if (kind === "ai" && o.monthlyUsdKnown === false) out.monthlyUsd = "";
+    delete out.billing;
+    if (kind === "server" || kind === "domain" || kind === "service")
+      Object.assign(out, billingFormValues(o.billing as Billing | undefined));
     return out;
   }
   const today = new Date().toISOString().slice(0, 10);
@@ -955,7 +978,11 @@ function persist(
         pendingLabel: t("未采集"),
         mode: serverMode,
       });
-      s.upsertServer(item);
+      s.upsertServer({
+        ...item,
+        expiresAt: form.expiresAt?.trim() || undefined,
+        billing: billingOf(form),
+      });
       break;
     }
     case "domain": {
@@ -969,6 +996,7 @@ function persist(
         dns: form.dns,
         nameservers: ["ada.ns.cloudflare.com", "bob.ns.cloudflare.com"],
         autoRenew: false,
+        billing: billingOf(form),
         tags: parseTags(form.tags ?? ""),
         status: statusOf(form.expiresAt),
         notes: form.notes,
@@ -1088,6 +1116,8 @@ function persist(
           notes: form.notes,
           tags: parseTags(form.tags ?? ""),
           imageDataUrl: form.imageDataUrl || "",
+          expiresAt: form.expiresAt,
+          billing: billingOf(form),
         }),
       );
       break;
@@ -1116,6 +1146,14 @@ function persist(
       break;
     }
   }
+}
+
+function billingOf(form: Record<string, string>): Billing | undefined {
+  return billingFromForm({
+    amount: form.billingAmount,
+    currency: form.billingCurrency,
+    cycle: form.billingCycle,
+  });
 }
 
 function split(v: string): string[] {

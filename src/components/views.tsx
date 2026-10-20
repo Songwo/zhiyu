@@ -6,6 +6,9 @@ const DocumentsWorkspace = lazy(() =>
 const PhoneWorkspace = lazy(() =>
   import("./phone-workspace").then((module) => ({ default: module.PhoneWorkspace })),
 );
+const RenewalsWorkspace = lazy(() =>
+  import("./renewals-workspace").then((m) => ({ default: m.RenewalsWorkspace })),
+);
 const UsageWorkspace = lazy(() =>
   import("./usage-workspace").then((m) => ({ default: m.UsageWorkspace })),
 );
@@ -94,6 +97,8 @@ function ViewBody() {
       return <UsageWorkspace />;
     case "phones":
       return <PhoneWorkspace />;
+    case "renewals":
+      return <RenewalsWorkspace />;
     case "overview":
       return <Overview />;
     case "nodes":
@@ -262,6 +267,7 @@ function ListHeader() {
 /** Which live probe the refresh button in this view should run. */
 const PROBE_KIND: Record<ViewId, ProbeKind | null> = {
   relations: null,
+  renewals: null,
   phones: null,
   docs: null,
   usage: null,
@@ -281,6 +287,7 @@ const PROBE_KIND: Record<ViewId, ProbeKind | null> = {
 
 const BADGE_KEY: Record<ViewId, keyof ReturnType<typeof attentionOf>> = {
   relations: "total",
+  renewals: "total",
   phones: "phones",
   docs: "total",
   usage: "total",

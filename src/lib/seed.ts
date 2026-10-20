@@ -27,6 +27,8 @@ export const SEED_SERVERS: Server[] = [
     uptime: "47 天",
     lastSeen: new Date(Date.now() - 42_000).toISOString(),
     notes: "主站与 API 网关。Cloudflare 回源，夜间 02:00 备份到 hz-backup。",
+    expiresAt: isoInDays(9).slice(0, 10),
+    billing: { amount: 24, currency: "USD", cycle: "month" },
     docs: `# 东京生产网关运维备忘
 
 ## 1. 核心服务架构
@@ -88,6 +90,8 @@ curl -I https://47.74.18.102:443
     uptime: "12 天",
     lastSeen: new Date(Date.now() - 8_000).toISOString(),
     notes: "边缘节点，CPU 持续偏高。计划本周扩容 2C。",
+    expiresAt: isoInDays(47).slice(0, 10),
+    billing: { amount: 299, currency: "CNY", cycle: "year" },
     nodes: [
       {
         id: "nod_hk_01",
@@ -155,6 +159,7 @@ curl -I https://47.74.18.102:443
     uptime: "210 天",
     lastSeen: new Date(Date.now() - 120_000).toISOString(),
     notes: "冷备与对象存储网关。磁盘占用已过 70%，下月扩容。",
+    billing: { amount: 45, currency: "CNY", cycle: "month" },
   },
 ];
 
@@ -170,6 +175,7 @@ export const SEED_DOMAINS: Domain[] = [
     autoRenew: true,
     status: "online",
     notes: "主站与控制台。DNSSEC 已开。",
+    billing: { amount: 79, currency: "CNY", cycle: "year" },
   },
   {
     id: "dom_mail",
@@ -182,6 +188,7 @@ export const SEED_DOMAINS: Domain[] = [
     autoRenew: false,
     status: "warning",
     notes: "个人域名，自动续费未开。18 天内到期。",
+    billing: { amount: 12, currency: "USD", cycle: "year" },
   },
   {
     id: "dom_api",
@@ -206,6 +213,7 @@ export const SEED_DOMAINS: Domain[] = [
     autoRenew: false,
     status: "offline",
     notes: "即将到期，且未开自动续费。",
+    billing: { amount: 35, currency: "USD", cycle: "year" },
   },
 ];
 
