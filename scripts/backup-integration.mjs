@@ -21,6 +21,8 @@ async function launch(directory) {
   const instance = await electron.launch({
     args: [resolve("electron/main.mjs")],
     env,
+    // 发布流水线运行在英文系统上；定位器依赖中文界面文字。
+    locale: "zh-CN",
     timeout: 45000,
   });
   const page = await instance.firstWindow();
