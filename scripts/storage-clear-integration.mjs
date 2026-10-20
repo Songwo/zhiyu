@@ -12,7 +12,12 @@ delete env.ELECTRON_RUN_AS_NODE;
 delete env.SINAN_DEV_URL;
 let instance;
 try {
-  instance = await electron.launch({ args: [resolve("electron/main.mjs")], env, timeout: 45000 });
+  instance = await electron.launch({
+    args: [resolve("electron/main.mjs")],
+    env,
+    locale: "zh-CN",
+    timeout: 45000,
+  });
   const page = await instance.firstWindow();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
