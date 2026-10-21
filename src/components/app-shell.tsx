@@ -207,14 +207,15 @@ export function AppShell() {
   return (
     <div
       data-app-ready={hydrated}
-      className="flex h-[var(--app-viewport-height,100dvh)] min-h-0 flex-col bg-canvas text-ink"
+      className="app-frame flex h-[var(--app-viewport-height,100dvh)] min-h-0 bg-chrome text-ink"
     >
-      <TitleBar />
-      <div className="flex min-h-0 flex-1">
-        <Sidebar collapsible className="hidden md:flex" />
-        <MobileDrawer />
+      <Sidebar collapsible className="hidden md:flex" />
+      <MobileDrawer />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+      {/* 主面板：灰色窗口底上的圆角白卡，标题栏与页面都在卡内。 */}
+      <div className="app-main flex min-w-0 flex-1 flex-col">
+        <div className="app-panel flex min-h-0 flex-1 flex-col">
+          <TitleBar />
           {/* 对话使用内部滚动；资产视图保留两列共用的滚动区域。 */}
           <div
             ref={workspaceScroll}

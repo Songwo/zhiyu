@@ -14,7 +14,7 @@ const UsageWorkspace = lazy(() =>
 );
 import { lazy, Suspense, useMemo, type ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Search, SquareTerminal, X, LayoutGrid, Table2, Network } from "lucide-react";
+import { Search, SquareTerminal, X, LayoutGrid, Table2, Network, Plus } from "lucide-react";
 const AssetWorkspace = lazy(() =>
   import("./asset-workspace").then((module) => ({ default: module.AssetWorkspace })),
 );
@@ -49,7 +49,7 @@ import { groupByTag, matchesTags, tagIndex, tagsOf } from "@/lib/tags";
 import type { AssetKind, Status, Taggable, ViewId } from "@/lib/types";
 import { cn, formatUsd } from "@/lib/utils";
 import { t } from "@/lib/i18n";
-import { CREATE_LABELS } from "@/lib/create-asset";
+import { CREATE_LABELS, createAsset } from "@/lib/create-asset";
 
 export function MainView() {
   const view = useAppStore((s) => s.view);
@@ -126,31 +126,74 @@ function ViewBody() {
 
 function NodesView() {
   return (
-    <div className="mx-4 mt-5 space-y-5 pb-24">
+    <div className="mx-4 mt-1 space-y-5 pb-24">
       <GlobalNodesHub />
     </div>
   );
 }
+
+/** 每个页面标题下的一句说明。 */
+const PAGE_DESC: Partial<Record<ViewId, string>> = {
+  overview: "集中管理资产，快速找到需要处理的事项。",
+  renewals: "按到期时间查看续费，按月、按年折算支出。",
+  agent: "接上你自己的模型，直接询问自己的资产。",
+  servers: "主机状态、指标采样与 SSH 终端。",
+  nodes: "自建节点的状态、流量与订阅来源。",
+  domains: "域名注册信息、DNS 与到期时间。",
+  certs: "TLS 证书检查与到期提醒。",
+  services: "在线服务与云资源的台账。",
+  ai: "AI 订阅的额度、用量与月度开支。",
+  usage: "按来源、日期与模型查看用量。机场总用量、本机客户端流量和 AI Token 分别统计。",
+  mail: "邮箱文件夹、阅读与新邮件提醒。",
+  vault: "加密保存的账号、密码与密钥。",
+  tags: "按标签跨类别整理资产。",
+  relations: "资产与文档之间的真实关联。",
+  terminal: "已打开的 SSH 会话。",
+};
+
+const LIST_VIEWS: ViewId[] = [
+  "servers",
+  "services",
+  "domains",
+  "ai",
+  "certs",
+  "tags",
+  "vault",
+  "mail",
+];
 
 export function TopTabs() {
   const view = useAppStore((s) => s.view);
   const item = NAV.find((entry) => entry.id === view);
   const openComposer = useAppStore((s) => s.openComposer);
   if (view === "docs") return null;
+  const desc = PAGE_DESC[view];
   return (
-    <div className="sticky top-0 z-20 border-b border-line bg-canvas">
-      <div className="page-view-heading flex min-h-16 items-center justify-between gap-3 px-4 md:px-6">
-        <h1 className="text-xl font-semibold tracking-tight">{t(item?.label ?? "资产总览")}</h1>
-        {item?.kind && (
-          <Button size="sm" onClick={() => openComposer(item.kind!)}>
-            {t(CREATE_LABELS[item.kind])}
-          </Button>
-        )}
+    <>
+      <div className="page-view-heading">
+        <div className="min-w-0">
+          <h1 className="page-title">
+            {t(item?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
+          </h1>
+          {desc && <p className="page-description">{t(desc)}</p>}
+        </div>
+        <div className="page-actions">
+          {view === "overview" && (
+            <Button onClick={() => void createAsset()}>
+              <Plus />
+              {t("添加资产")}
+            </Button>
+          )}
+          {item?.kind && (
+            <Button onClick={() => openComposer(item.kind!)}>
+              <Plus />
+              {t(CREATE_LABELS[item.kind])}
+            </Button>
+          )}
+        </div>
       </div>
-      {["servers", "services", "domains", "ai", "certs", "tags", "vault", "mail"].includes(
-        view,
-      ) && <ListHeader />}
-    </div>
+      {LIST_VIEWS.includes(view) && <ListHeader />}
+    </>
   );
 }
 
@@ -168,21 +211,16 @@ function ListHeader() {
   const counts = useAppStore(useShallow(attentionOf));
   const pending = counts[BADGE_KEY[view]];
 
+  const shownLayout = hydrated ? layout : "cards";
   return (
-    <div className="asset-list-toolbar bg-canvas/80 px-4 py-2 space-y-2 border-b border-line">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Compact pill tabs for filter */}
-        <div className="flex items-center gap-1.5 text-xs font-medium">
+    <div className="asset-list-toolbar">
+      <div className="asset-list-toolbar-row">
+        <div className="segmented" role="group" aria-label={t("筛选")}>
           <button
             type="button"
             onClick={() => setFilter("all")}
             aria-pressed={filter === "all"}
-            className={cn(
-              "px-3 py-1 rounded-full transition-colors cursor-pointer text-xs",
-              filter === "all"
-                ? "bg-ink text-card font-semibold"
-                : "text-muted hover:text-ink hover:bg-surface",
-            )}
+            className="segmented-item"
           >
             {t(title.all)}
           </button>
@@ -190,73 +228,61 @@ function ListHeader() {
             type="button"
             onClick={() => setFilter("attention")}
             aria-pressed={filter === "attention"}
-            className={cn(
-              "px-3 py-1 rounded-full transition-colors cursor-pointer flex items-center gap-1.5 text-xs",
-              filter === "attention"
-                ? "bg-ink text-card font-semibold"
-                : "text-muted hover:text-ink hover:bg-surface",
-            )}
+            className="segmented-item"
           >
             <span>{t(title.attention)}</span>
-            {pending > 0 && (
-              <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-crit px-1 text-[10px] font-bold text-white leading-none">
-                {pending}
-              </span>
-            )}
+            {pending > 0 && <span className="segmented-count">{pending}</span>}
           </button>
         </div>
 
-        {/* Layout switch */}
-        {view !== "terminal" && view !== "mail" && (
-          <div className="flex items-center gap-1" role="group" aria-label={t("显示方式")}>
-            {(
-              [
-                { mode: "cards", label: "卡片视图", Icon: LayoutGrid },
-                { mode: "table", label: "表格视图", Icon: Table2 },
-                { mode: "graph", label: "关系图", Icon: Network },
-              ] as const
-            ).map(({ mode, label, Icon }) => (
-              <button
-                key={mode}
-                type="button"
-                aria-label={t(label)}
-                title={t(label)}
-                aria-pressed={(hydrated ? layout : "cards") === mode}
-                onClick={() => setLayout(mode)}
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-lg border border-line text-muted transition-colors cursor-pointer hover:bg-surface hover:text-ink",
-                  (hydrated ? layout : "cards") === mode &&
-                    "bg-surface text-ink border-line-strong",
-                )}
-              >
-                <Icon className="size-3.5" />
-              </button>
-            ))}
-            <AssetOrganizer />
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted" />
+        <div className="asset-list-search">
+          <Search className="asset-list-search-icon" aria-hidden="true" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("筛选当前列表")}
-            className="h-8 bg-card pl-8 text-xs"
+            className="h-9 pl-9 text-meta"
           />
         </div>
-        <RefreshAllButton kind={PROBE_KIND[view]} />
-        <Button
-          variant="outline"
-          size="sm"
-          className="xl:hidden h-8 text-xs"
-          onClick={() => setCommandOpen(true)}
-          aria-label={t("搜索资产")}
-        >
-          <Search className="size-4" />
-        </Button>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <RefreshAllButton kind={PROBE_KIND[view]} />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="xl:hidden"
+            onClick={() => setCommandOpen(true)}
+            aria-label={t("搜索资产")}
+          >
+            <Search />
+          </Button>
+          {view !== "terminal" && view !== "mail" && (
+            <>
+              <div className="segmented segmented-icons" role="group" aria-label={t("显示方式")}>
+                {(
+                  [
+                    { mode: "cards", label: "卡片视图", Icon: LayoutGrid },
+                    { mode: "table", label: "表格视图", Icon: Table2 },
+                    { mode: "graph", label: "关系图", Icon: Network },
+                  ] as const
+                ).map(({ mode, label, Icon }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-label={t(label)}
+                    title={t(label)}
+                    aria-pressed={shownLayout === mode}
+                    onClick={() => setLayout(mode)}
+                    className="segmented-item"
+                  >
+                    <Icon />
+                  </button>
+                ))}
+              </div>
+              <AssetOrganizer />
+            </>
+          )}
+        </div>
       </div>
 
       <TagBar />

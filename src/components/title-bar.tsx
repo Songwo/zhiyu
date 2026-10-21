@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  ChevronRight,
   Search,
   Sun,
   Moon,
@@ -11,6 +12,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { WindowControls } from "./window-controls";
+import { NAV } from "./sidebar";
 import { LogoMark } from "./logo";
 import { desktop } from "@/lib/desktop";
 import { goBack, goForward, useNavHistory } from "@/lib/nav-history";
@@ -28,7 +30,13 @@ export function TitleBar() {
   const setSidebarCollapsed = useSettings((s) => s.setSidebarCollapsed);
   const canBack = useNavHistory((s) => s.past.length > 0);
   const canForward = useNavHistory((s) => s.future.length > 0);
+  const view = useAppStore((s) => s.view);
+  const page = NAV.find((item) => item.id === view);
   const [platform, setPlatform] = useState<string | null>(null);
+  useEffect(() => {
+    // 侧栏顶部需要为 macOS 红绿灯按钮让位。
+    if (platform) document.documentElement.dataset.platform = platform;
+  }, [platform]);
   useEffect(() => {
     let alive = true;
     void bridge?.win
@@ -44,7 +52,7 @@ export function TitleBar() {
   return (
     <header className="drag-strip app-titlebar" onDoubleClick={() => bridge?.win.toggleMaximize()}>
       <div className="flex min-w-0 items-center gap-2">
-        {platform === "darwin" && <span className="w-16 shrink-0" />}
+        {platform === "darwin" && <span className="w-16 shrink-0 md:hidden" />}
         <button
           type="button"
           className="chrome-action desktop-sidebar-toggle shrink-0"
@@ -93,10 +101,14 @@ export function TitleBar() {
             <ArrowRight className="size-4" />
           </button>
         </div>
-        <LogoMark className="size-6 shrink-0" />
-        <span className={`truncate text-sm font-semibold ${bridge ? "hidden sm:inline" : ""}`}>
-          {t("知屿")} <span className="hidden text-muted sm:inline">Zhiyu</span>
-        </span>
+        <LogoMark className="size-6 shrink-0 md:hidden" />
+        <nav aria-label={t("当前位置")} className="titlebar-crumbs">
+          <span className="titlebar-crumb-root">{t("知屿")}</span>
+          <ChevronRight className="titlebar-crumb-sep" aria-hidden="true" />
+          <span className="titlebar-crumb-current">
+            {t(page?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
+          </span>
+        </nav>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button

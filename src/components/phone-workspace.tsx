@@ -126,7 +126,7 @@ export function PhoneWorkspace() {
     window.requestAnimationFrame(() => list.current?.scrollIntoView({ block: "start" }));
   };
   return (
-    <div className="min-w-0 space-y-5 p-4 pb-24 md:p-6">
+    <div className="min-w-0 space-y-5 px-4 pb-24 pt-1">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="max-w-2xl text-meta leading-relaxed text-muted">

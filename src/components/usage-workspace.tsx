@@ -265,23 +265,16 @@ export function UsageWorkspace() {
 
   if (!desktop())
     return (
-      <div className="p-8">
-        <h2 className="text-xl font-semibold">{t("用量记录")}</h2>
-        <p className="mt-3 text-sm text-muted">
+      <div className="px-4 pb-8 pt-1">
+        <p className="text-sm text-muted">
           {t("请在桌面端配置采集来源。凭据保存在本机加密密钥库中，网页预览不读取账号。")}
         </p>
       </div>
     );
 
   return (
-    <div className="usage-workspace space-y-6 p-4 md:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">{t("流量与 AI 用量")}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            {t("按来源、日期与模型查看用量。机场总用量、本机客户端流量和 AI Token 分别统计。")}
-          </p>
-        </div>
+    <div className="usage-workspace space-y-6 px-4 pb-8 pt-1">
+      <div className="flex flex-wrap items-start justify-end gap-4">
         <div className="flex flex-wrap gap-2">
           <LocalUsageControl
             status={localStatus}

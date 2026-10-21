@@ -3,10 +3,12 @@ import type { MouseEvent } from "react";
 import {
   CircleAlert,
   Copy,
+  FileText,
   Globe,
   KeyRound,
   Loader2,
   Mail,
+  Radio,
   Server,
   Shield,
   SquareTerminal,
@@ -97,18 +99,21 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
         Boolean(data.customSecrets?.length)) && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
           {Boolean(data.nodes?.length) && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-400 font-mono">
-              ⚡ {data.nodes!.length} {t("自建节点")}
+            <span className="asset-feature-chip">
+              <Radio aria-hidden="true" />
+              {data.nodes!.length} {t("自建节点")}
             </span>
           )}
           {Boolean(data.docs?.trim()) && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-400 font-mono">
-              📖 {t("已写文档")}
+            <span className="asset-feature-chip">
+              <FileText aria-hidden="true" />
+              {t("已写文档")}
             </span>
           )}
           {Boolean(data.customSecrets?.length) && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-400 font-mono">
-              🔑 {data.customSecrets!.length} {t("绑定密钥")}
+            <span className="asset-feature-chip">
+              <KeyRound aria-hidden="true" />
+              {data.customSecrets!.length} {t("绑定密钥")}
             </span>
           )}
         </div>

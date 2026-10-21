@@ -263,94 +263,34 @@ export function ExpandLayer() {
           </div>
         </div>
 
-        {/* Server Sub-Tabs Bar */}
+        {/* 服务器详情的分页：中性图标、不换行，选中项为浅灰轨道上的白块。 */}
         {visible.kind === "server" && currentServer && (
-          <div className="flex border-b border-line bg-surface-subtle/40 px-3 py-1.5 gap-1 overflow-x-auto text-xs">
-            <button
-              type="button"
-              onClick={() => setServerTab("overview")}
-              className={`btn-pill px-3 py-1 flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${
-                serverTab === "overview"
-                  ? "bg-card text-ink shadow-xs border border-line"
-                  : "text-muted hover:text-ink"
-              }`}
-            >
-              <Activity className="size-3.5 text-muted" />
-              <span>{t("监控概览")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setServerTab("nodes")}
-              className={`btn-pill px-3 py-1 flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${
-                serverTab === "nodes"
-                  ? "bg-card text-ink shadow-xs border border-line"
-                  : "text-muted hover:text-ink"
-              }`}
-            >
-              <Zap className="size-3.5 text-emerald-400" />
-              <span>{t("自建节点")}</span>
-              {Boolean(currentServer.nodes?.length) && (
-                <span className="rounded-full bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 text-[10px] font-mono">
-                  {currentServer.nodes!.length}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setServerTab("docs")}
-              className={`btn-pill px-3 py-1 flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${
-                serverTab === "docs"
-                  ? "bg-card text-ink shadow-xs border border-line"
-                  : "text-muted hover:text-ink"
-              }`}
-            >
-              <BookOpen className="size-3.5 text-sky-400" />
-              <span>{t("服务文档")}</span>
-              {Boolean(currentServer.docs?.trim()) && (
-                <span className="size-1.5 rounded-full bg-sky-400" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setServerTab("secrets")}
-              className={`btn-pill px-3 py-1 flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${
-                serverTab === "secrets"
-                  ? "bg-card text-ink shadow-xs border border-line"
-                  : "text-muted hover:text-ink"
-              }`}
-            >
-              <KeyRound className="size-3.5 text-amber-400" />
-              <span>{t("绑定密钥")}</span>
-              {Boolean(currentServer.customSecrets?.length) && (
-                <span className="rounded-full bg-amber-500/20 text-amber-400 px-1.5 py-0.2 text-[10px] font-mono">
-                  {currentServer.customSecrets!.length}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setServerTab("ops")}
-              className={`btn-pill px-3 py-1 flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${
-                serverTab === "ops"
-                  ? "bg-card text-ink shadow-xs border border-line"
-                  : "text-muted hover:text-ink"
-              }`}
-            >
-              <Wrench className="size-3.5 text-amber-400" />
-              <span>{t("运维工具")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setServerTab("files")}
-              className={`btn-pill px-3 py-1 flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${
-                serverTab === "files"
-                  ? "bg-card text-ink shadow-xs border border-line"
-                  : "text-muted hover:text-ink"
-              }`}
-            >
-              <FolderArchive className="size-3.5 text-muted" />
-              <span>{t("文件SFTP")}</span>
-            </button>
+          <div className="detail-tabs" role="group" aria-label={t("资产详情")}>
+            {(
+              [
+                ["overview", "监控概览", Activity, 0],
+                ["nodes", "自建节点", Zap, currentServer.nodes?.length ?? 0],
+                ["docs", "服务文档", BookOpen, 0],
+                ["secrets", "绑定密钥", KeyRound, currentServer.customSecrets?.length ?? 0],
+                ["ops", "运维工具", Wrench, 0],
+                ["files", "文件SFTP", FolderArchive, 0],
+              ] as const
+            ).map(([id, label, Icon, count]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={serverTab === id}
+                onClick={() => setServerTab(id)}
+                className="detail-tab"
+              >
+                <Icon aria-hidden="true" />
+                <span>{t(label)}</span>
+                {count > 0 && <span className="detail-tab-count">{count}</span>}
+                {id === "docs" && Boolean(currentServer.docs?.trim()) && (
+                  <span className="detail-tab-dot" aria-hidden="true" />
+                )}
+              </button>
+            ))}
           </div>
         )}
 

@@ -13,12 +13,9 @@ export function GlobalNodesHub() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">自建节点</h2>
-          <p className="mt-2 text-sm text-muted">
-            {count} 个已录入节点 · {servers.length} 台服务器
-          </p>
-        </div>
+        <p className="text-sm text-muted">
+          {count} 个已录入节点 · {servers.length} 台服务器
+        </p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => useAppStore.getState().setView("usage")}>
             <Activity />

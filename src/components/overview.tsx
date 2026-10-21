@@ -6,7 +6,6 @@ import { useSettings } from "@/lib/settings";
 import { useMemo } from "react";
 import {
   ArrowUpRight,
-  Plus,
   Server,
   Globe,
   Radio,
@@ -22,9 +21,7 @@ import { useShallow } from "zustand/react/shallow";
 import { attentionOf } from "@/lib/status";
 import { t } from "@/lib/i18n";
 import type { ViewId } from "@/lib/types";
-import { Button } from "./ui/button";
 import { ActivityJournal } from "./activity-journal";
-import { createAsset } from "@/lib/create-asset";
 
 export function Overview() {
   const servers = useAppStore((s) => s.servers);
@@ -100,16 +97,6 @@ export function Overview() {
   ];
   return (
     <div className="overview-layout">
-      <section className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">{t("你的数字工作空间")}</h2>
-          <p className="mt-2 text-sm text-muted">{t("集中管理资产，快速找到需要处理的事项。")}</p>
-        </div>
-        <Button onClick={() => void createAsset()}>
-          <Plus className="size-4" />
-          {t("添加资产")}
-        </Button>
-      </section>
       {counts.total > 0 && (
         <section className="workspace-panel" aria-label={t("待处理事项")}>
           <div className="panel-heading">
@@ -131,9 +118,10 @@ export function Overview() {
             )
               .filter(([, , count]) => count > 0)
               .map(([view, label, count]) => (
-                <Button
+                <button
+                  type="button"
                   key={view}
-                  variant="outline"
+                  className="attention-chip"
                   onClick={() => {
                     if (view === "phones") useAppStore.getState().openPhones({ attention: true });
                     else {
@@ -142,8 +130,10 @@ export function Overview() {
                     }
                   }}
                 >
-                  {t(label)} · {t("{0} 项需要留意", count)} <ArrowUpRight className="size-4" />
-                </Button>
+                  <span className="attention-chip-dot" aria-hidden="true" />
+                  {t(label)} · {t("{0} 项需要留意", count)}
+                  <ArrowUpRight className="attention-chip-arrow" />
+                </button>
               ))}
           </div>
         </section>

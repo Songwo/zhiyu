@@ -19,9 +19,10 @@ import {
   Unlock,
   ChevronDown,
   Ellipsis,
+  Plus,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type HTMLAttributes } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { isDesktop } from "@/lib/desktop";
 import { usePresence } from "@/lib/motion";
@@ -35,6 +36,8 @@ import { useProfile } from "@/lib/profile";
 import { useSettings } from "@/lib/settings";
 import { toast } from "sonner";
 import { safeImageDataUrl } from "../../electron/services/image-data.mjs";
+import { createInCurrentView } from "@/lib/create-asset";
+import { LogoMark } from "./logo";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
 export interface NavGroup {
@@ -200,25 +203,98 @@ export function Sidebar({
     ],
   );
 
+  // 选中项背后的高亮块随选中项滑动，而不是每个按钮各自闪一下背景。
+  const navRef = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const measure = () => {
+      const active = nav.querySelector<HTMLElement>('.sidebar-nav-item[data-active="true"]');
+      if (!active) return setPill(null);
+      const box = active.getBoundingClientRect();
+      const host = nav.getBoundingClientRect();
+      setPill({
+        top: box.top - host.top + nav.scrollTop,
+        left: box.left - host.left,
+        width: box.width,
+        height: box.height,
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(nav);
+    for (const item of nav.querySelectorAll(".sidebar-nav-item")) observer.observe(item);
+    return () => observer.disconnect();
+  }, [view, toolsExpanded, collapsed]);
+
   return (
     <Tooltip.Provider delayDuration={250} skipDelayDuration={100}>
       <aside
         id={collapsible ? "primary-navigation" : undefined}
         data-collapsed={collapsed}
         data-motion-ready={motionReady}
-        className={cn(
-          "app-sidebar flex h-full w-60 shrink-0 flex-col border-r border-line bg-sidebar select-none transition-colors duration-200",
-          className,
-        )}
+        className={cn("app-sidebar flex h-full w-60 shrink-0 flex-col select-none", className)}
         {...rest}
       >
-        {/* 按场景分组的主导航 */}
+        <div className="sidebar-brand drag-strip">
+          <LogoMark className="sidebar-brand-mark size-7 shrink-0" />
+          <span className="sidebar-item-label sidebar-brand-name">
+            {t("知屿")} <span>Zhiyu</span>
+          </span>
+        </div>
+
+        <div className="sidebar-create">
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <button
+                type="button"
+                aria-label={t("新建资产")}
+                className="sidebar-create-button"
+                onClick={() => void createInCurrentView()}
+              >
+                <Plus className="sidebar-item-icon size-[18px] shrink-0" strokeWidth={2} />
+                <span className="sidebar-item-label">{t("新建资产")}</span>
+                <kbd className="sidebar-item-counts sidebar-create-kbd">Ctrl N</kbd>
+              </button>
+            </Tooltip.Trigger>
+            {collapsed && (
+              <Tooltip.Portal>
+                <Tooltip.Content side="right" sideOffset={10} className="sidebar-tooltip">
+                  {t("新建资产")}
+                  <Tooltip.Arrow className="fill-ink" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            )}
+          </Tooltip.Root>
+        </div>
+
         <nav
+          ref={navRef}
           aria-label={t("主导航")}
-          className="sidebar-nav flex-1 space-y-4 overflow-y-auto px-3 py-5"
+          className="sidebar-nav relative flex-1 overflow-y-auto px-3 pb-4"
         >
+          <span
+            aria-hidden="true"
+            className="sidebar-active-pill"
+            data-visible={Boolean(pill)}
+            style={
+              pill
+                ? {
+                    transform: `translate3d(${pill.left}px, ${pill.top}px, 0)`,
+                    width: pill.width,
+                    height: pill.height,
+                  }
+                : undefined
+            }
+          />
           {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="sidebar-section space-y-0.5">
+            <div key={group.title} className="sidebar-section">
               {group.title === "工具" ? (
                 <button
                   type="button"
@@ -226,18 +302,16 @@ export function Sidebar({
                   aria-label={t("更多工具")}
                   title={collapsed ? t("更多工具") : undefined}
                   onClick={() => setToolsExpanded(!toolsExpanded)}
-                  className="sidebar-tools-toggle flex min-h-11 w-full items-center justify-between rounded-md px-3 text-xs font-medium text-muted hover:bg-surface hover:text-ink"
+                  className="sidebar-tools-toggle flex w-full items-center justify-between"
                 >
                   <Ellipsis className="sidebar-tools-icon size-5" aria-hidden="true" />
                   <span className="sidebar-tools-label">{t("更多工具")}</span>
                   <ChevronDown
-                    className={cn("sidebar-tools-chevron size-4", toolsExpanded && "rotate-180")}
+                    className={cn("sidebar-tools-chevron size-3.5", toolsExpanded && "rotate-180")}
                   />
                 </button>
               ) : (
-                <div className="sidebar-section-title px-3 py-1.5 text-xs font-medium text-muted">
-                  {t(group.title)}
-                </div>
+                <div className="sidebar-section-title">{t(group.title)}</div>
               )}
               {(group.title !== "工具" || toolsExpanded) &&
                 group.items.map((item) => {
@@ -255,33 +329,23 @@ export function Sidebar({
                           onClick={() => setView(item.id)}
                           data-active={active}
                           aria-current={active ? "page" : undefined}
-                          className={cn(
-                            "sidebar-nav-item group flex min-h-11 w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors duration-150",
-                            active
-                              ? "bg-line font-semibold text-ink"
-                              : "text-muted hover:bg-surface hover:text-ink font-medium",
-                          )}
+                          className="sidebar-nav-item group flex w-full items-center justify-between gap-2 text-left"
                         >
                           <span className="sidebar-item-content flex min-w-0 items-center gap-3">
-                            <Icon className="sidebar-item-icon size-5 shrink-0" />
+                            <Icon
+                              className="sidebar-item-icon size-[18px] shrink-0"
+                              strokeWidth={1.75}
+                            />
                             <span className="sidebar-item-label truncate">{t(item.label)}</span>
                           </span>
-                          <div className="sidebar-item-counts flex items-center gap-1.5 shrink-0">
+                          <span className="sidebar-item-counts flex shrink-0 items-center gap-1.5">
                             {attentionCount > 0 && (
-                              <span className="inline-flex items-center justify-center rounded bg-crit px-1 py-0.5 font-mono text-[10px] font-bold text-white leading-none">
-                                {attentionCount}
-                              </span>
+                              <span className="sidebar-badge-attention">{attentionCount}</span>
                             )}
-                            {item.id === "nodes" && totalCount > 0 ? (
-                              <span className="rounded bg-ok/10 text-ok px-1 py-0.5 font-mono text-[10px] font-medium leading-none">
-                                {totalCount}
-                              </span>
-                            ) : totalCount > 0 ? (
-                              <span className="font-mono text-[10.5px] text-muted/80">
-                                {totalCount}
-                              </span>
-                            ) : null}
-                          </div>
+                            {totalCount > 0 && (
+                              <span className="sidebar-badge-count">{totalCount}</span>
+                            )}
+                          </span>
                           {attentionCount > 0 && (
                             <span className="sidebar-attention-dot" aria-hidden="true" />
                           )}
@@ -308,7 +372,7 @@ export function Sidebar({
         </nav>
 
         {/* 密钥库入口固定在导航底部，收起后仍可直接操作。 */}
-        <div className="sidebar-profile-footer mt-auto shrink-0 space-y-1 border-t border-line/60 p-2.5">
+        <div className="sidebar-profile-footer mt-auto shrink-0 space-y-1 p-3">
           <SidebarUtilities compact={collapsed} />
           <ProfileMenu compact={collapsed} />
         </div>
@@ -341,7 +405,7 @@ function SidebarUtilities({ compact }: { compact: boolean }) {
           type="button"
           aria-label={label}
           disabled={busy}
-          className="sidebar-nav-item flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium text-muted transition-colors duration-150 hover:bg-surface hover:text-ink disabled:opacity-50"
+          className="sidebar-nav-item flex w-full items-center gap-3 text-left disabled:opacity-50"
           onClick={async () => {
             setBusy(true);
             try {
@@ -353,7 +417,7 @@ function SidebarUtilities({ compact }: { compact: boolean }) {
             }
           }}
         >
-          <Icon className="sidebar-item-icon size-5 shrink-0" />
+          <Icon className="sidebar-item-icon size-[18px] shrink-0" strokeWidth={1.75} />
           <span className="sidebar-item-label truncate">{label}</span>
         </button>
       </Tooltip.Trigger>
@@ -403,7 +467,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
       <button
         type="button"
         className={cn(
-          "block w-full px-3 py-2 text-left text-xs transition-colors duration-150 ease-out hover:bg-line cursor-pointer",
+          "sidebar-menu-item block w-full text-left",
           tone === "danger" ? "text-crit font-medium" : "text-ink",
         )}
         onClick={() => {
@@ -420,7 +484,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
     <div
       ref={root}
       className={cn(
-        "sidebar-profile-card relative flex items-center rounded-xl border border-line bg-card/60 p-2 hover:bg-card shadow-xs",
+        "sidebar-profile-card relative flex items-center",
         compact && "sidebar-profile-compact",
       )}
     >
@@ -471,7 +535,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
       {mounted && (
         <div
           className={cn(
-            "anim-panel absolute bottom-14 left-0 right-0 z-30 overflow-hidden rounded-xl border border-line bg-card py-1 shadow-float",
+            "anim-panel sidebar-menu absolute bottom-14 left-0 right-0 z-30 overflow-hidden p-1",
             compact && "sidebar-profile-popover",
           )}
           data-shown={shown}
