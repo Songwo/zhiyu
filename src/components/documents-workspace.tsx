@@ -1,6 +1,6 @@
 import { uploadImage, type ImageBedStatus } from "@/lib/image-bed";
 import { ImageBedSettings } from "./image-bed-settings";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
@@ -1095,8 +1095,9 @@ function DocumentEditor({
               {doc.title || t("未命名文档")}
             </h2>
           )}
-          <div className="mb-8 flex flex-wrap gap-3 text-xs text-muted">
+          <div className="document-meta">
             {editing && <span>{t(desktop() ? "自动保存到本机" : "自动保存到当前浏览器")}</span>}
+            {!editing && <ReadingMeta doc={doc} />}
             <span>
               {t("更新于")} {new Date(doc.updatedAt).toLocaleString()}
             </span>
@@ -1404,5 +1405,30 @@ function DocumentEditor({
         <DocumentAccountExtract documentId={doc.id} close={() => setExtractOpen(false)} />
       )}
     </div>
+  );
+}
+
+/** 正文字数与阅读时长：中文按字计，英文按词计，约每分钟 400 字。 */
+function ReadingMeta({ doc }: { doc: { markdown?: string; content: unknown } }) {
+  const count = useMemo(() => {
+    const parts: string[] = [];
+    const walk = (node: unknown) => {
+      if (!node || typeof node !== "object") return;
+      const item = node as { type?: string; text?: string; content?: unknown[] };
+      if (item.type === "text" && typeof item.text === "string") parts.push(item.text);
+      for (const child of item.content ?? []) walk(child);
+    };
+    if (typeof doc.markdown === "string") parts.push(doc.markdown);
+    else walk(doc.content);
+    const text = parts.join(" ");
+    const han = text.match(/\p{Script=Han}/gu)?.length ?? 0;
+    const words = text.replace(/\p{Script=Han}/gu, " ").match(/[\p{L}\p{N}]+/gu)?.length ?? 0;
+    return han + words;
+  }, [doc.markdown, doc.content]);
+  return (
+    <>
+      <span>{t("{0} 字", count.toLocaleString())}</span>
+      <span>{t("约 {0} 分钟读完", Math.max(1, Math.round(count / 400)))}</span>
+    </>
   );
 }

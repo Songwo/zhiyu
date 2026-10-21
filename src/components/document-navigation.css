@@ -158,3 +158,17 @@
     transition: none;
   }
 }
+
+/* v3：进度条改为一像素品牌绿，导航栏底色与正文一致。 */
+.document-navigation {
+  background: var(--color-canvas);
+}
+.document-reading-progress {
+  height: 1px;
+}
+.document-reading-progress > span {
+  background: #28684c;
+}
+:root[data-theme="dark"] .document-reading-progress > span {
+  background: #3dd68c;
+}

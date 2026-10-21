@@ -19,6 +19,7 @@ import { t, intlLocale } from "@/lib/i18n";
 import { KIND_LABEL } from "@/lib/status";
 import { cn, downloadText } from "@/lib/utils";
 import { Button } from "./ui/button";
+import { DepthHero, PageSection } from "./ui/page";
 import { Input } from "./ui/input";
 
 const WINDOWS = [30, 90] as const;
@@ -40,31 +41,24 @@ export function RenewalsWorkspace() {
   const [withinDays, setWithinDays] = useState<(typeof WINDOWS)[number]>(30);
   const summary = useMemo(() => spendSummary(snapshot), [snapshot]);
   const timeline = useMemo(() => renewalTimeline(snapshot, { withinDays }), [snapshot, withinDays]);
+  const due = timeline.filter((entry) => entry.days >= 0).length;
   return (
-    <div className="overview-layout">
-      <SpendPanel summary={summary} />
-      <section className="workspace-panel" aria-label={t("到期时间线")}>
-        <div className="panel-heading">
-          <div>
-            <h2>{t("到期时间线")}</h2>
-            <p className="mt-1 text-sm text-muted">
-              {t("未来 {0} 天内到期的资产，以及近 30 天已过期的。", withinDays)}
-            </p>
-          </div>
+    <div className="overview-layout page-stagger">
+      <SpendHero summary={summary} due={due} withinDays={withinDays} />
+      <PageSection
+        title={t("到期时间线")}
+        description={t("未来 {0} 天内到期的资产，以及近 30 天已过期的。", withinDays)}
+        aria-label={t("到期时间线")}
+        action={
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1" role="group" aria-label={t("时间范围")}>
+            <div className="segmented" role="group" aria-label={t("时间范围")}>
               {WINDOWS.map((days) => (
                 <button
                   key={days}
                   type="button"
                   aria-pressed={withinDays === days}
                   onClick={() => setWithinDays(days)}
-                  className={cn(
-                    "min-h-8 rounded-full px-3 text-xs transition-colors",
-                    withinDays === days
-                      ? "bg-ink font-semibold text-card"
-                      : "text-muted hover:bg-surface hover:text-ink",
-                  )}
+                  className="segmented-item"
                 >
                   {t("{0} 天", days)}
                 </button>
@@ -80,95 +74,85 @@ export function RenewalsWorkspace() {
               {t("导出日历")}
             </Button>
           </div>
+        }
+      >
+        <div className="timeline-surface">
+          <Timeline entries={timeline} />
         </div>
-        <Timeline entries={timeline} />
-      </section>
+      </PageSection>
     </div>
   );
 }
 
-function SpendPanel({ summary }: { summary: ReturnType<typeof spendSummary> }) {
+/** 费用概览：景深头图，浮层里是各币种的月度与年度支出。 */
+function SpendHero({
+  summary,
+  due,
+  withinDays,
+}: {
+  summary: ReturnType<typeof spendSummary>;
+  due: number;
+  withinDays: number;
+}) {
   const usdToCny = useSettings((s) => s.usdToCny);
   const combined = combinedInCny(summary, usdToCny);
   const currencies = (["CNY", "USD"] as const).filter((c) => summary.byCurrency[c].count > 0);
+  const monthly =
+    combined && usdToCny && currencies.length > 1
+      ? formatMoney(combined.monthly, "CNY")
+      : currencies.map((c) => formatMoney(summary.byCurrency[c].monthly, c)).join(" + ");
   return (
-    <section className="workspace-panel" aria-label={t("费用概览")}>
-      <div className="panel-heading">
-        <div>
-          <h2>{t("费用概览")}</h2>
-          <p className="mt-1 text-sm text-muted">
-            {t("年付按 12 个月摊到每月，月付乘 12 计入全年；一次性费用单列。")}
-          </p>
+    <DepthHero
+      tone="sand"
+      eyebrow={t("费用与续费")}
+      title={currencies.length ? t("每月支出 {0}", monthly) : t("还没有填写费用")}
+      description={t("年付按 12 个月摊到每月，月付乘 12 计入全年；一次性费用单列。")}
+      actions={<RateInput />}
+    >
+      <section className="hero-stats" aria-label={t("费用概览")}>
+        {currencies.map((currency) => {
+          const totals = summary.byCurrency[currency];
+          return (
+            <div key={currency} className="hero-stat">
+              <span className="hero-stat-label">
+                {t("{0} · {1} 项", t(CURRENCY_LABEL[currency]), totals.count)}
+              </span>
+              <strong className="hero-stat-value">{formatMoney(totals.monthly, currency)}</strong>
+              <span className="hero-stat-detail">
+                {t("每年")} {formatMoney(totals.yearly, currency)}
+                {totals.once > 0 ? ` · ${t("一次性")} ${formatMoney(totals.once, currency)}` : ""}
+              </span>
+            </div>
+          );
+        })}
+        {combined && usdToCny && currencies.length > 1 && (
+          <div className="hero-stat">
+            <span className="hero-stat-label">{t("折合人民币（1 USD = {0} CNY）", usdToCny)}</span>
+            <strong className="hero-stat-value">{formatMoney(combined.monthly, "CNY")}</strong>
+            <span className="hero-stat-detail">
+              {t("每年")} {formatMoney(combined.yearly, "CNY")}
+            </span>
+          </div>
+        )}
+        <div className="hero-stat">
+          <span className="hero-stat-label">{t("{0} 天内到期", withinDays)}</span>
+          <strong className="hero-stat-value">{due}</strong>
+          <span className="hero-stat-detail">
+            {summary.unpriced > 0
+              ? t("另有 {0} 项未填写费用", summary.unpriced)
+              : t("已包含全部填写了费用的资产")}
+          </span>
         </div>
-        <RateInput />
-      </div>
-      {currencies.length === 0 ? (
-        <p className="workspace-empty">
-          {t("还没有填写费用。编辑服务器、域名、服务资产或号码时可以填写续费金额。")}
-        </p>
-      ) : (
-        <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
-          {currencies.map((currency) => {
-            const totals = summary.byCurrency[currency];
-            return (
-              <SpendTile
-                key={currency}
-                title={t("{0} · {1} 项", t(CURRENCY_LABEL[currency]), totals.count)}
-                monthly={formatMoney(totals.monthly, currency)}
-                yearly={formatMoney(totals.yearly, currency)}
-                once={totals.once > 0 ? formatMoney(totals.once, currency) : ""}
-              />
-            );
-          })}
-          {combined && usdToCny && currencies.length > 1 && (
-            <SpendTile
-              title={t("折合人民币（1 USD = {0} CNY）", usdToCny)}
-              monthly={formatMoney(combined.monthly, "CNY")}
-              yearly={formatMoney(combined.yearly, "CNY")}
-              once={combined.once > 0 ? formatMoney(combined.once, "CNY") : ""}
-            />
-          )}
-        </div>
-      )}
-      {summary.unpriced > 0 && (
-        <p className="border-t border-line px-5 py-3 text-sm text-muted">
-          {t("另有 {0} 项资产记录了到期日但没有填写费用，未计入合计。", summary.unpriced)}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function SpendTile({
-  title,
-  monthly,
-  yearly,
-  once,
-}: {
-  title: string;
-  monthly: string;
-  yearly: string;
-  once: string;
-}) {
-  return (
-    <div className="min-w-0 rounded-md border border-line-strong p-4">
-      <div className="text-sm text-muted">{title}</div>
-      <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-        <div>
-          <div className="text-2xs text-muted">{t("每月")}</div>
-          <strong className="text-2xl font-semibold tabular-nums tracking-tight">{monthly}</strong>
-        </div>
-        <div>
-          <div className="text-2xs text-muted">{t("每年")}</div>
-          <strong className="text-2xl font-semibold tabular-nums tracking-tight">{yearly}</strong>
-        </div>
-      </div>
-      {once && (
-        <div className="mt-2 text-sm text-muted">
-          {t("一次性")} <span className="tabular-nums text-ink">{once}</span>
-        </div>
-      )}
-    </div>
+        {currencies.length === 0 && (
+          <div className="hero-stat">
+            <span className="hero-stat-label">{t("费用概览")}</span>
+            <span className="hero-stat-detail">
+              {t("还没有填写费用。编辑服务器、域名、服务资产或号码时可以填写续费金额。")}
+            </span>
+          </div>
+        )}
+      </section>
+    </DepthHero>
   );
 }
 
@@ -287,7 +271,10 @@ function TimelineRow({ entry }: { entry: RenewalEntry }) {
         });
       }}
     >
-      <span className="w-14 shrink-0 font-mono text-sm tabular-nums">{entry.date.slice(5)}</span>
+      <span className="date-block" aria-label={entry.date}>
+        <span className="date-block-month">{entry.date.slice(5, 7)}</span>
+        <span className="date-block-day">{entry.date.slice(8, 10)}</span>
+      </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{entry.name}</span>
         <span className="mt-1 block truncate text-sm text-muted">
@@ -295,7 +282,7 @@ function TimelineRow({ entry }: { entry: RenewalEntry }) {
           {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
         </span>
       </span>
-      <span className={cn("shrink-0 text-sm font-medium tabular-nums", tone)}>
+      <span className={cn("due-pill", tone)}>
         {entry.days < 0
           ? t("已过期 {0} 天", -entry.days)
           : entry.days === 0

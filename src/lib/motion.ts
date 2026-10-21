@@ -105,3 +105,40 @@ export function cardRect(id: string): Rect | null {
   if (r.width === 0 || r.height === 0) return null;
   return { x: r.left, y: r.top, w: r.width, h: r.height };
 }
+
+/**
+ * 景深卡片：指针在宿主区域内移动时，按位置给元素写入轻微的三维倾角与高光坐标。
+ * 只写 CSS 变量，由样式里的 transform 消费；减少动态效果时不做任何事。
+ */
+export function useTilt(ref: { current: HTMLElement | null }, maxDeg = 4) {
+  useEffect(() => {
+    const el = ref.current;
+    const host = el?.parentElement;
+    if (!el || !host || reduceMotion()) return;
+    let frame = 0;
+    const move = (event: PointerEvent) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const box = host.getBoundingClientRect();
+        const x = (event.clientX - box.left) / box.width - 0.5;
+        const y = (event.clientY - box.top) / box.height - 0.5;
+        el.style.setProperty("--tilt-x", `${(-y * maxDeg).toFixed(2)}deg`);
+        el.style.setProperty("--tilt-y", `${(x * maxDeg).toFixed(2)}deg`);
+        el.style.setProperty("--glare-x", `${((x + 0.5) * 100).toFixed(1)}%`);
+        el.style.setProperty("--glare-y", `${((y + 0.5) * 100).toFixed(1)}%`);
+      });
+    };
+    const leave = () => {
+      cancelAnimationFrame(frame);
+      el.style.setProperty("--tilt-x", "0deg");
+      el.style.setProperty("--tilt-y", "0deg");
+    };
+    host.addEventListener("pointermove", move);
+    host.addEventListener("pointerleave", leave);
+    return () => {
+      cancelAnimationFrame(frame);
+      host.removeEventListener("pointermove", move);
+      host.removeEventListener("pointerleave", leave);
+    };
+  }, [ref, maxDeg]);
+}

@@ -227,7 +227,8 @@ export function AppShell() {
           >
             <div
               className={cn(
-                "mx-auto flex w-full max-w-[1560px] items-start px-1 md:px-3",
+                "page-container flex items-start",
+                (view === "docs" || view === "agent") && "page-container-wide",
                 view === "agent" && "agent-shell-columns",
               )}
             >
@@ -235,13 +236,13 @@ export function AppShell() {
                 className={cn(
                   "@container min-w-0 flex-1",
                   view === "agent" && "agent-shell-main",
-                  !wideWorkspace && "xl:border-r xl:border-line",
+                  !wideWorkspace && "2xl:border-r 2xl:border-line",
                 )}
               >
                 <TopTabs />
                 <MainView />
               </main>
-              {!wideWorkspace && <RightRail className="hidden xl:block" />}
+              {!wideWorkspace && <RightRail className="hidden 2xl:block" />}
             </div>
           </div>
         </div>

@@ -220,3 +220,34 @@
     transform: none;
   }
 }
+
+/* v3：去掉左侧色条与硬边框，改为柔和外环；悬停浮起，颜色只留在图标块。 */
+.collection-card {
+  border-color: transparent;
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform var(--dur-base) var(--ease-out-soft),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.collection-card::before {
+  display: none;
+}
+.collection-card:hover {
+  transform: translateY(-3px);
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(20, 20, 18, 0.07),
+    0 20px 40px -20px rgba(20, 20, 18, 0.3);
+}
+:root[data-theme="dark"] .collection-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 20px 40px -20px rgba(0, 0, 0, 0.8);
+}
+.collection-card-emblem {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  box-shadow: none;
+}

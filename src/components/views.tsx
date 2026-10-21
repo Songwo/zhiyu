@@ -49,7 +49,7 @@ import { groupByTag, matchesTags, tagIndex, tagsOf } from "@/lib/tags";
 import type { AssetKind, Status, Taggable, ViewId } from "@/lib/types";
 import { cn, formatUsd } from "@/lib/utils";
 import { t } from "@/lib/i18n";
-import { CREATE_LABELS, createAsset } from "@/lib/create-asset";
+import { CREATE_LABELS } from "@/lib/create-asset";
 
 export function MainView() {
   const view = useAppStore((s) => s.view);
@@ -166,8 +166,10 @@ export function TopTabs() {
   const view = useAppStore((s) => s.view);
   const item = NAV.find((entry) => entry.id === view);
   const openComposer = useAppStore((s) => s.openComposer);
-  if (view === "docs") return null;
+  // 文档有自己的标题栏；总览的标题在景深头图里。
+  if (view === "docs" || view === "overview" || view === "renewals") return null;
   const desc = PAGE_DESC[view];
+  const meta = LIST_VIEWS.includes(view) ? <PageMeta view={view} /> : null;
   return (
     <>
       <div className="page-view-heading">
@@ -175,15 +177,9 @@ export function TopTabs() {
           <h1 className="page-title">
             {t(item?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
           </h1>
-          {desc && <p className="page-description">{t(desc)}</p>}
+          {meta ?? (desc && <p className="page-description">{t(desc)}</p>)}
         </div>
         <div className="page-actions">
-          {view === "overview" && (
-            <Button onClick={() => void createAsset()}>
-              <Plus />
-              {t("添加资产")}
-            </Button>
-          )}
           {item?.kind && (
             <Button onClick={() => openComposer(item.kind!)}>
               <Plus />
@@ -194,6 +190,48 @@ export function TopTabs() {
       </div>
       {LIST_VIEWS.includes(view) && <ListHeader />}
     </>
+  );
+}
+
+/** 列表页标题下的一行轻量信息：总数 · 需要留意 · 页面说明，用圆点分隔。 */
+function PageMeta({ view }: { view: ViewId }) {
+  const total = useAppStore((s) => {
+    switch (view) {
+      case "servers":
+        return s.servers.length;
+      case "services":
+        return s.services.length;
+      case "domains":
+        return s.domains.length;
+      case "certs":
+        return s.certs.length;
+      case "ai":
+        return s.aiAssets.length;
+      case "vault":
+        return s.secrets.length;
+      case "mail":
+        return s.mailboxes.length;
+      case "tags":
+        return tagIndex(s).length;
+      default:
+        return 0;
+    }
+  });
+  const counts = useAppStore(useShallow(attentionOf));
+  const pending = counts[BADGE_KEY[view]];
+  const parts = [
+    view === "tags" ? t("{0} 个标签", total) : t("共 {0} 项", total),
+    ...(pending > 0 && view !== "tags" ? [t("{0} 项需要留意", pending)] : []),
+    ...(PAGE_DESC[view] ? [t(PAGE_DESC[view]!)] : []),
+  ];
+  return (
+    <p className="page-meta">
+      {parts.map((part, index) => (
+        <span key={index} className={index === 1 && pending > 0 ? "page-meta-warn" : undefined}>
+          {part}
+        </span>
+      ))}
+    </p>
   );
 }
 
