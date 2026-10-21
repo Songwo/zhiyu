@@ -56,7 +56,10 @@ try {
   const gate = page.locator(".z-gate");
   await gate.locator('input[type="password"]').fill("integration-master-2026");
   await gate.getByRole("button", { name: "解锁", exact: true }).click();
-  await composer.waitFor({ state: "detached" });
+  // 解锁弹窗是模态框，打开期间编辑器被 aria-hidden，按角色查找会提前判定已关闭；
+  // 先等弹窗退出，再等表单节点本身卸载，确保保存已经完成。
+  await gate.waitFor({ state: "detached" });
+  await page.locator("#asset-composer-form").waitFor({ state: "detached" });
   const snapshot = await page.evaluate(() => window.sinan.store.load());
   assert.equal(snapshot.state.secrets.length, 1);
   const asset = snapshot.state.secrets[0];
