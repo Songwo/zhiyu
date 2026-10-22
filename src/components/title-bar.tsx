@@ -19,6 +19,7 @@ import { goBack, goForward, useNavHistory } from "@/lib/nav-history";
 import { useAppStore } from "@/lib/store";
 import { useSettings } from "@/lib/settings";
 import { t } from "@/lib/i18n";
+import { assetEntries } from "@/lib/operations";
 
 export function TitleBar() {
   const bridge = desktop();
@@ -28,7 +29,13 @@ export function TitleBar() {
   const setTheme = useSettings((s) => s.setTheme);
   const sidebarCollapsed = useSettings((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettings((s) => s.setSidebarCollapsed);
-  const canBack = useNavHistory((s) => s.past.length > 0);
+  const detail = useAppStore((s) =>
+    s.expanded
+      ? (assetEntries(s).find((x) => x.kind === s.expanded?.kind && x.id === s.expanded?.id)
+          ?.label ?? null)
+      : null,
+  );
+  const canBack = useNavHistory((s) => s.past.length > 0) || detail !== null;
   const canForward = useNavHistory((s) => s.future.length > 0);
   const view = useAppStore((s) => s.view);
   const page = NAV.find((item) => item.id === view);
@@ -105,9 +112,23 @@ export function TitleBar() {
         <nav aria-label={t("当前位置")} className="titlebar-crumbs">
           <span className="titlebar-crumb-root">{t("知屿")}</span>
           <ChevronRight className="titlebar-crumb-sep" aria-hidden="true" />
-          <span className="titlebar-crumb-current">
-            {t(page?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
-          </span>
+          {detail === null ? (
+            <span className="titlebar-crumb-current">
+              {t(page?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
+            </span>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="titlebar-crumb-link"
+                onClick={() => useAppStore.getState().setExpanded(null)}
+              >
+                {t(page?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
+              </button>
+              <ChevronRight className="titlebar-crumb-sep" aria-hidden="true" />
+              <span className="titlebar-crumb-current">{detail}</span>
+            </>
+          )}
         </nav>
       </div>
       <div className="flex shrink-0 items-center gap-2">

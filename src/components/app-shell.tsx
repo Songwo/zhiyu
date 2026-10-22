@@ -6,7 +6,7 @@ import { Composer } from "./composer";
 import { CreateAssetPicker } from "./create-asset-picker";
 import { createInCurrentView } from "@/lib/create-asset";
 import { CaptureInbox } from "./capture-inbox";
-import { ExpandLayer } from "./expand-layer";
+import { AssetDetailPage } from "./expand-layer";
 import { RightRail } from "./right-rail";
 import { Sidebar } from "./sidebar";
 import { GlobalMarkdownImport } from "./global-markdown-import";
@@ -102,11 +102,29 @@ export function AppShell() {
     };
   }, []);
   const view = useAppStore((s) => s.view);
+  const detailOpen = useAppStore((s) => Boolean(s.expanded));
   const workspaceScroll = useRef<HTMLDivElement>(null);
+  const listScroll = useRef(0);
   useLayoutEffect(() => {
     // 页面共用此容器；只在导航时归零，保留数据刷新和文档内部的阅读位置。
     workspaceScroll.current?.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [view]);
+  // 打开详情前记下列表的滚动位置（订阅在渲染前同步触发），返回时回到原处。
+  useEffect(
+    () =>
+      useAppStore.subscribe((state, previous) => {
+        if (state.expanded && !previous.expanded)
+          listScroll.current = workspaceScroll.current?.scrollTop ?? 0;
+      }),
+    [],
+  );
+  useLayoutEffect(() => {
+    workspaceScroll.current?.scrollTo({
+      top: detailOpen ? 0 : listScroll.current,
+      left: 0,
+      behavior: "instant",
+    });
+  }, [detailOpen]);
   const setView = useAppStore((s) => s.setView);
   const setHydrated = useAppStore((s) => s.setHydrated);
   const hydrated = useAppStore((s) => s.hydrated);
@@ -221,28 +239,32 @@ export function AppShell() {
             ref={workspaceScroll}
             className={cn(
               "min-h-0 flex-1 overflow-y-auto",
-              view === "docs" && "documents-shell",
-              view === "agent" && "agent-shell",
+              !detailOpen && view === "docs" && "documents-shell",
+              !detailOpen && view === "agent" && "agent-shell",
             )}
           >
             <div
               className={cn(
                 "page-container flex items-start",
-                (view === "docs" || view === "agent") && "page-container-wide",
-                view === "agent" && "agent-shell-columns",
+                !detailOpen && (view === "docs" || view === "agent") && "page-container-wide",
+                !detailOpen && view === "agent" && "agent-shell-columns",
               )}
             >
               <main
                 className={cn(
                   "@container min-w-0 flex-1",
-                  view === "agent" && "agent-shell-main",
-                  !wideWorkspace && "2xl:border-r 2xl:border-line",
+                  !detailOpen && view === "agent" && "agent-shell-main",
+                  !detailOpen && !wideWorkspace && "2xl:border-r 2xl:border-line",
                 )}
               >
-                <TopTabs />
-                <MainView />
+                <AssetDetailPage />
+                {/* 详情打开时列表只隐藏不卸载，返回时筛选、展开状态都还在。 */}
+                <div className="workspace-view" hidden={detailOpen}>
+                  <TopTabs />
+                  <MainView />
+                </div>
               </main>
-              {!wideWorkspace && <RightRail className="hidden 2xl:block" />}
+              {!detailOpen && !wideWorkspace && <RightRail className="hidden 2xl:block" />}
             </div>
           </div>
         </div>
@@ -282,7 +304,6 @@ export function AppShell() {
         })}
       </nav>
 
-      <ExpandLayer />
       <SshTerminal />
       <Settings />
       <Composer />

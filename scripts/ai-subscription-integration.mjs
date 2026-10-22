@@ -295,7 +295,7 @@ try {
   await dialog.waitFor({ state: "detached" });
   const grok = (await saved()).find((item) => item.oauthProvider === "grok");
   await page.locator('[data-asset-id="' + grok.id + '"]').click();
-  const details = page.getByRole("dialog", { name: "资产详情" });
+  const details = page.getByRole("region", { name: "资产详情" });
   await details.getByRole("button", { name: "刷新用量", exact: true }).click();
   await details.getByText("96%", { exact: true }).first().waitFor();
   assert.equal((await saved()).find((item) => item.id === grok.id).usagePct, 96);

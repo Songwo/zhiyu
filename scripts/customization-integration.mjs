@@ -150,7 +150,7 @@ try {
       .getByRole("img", { name: "资产图片", exact: true }),
   );
   await page.locator(`[data-asset-id="${asset.id}"]`).click();
-  let details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  let details = page.getByRole("region", { name: "资产详情", exact: true });
   await loadedImage(details.getByRole("img", { name: "资产图片", exact: true }));
   await details.getByRole("button", { name: "编辑", exact: true }).click();
   composer = page.getByRole("dialog", { name: "编辑 AI 订阅", exact: true });
@@ -222,7 +222,7 @@ try {
     asset.imageDataUrl,
   );
   await page.locator(`[data-asset-id="${asset.id}"]`).click();
-  details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByRole("button", { name: "编辑", exact: true }).click();
   composer = page.getByRole("dialog", { name: "编辑 AI 订阅", exact: true });
   await composer.getByRole("button", { name: "移除图片", exact: true }).click();

@@ -178,7 +178,7 @@ try {
   await page.getByRole("button", { name: "服务资产", exact: true }).click();
   await page.getByRole("button", { name: "查看服务 本机健康检查", exact: true }).click();
   await page
-    .getByRole("dialog", { name: "资产详情", exact: true })
+    .getByRole("region", { name: "资产详情", exact: true })
     .getByRole("button", { name: "编辑", exact: true })
     .click();
   const editor = page.getByRole("dialog", { name: "服务资产", exact: true });

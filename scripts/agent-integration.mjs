@@ -230,15 +230,14 @@ try {
     .locator(".agent-sources .agent-source-title")
     .filter({ hasText: "fixture@example.test" })
     .click();
-  await page.getByRole("dialog", { name: "资产详情" }).waitFor();
+  await page.getByRole("region", { name: "资产详情" }).waitFor();
   await page.getByLabel("凭据位置", { exact: true }).waitFor();
   assert.ok(!(await page.locator("body").innerText()).includes("fixture-vault-private-value"));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: "screenshots/nanpad-v030-credential-mobile.png" });
   await page
-    .getByRole("dialog", { name: "资产详情" })
-    .getByRole("button", { name: "关闭", exact: true })
-    .last()
+    .getByRole("region", { name: "资产详情" })
+    .getByRole("button", { name: "返回列表", exact: true })
     .click();
   const allowedRequests = requests.filter((req) =>
     req.body.messages?.some(

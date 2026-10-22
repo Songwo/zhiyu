@@ -193,6 +193,7 @@
   min-height: 0;
 }
 .agent-shell-main > :first-child,
+.agent-shell-main > .workspace-view > :first-child,
 .agent-header,
 .agent-composer {
   flex-shrink: 0;

@@ -164,7 +164,7 @@ try {
   });
   const stored = () => page.evaluate(() => window.sinan.store.load());
   const importDialog = () => page.getByRole("dialog", { name: "导入身份", exact: true });
-  const details = () => page.getByRole("dialog", { name: "资产详情", exact: true });
+  const details = () => page.getByRole("region", { name: "资产详情", exact: true });
   const identityPanel = () => page.getByRole("region", { name: "Linux.do 身份资料", exact: true });
   const postCallCount = () =>
     instance.evaluate(

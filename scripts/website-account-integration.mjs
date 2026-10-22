@@ -100,7 +100,7 @@ try {
   const accountRow = () =>
     page.getByRole("button", { name: `查看账号与凭据 ${website.name}`, exact: true });
   await accountRow().click();
-  let details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  let details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByText("website-test-user", { exact: true }).waitFor();
   assert.equal(await details.getByText("website-test-password-2026", { exact: true }).count(), 0);
   await details.getByRole("combobox", { name: "选择关联资产", exact: true }).click();
@@ -141,7 +141,7 @@ try {
     .click();
   await page.getByRole("button", { name: "打开分组 未分组", exact: true }).click();
   await accountRow().click();
-  details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByText("website-test-user", { exact: true }).waitFor();
   await details.getByRole("button", { name: "解除关联", exact: true }).waitFor();
   await details.getByRole("button", { name: "编辑", exact: true }).click();
@@ -213,7 +213,7 @@ try {
   assert.equal(await page.getByText(credentials.url, { exact: true }).count(), 0);
   await gate.getByRole("button", { name: "取消", exact: true }).click();
   await gate.waitFor({ state: "detached" });
-  details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByRole("button", { name: "解锁查看", exact: true }).waitFor();
   assert.equal(await details.getByText(credentials.username, { exact: true }).count(), 0);
   assert.equal(await details.getByText(credentials.url, { exact: true }).count(), 0);

@@ -190,7 +190,7 @@ try {
   assert.deepEqual(after.mailboxes[0].tags, ["项目 A", "个人"]);
   await page.getByRole("button", { name: "表格视图", exact: true }).click();
   await page.locator(`[data-asset-id="${website.id}"] .asset-name`).click();
-  const details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  const details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByRole("button", { name: "解除关联", exact: true }).click();
   assert.equal((await page.evaluate(() => window.sinan.store.load())).state.links.length, 0);
   await details.getByRole("button", { name: "搜索与多选关联" }).click();

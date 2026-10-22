@@ -55,19 +55,15 @@ try {
       },
     });
   });
-  await page.getByRole("dialog", { name: "资产详情", exact: true }).waitFor();
-  await page.waitForTimeout(500);
-  assert.deepEqual(
-    await page
-      .getByRole("dialog", { name: "资产详情", exact: true })
-      .locator(".max-w-2xl")
-      .evaluate((el) => ({
-        transform: getComputedStyle(el).transform,
-        willChange: getComputedStyle(el).willChange,
-      })),
-    { transform: "none", willChange: "auto" },
+  await page.getByRole("region", { name: "资产详情", exact: true }).waitFor();
+  // 详情在主内容区内打开：列表隐藏但保留，入场动画结束后卡片完全显示。
+  assert.equal(await page.locator(".workspace-view").getAttribute("hidden"), "");
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll(".asset-detail .detail-block")].every(
+      (el) => getComputedStyle(el).opacity === "1",
+    ),
   );
-  checks.push("详情动画完成后释放合成状态");
+  checks.push("详情在页面内打开，入场动画结束后完全显示");
   await page.getByRole("button", { name: "服务文档", exact: true }).click();
   await page
     .getByRole("button", { name: "迁移并编辑旧文档", exact: true })

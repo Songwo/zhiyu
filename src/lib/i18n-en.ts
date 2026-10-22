@@ -1880,6 +1880,7 @@ export const EN: Record<string, string> = {
   "第 {0} 页 · {1} 封": "Page {0} · {1} messages",
   邮件阅读区: "Message reader",
   返回列表: "Back to list",
+  返回: "Back",
   回复: "Reply",
   标为未读: "Mark unread",
   标为已读: "Mark read",

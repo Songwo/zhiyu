@@ -117,7 +117,7 @@ try {
   assert.equal(await page.getByText(fixture.username, { exact: true }).count(), 0);
   await gate.getByRole("button", { name: "取消", exact: true }).click();
   await gate.waitFor({ state: "detached" });
-  let details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  let details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.waitFor();
   await details.getByRole("button", { name: "解锁查看", exact: true }).click();
   gate = page.getByRole("dialog", { name: "解锁密钥库", exact: true });
@@ -182,7 +182,7 @@ try {
   assert.equal((await page.evaluate(() => window.sinan.vault.status())).unlocked, true);
   assert.equal(await page.locator(".z-gate").count(), 0);
   await row.click();
-  details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByText("updated-fixture@example.test", { exact: true }).waitFor();
   await details.getByRole("button", { name: "关联已有文档", exact: true }).click();
   await details.getByRole("button", { name: "关联文档 合成账号说明", exact: true }).click();

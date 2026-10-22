@@ -71,7 +71,7 @@ try {
   await editor.getByRole("button", { name: "添加", exact: true }).click();
   await editor.waitFor({ state: "detached" });
   await page.getByRole("button", { name: "查看服务 合成边缘服务", exact: true }).click();
-  let details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  let details = page.getByRole("region", { name: "资产详情", exact: true });
   await chooseOption(page, details.getByRole("combobox", { name: "选择关联资产" }), "合成服务账号");
   await details.getByRole("button", { name: "添加关联", exact: true }).click();
   assert.equal(
@@ -92,7 +92,7 @@ try {
     window.__serviceStore.getState().setView("services");
   });
   await page.getByRole("button", { name: "查看服务 合成边缘服务", exact: true }).click();
-  details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByText("服务操作手册", { exact: true }).waitFor();
   await details.getByRole("button", { name: "编辑", exact: true }).click();
   editor = page.getByRole("dialog", { name: "服务资产", exact: true });
@@ -130,7 +130,7 @@ try {
   await page.screenshot({ path: "screenshots/service-assets-mobile.png" });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.getByRole("button", { name: "查看服务 合成博客服务", exact: true }).click();
-  details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByRole("button", { name: "删除", exact: true }).click();
   await details.waitFor({ state: "detached" });
   assert.equal(await page.evaluate(() => window.__serviceStore.getState().services.length), 0);

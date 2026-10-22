@@ -228,6 +228,7 @@ export const useAppStore = create<AppState>()(
       setView: (view) =>
         set({
           view,
+          expanded: null,
           filter: "all",
           mobileNav: false,
           query: "",

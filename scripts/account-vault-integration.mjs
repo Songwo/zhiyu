@@ -151,7 +151,7 @@ try {
         .locator("..")
         .getByRole("button", { name: "查看账号与凭据 Alice 已取消保存", exact: true })
         .click();
-      const recoverable = page.getByRole("dialog", { name: "资产详情", exact: true });
+      const recoverable = page.getByRole("region", { name: "资产详情", exact: true });
       await recoverable.getByText("alice-delayed@example.test", { exact: true }).waitFor();
       await recoverable.getByRole("button", { name: "删除", exact: true }).click();
       await page
@@ -218,7 +218,7 @@ try {
       .locator("..")
       .getByRole("button", { name: `查看账号与凭据 ${fixture.name}`, exact: true })
       .click();
-    const details = page.getByRole("dialog", { name: "资产详情", exact: true });
+    const details = page.getByRole("region", { name: "资产详情", exact: true });
     await details.waitFor();
     return details;
   }
@@ -277,7 +277,7 @@ try {
   await page.getByRole("heading", { name: "已有注册资料", exact: true }).waitFor();
   await page.getByRole("button", { name: /^关联与设置/ }).click();
   await page.getByRole("button", { name: `打开资产 ${fixture.name}`, exact: true }).click();
-  details = page.getByRole("dialog", { name: "资产详情", exact: true });
+  details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByText(fixture.username, { exact: true }).waitFor();
   await details
     .getByRole("region", { name: "账号资料", exact: true })

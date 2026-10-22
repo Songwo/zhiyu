@@ -3851,9 +3851,13 @@ p {
   stroke-width: 1.75;
 }
 
-/* 收起时导航两侧保留对称的滚动条槽位，出现滚动条时图标仍在图标栏正中。 */
+/* 收起时隐藏滚动条（仍可滚轮滚动），图标栏不留槽位，图标落在正中。 */
 .app-sidebar[data-collapsed="true"] .sidebar-nav {
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: auto;
+  scrollbar-width: none;
+}
+.app-sidebar[data-collapsed="true"] .sidebar-nav::-webkit-scrollbar {
+  display: none;
 }
 
 /* 窄屏只剩搜索图标时，与其他标题栏图标按钮保持同一形态。 */
@@ -5135,4 +5139,254 @@ p {
   min-height: 52px;
   padding: 8px 12px;
   border: 0;
+}
+
+/* ==========================================================================
+   资产详情页：在主内容区内打开，不再是浮层弹窗。
+   ========================================================================== */
+
+/* 列表外层不参与布局（文档、助手依赖 main 下的高度链）；从详情返回时子元素淡入，
+   只动透明度，不给内部固定定位元素建立包含块。 */
+@keyframes workspace-return {
+  from {
+    opacity: 0;
+  }
+}
+.workspace-view:not([hidden]) {
+  display: contents;
+}
+.workspace-view:not([hidden]) > * {
+  animation: workspace-return 260ms var(--ease-out-soft);
+}
+
+.asset-detail {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 48px;
+}
+
+/* 顶部返回条：随内容滚动吸顶，半透明底色衬着下方卡片。 */
+.detail-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -12px 0 -4px;
+  padding: 12px 0 8px;
+  background: color-mix(in oklab, var(--color-canvas) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  animation: stagger-in 420ms var(--ease-out-soft) both;
+}
+.detail-back {
+  display: inline-flex;
+  height: 32px;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 8px;
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.detail-back svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: translate var(--dur-base) var(--ease-out-soft);
+}
+.detail-back span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-back:hover {
+  background: var(--color-selected);
+  color: var(--color-ink);
+}
+.detail-back:hover svg {
+  translate: -3px 0;
+}
+.detail-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 服务器分页条：页面内靠左，不再贴着弹窗边缘。 */
+.asset-detail .detail-tabs {
+  justify-self: start;
+  max-width: 100%;
+  margin: 0;
+  animation: stagger-in 480ms var(--ease-out-soft) 40ms both;
+}
+
+.detail-body {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.detail-layout {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+@container (min-width: 880px) {
+  .detail-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  }
+}
+.detail-column {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+/* 每一块内容是一张白卡：浅环 + 柔和投影，内部不再画分隔线。 */
+.detail-block {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+  animation: stagger-in 560ms var(--ease-out-soft) both;
+}
+.detail-block:empty {
+  display: none;
+}
+.detail-block:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+.detail-block > * {
+  border-top-width: 0;
+}
+.detail-block .asset-card-detail {
+  border-bottom: 0;
+}
+.detail-block .detail-section {
+  padding: 18px 20px;
+}
+.detail-column:nth-child(1) > .detail-block:nth-child(2) {
+  animation-delay: 70ms;
+}
+.detail-column:nth-child(2) > .detail-block:nth-child(1) {
+  animation-delay: 110ms;
+}
+.detail-column:nth-child(2) > .detail-block:nth-child(2) {
+  animation-delay: 170ms;
+}
+.detail-column:nth-child(2) > .detail-block:nth-child(n + 3) {
+  animation-delay: 230ms;
+}
+
+/* 资产本身是页面的头：顶部一抹景深渐变，名称放大成页面标题。 */
+.detail-summary {
+  position: relative;
+  isolation: isolate;
+}
+.detail-summary::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: 200px;
+  background: linear-gradient(158deg, #eaf3ee 0%, #efedf7 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 30%, transparent);
+  pointer-events: none;
+}
+.asset-detail[data-kind="ai"] .detail-summary::before,
+.asset-detail[data-kind="secret"] .detail-summary::before {
+  background: linear-gradient(158deg, #eeecf8 0%, #f3eff5 55%, transparent 100%);
+}
+.asset-detail[data-kind="domain"] .detail-summary::before,
+.asset-detail[data-kind="cert"] .detail-summary::before {
+  background: linear-gradient(158deg, #f6f1e7 0%, #f1f0ec 55%, transparent 100%);
+}
+:root[data-theme="dark"] .detail-summary::before {
+  background: linear-gradient(158deg, #1b2620 0%, #211f2b 55%, transparent 100%);
+}
+:root[data-theme="dark"] .asset-detail[data-kind="ai"] .detail-summary::before,
+:root[data-theme="dark"] .asset-detail[data-kind="secret"] .detail-summary::before {
+  background: linear-gradient(158deg, #221f2e 0%, #1f1d26 55%, transparent 100%);
+}
+:root[data-theme="dark"] .asset-detail[data-kind="domain"] .detail-summary::before,
+:root[data-theme="dark"] .asset-detail[data-kind="cert"] .detail-summary::before {
+  background: linear-gradient(158deg, #29251c 0%, #21201c 55%, transparent 100%);
+}
+.detail-summary .asset-card-detail {
+  padding: 28px 28px 24px;
+  background: transparent;
+}
+.detail-summary .asset-card-detail > header {
+  align-items: center;
+  gap: 14px;
+}
+.detail-summary .asset-card-detail > header > :first-child {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-raised);
+}
+.detail-summary .asset-card-detail > header h3 {
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+@media (max-width: 767px) {
+  .detail-summary .asset-card-detail {
+    padding: 20px 18px 18px;
+  }
+  .detail-summary .asset-card-detail > header h3 {
+    font-size: 19px;
+  }
+  .detail-bar {
+    margin-top: -8px;
+  }
+}
+
+/* 面包屑上级：可点回列表。 */
+.titlebar-crumb-link {
+  overflow: hidden;
+  max-width: 14em;
+  border-radius: 6px;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.titlebar-crumb-link:hover {
+  color: var(--color-ink);
+}
+@media (max-width: 639px) {
+  .titlebar-crumb-link {
+    display: none;
+  }
+}
+
+/* 收起的图标栏：选中块和悬停底色都是居中的方块，与「新建」按钮同宽。 */
+.app-sidebar[data-collapsed="true"] .sidebar-nav-item,
+.app-sidebar[data-collapsed="true"] .sidebar-tools-toggle {
+  width: 44px;
+  min-height: 44px;
+  margin-inline: auto;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-view:not([hidden]) > *,
+  .detail-bar,
+  .asset-detail .detail-tabs,
+  .detail-block {
+    animation: none;
+  }
+  .detail-back svg {
+    transition: none;
+  }
 }

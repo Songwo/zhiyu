@@ -8,16 +8,24 @@ const MetricHistory = lazy(() =>
 );
 import {
   Activity,
+  ArrowLeft,
   BookOpen,
   FolderArchive,
   KeyRound,
   Pencil,
   Trash2,
   Wrench,
-  X,
   Zap,
 } from "lucide-react";
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { AiCard, CertCard, DomainCard, MailCard, SecretCard, ServerCard } from "./asset-card";
 const BoundIntegrationPanel = lazy(() =>
   import("./integrations/bound-integration-panel").then((module) => ({
@@ -35,7 +43,6 @@ import { ServerDocsPanel } from "./server-docs-panel";
 import { ServerSecretsPanel } from "./server-secrets-panel";
 import { ServerOpsToolbox } from "./server-ops-toolbox";
 import { Button } from "./ui/button";
-import { cardRect, flipTransform, reduceMotion } from "@/lib/motion";
 import { PROBEABLE, type ProbeKind } from "@/lib/probes";
 import { useAppStore, type ExpandState } from "@/lib/store";
 import type { AssetKind } from "@/lib/types";
@@ -44,19 +51,25 @@ import { desktop } from "@/lib/desktop";
 import { useVault } from "@/lib/vault-state";
 import { deleteEncryptedAccount } from "@/lib/account-delete.mjs";
 import { EditorDialog } from "./ui/editor-dialog";
+import { NAV } from "./sidebar";
 import { toast } from "sonner";
 
-const ENTER_MS = 340;
-const EXIT_MS = 220;
-
 /**
- * The detail sheet grows out of the card that was clicked and shrinks back into
- * it — a FLIP against the card's real rectangle, remeasured on the way out so a
- * scroll (or a resize) mid-session still lands on the card rather than where it
- * used to be.
+ * 资产详情是主内容区里的一页，而不是浮在列表上的弹窗：顶部返回原列表，
+ * 左列放资产本身与指标，右列放关联、文档和凭据。列表保持挂载，返回时
+ * 筛选和滚动位置都还在。
  */
-export function ExpandLayer() {
+export function AssetDetailPage() {
   const expanded = useAppStore((s) => s.expanded);
+  if (!expanded) return null;
+  // 按资产重建：切到另一项（例如点关联资产）时分页、确认框回到初始状态，入场动效也会重播。
+  return <AssetDetail key={`${expanded.kind}:${expanded.id}`} asset={expanded} />;
+}
+
+type ServerTab = "overview" | "nodes" | "docs" | "secrets" | "ops" | "files";
+
+function AssetDetail({ asset }: { asset: ExpandState }) {
+  const view = useAppStore((s) => s.view);
   const setExpanded = useAppStore((s) => s.setExpanded);
   const openComposer = useAppStore((s) => s.openComposer);
   const remove = useAppStore((s) => s.remove);
@@ -65,106 +78,38 @@ export function ExpandLayer() {
   const secrets = useAppStore((s) => s.secrets);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const [visible, setVisible] = useState<ExpandState | null>(null);
-  const [shown, setShown] = useState(false);
-  const [serverTab, setServerTab] = useState<
-    "overview" | "nodes" | "docs" | "secrets" | "ops" | "files"
-  >("overview");
-  const currentServer =
-    visible?.kind === "server" ? servers.find((s) => s.id === visible.id) : null;
+  const [serverTab, setServerTab] = useState<ServerTab>("overview");
+  const currentServer = asset.kind === "server" ? servers.find((s) => s.id === asset.id) : null;
   const currentAccount =
-    visible?.kind === "secret"
-      ? secrets.find(
-          (item) => item.id === visible.id && ["account", "password"].includes(item.kind),
-        )
+    asset.kind === "secret"
+      ? secrets.find((item) => item.id === asset.id && ["account", "password"].includes(item.kind))
       : null;
-
-  useEffect(() => {
-    setServerTab("overview");
-    setConfirmDelete(false);
-  }, [visible?.id]);
-
-  const panel = useRef<HTMLDivElement>(null);
   const accountSection = useRef<HTMLDivElement>(null);
-  const closing = useRef(false);
-  const exitTimer = useRef(0);
-
-  // `expanded` is the source of truth; local state only outlives it for the
-  // length of the exit.
-  useEffect(() => {
-    if (expanded) {
-      window.clearTimeout(exitTimer.current);
-      closing.current = false;
-      setVisible(expanded);
-      return;
-    }
-    if (!visible || closing.current) return;
-    closing.current = true;
-    setShown(false);
-    const el = panel.current;
-    if (el && !reduceMotion()) {
-      const from = cardRect(visible.id) ?? visible.origin;
-      el.style.willChange = "transform, opacity";
-      el.style.transition = `transform ${EXIT_MS}ms var(--ease-out), opacity ${EXIT_MS}ms ease-in`;
-      el.style.transform = flipTransform(from, el.getBoundingClientRect());
-      el.style.opacity = "0";
-    }
-    exitTimer.current = window.setTimeout(() => setVisible(null), reduceMotion() ? 0 : EXIT_MS);
-  }, [expanded, visible]);
-
-  // Enter: paint at the card's rectangle, then release to the laid-out one.
-  useLayoutEffect(() => {
-    const el = panel.current;
-    if (!el || !visible || closing.current) return;
-    const settle = () => {
-      if (closing.current) return;
-      el.style.transform = "none";
-      el.style.willChange = "auto";
-      el.style.transition = "";
-    };
-    if (reduceMotion()) {
-      settle();
-      setShown(true);
-      return;
-    }
-    const to = el.getBoundingClientRect();
-    el.style.willChange = "transform, opacity";
-    el.style.transition = "none";
-    el.style.transform = flipTransform(visible.origin, to);
-    el.style.opacity = "0.25";
-    // Force the closed frame to land before the transition is armed.
-    const _reflow = el.offsetWidth;
-    el.style.transition = `transform ${ENTER_MS}ms var(--ease-out-soft), opacity ${Math.round(ENTER_MS * 0.6)}ms var(--ease-out)`;
-    el.style.transform = "translate3d(0, 0, 0) scale(1)";
-    el.style.opacity = "1";
-    setShown(true);
-    const timer = window.setTimeout(settle, ENTER_MS + 50);
-    const onEnd = (event: TransitionEvent) => {
-      if (event.target === el && event.propertyName === "transform") settle();
-    };
-    el.addEventListener("transitionend", onEnd);
-    return () => {
-      window.clearTimeout(timer);
-      el.removeEventListener("transitionend", onEnd);
-    };
-  }, [visible]);
-
-  useEffect(() => () => window.clearTimeout(exitTimer.current), []);
-
-  useEffect(() => {
-    if (visible?.focus !== "account") return;
-    const timer = window.setTimeout(
-      () => {
-        accountSection.current?.scrollIntoView({ block: "nearest" });
-        accountSection.current?.focus({ preventScroll: true });
-      },
-      reduceMotion() ? 0 : ENTER_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [visible]);
+  const parent = NAV.find((item) => item.id === view);
 
   const close = useCallback(() => setExpanded(null), [setExpanded]);
+
+  useEffect(() => {
+    if (asset.focus !== "account") return;
+    const timer = window.setTimeout(() => {
+      accountSection.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      accountSection.current?.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [asset.focus]);
+
+  // Esc 返回列表；编辑器、确认框或解锁框打开时让它们自己处理。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      if (useVault.getState().prompt) return;
+      close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [close]);
+
   const deleteAccount = async () => {
     if (!currentAccount || deleting) return;
     const id = currentAccount.id;
@@ -190,24 +135,82 @@ export function ExpandLayer() {
     }
   };
 
-  useEffect(() => {
-    if (!visible) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !confirmDelete && !useVault.getState().prompt) close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [visible, close, confirmDelete]);
+  const account = (
+    <div ref={accountSection} tabIndex={-1} aria-label={t("凭据位置")} className="detail-block">
+      <AccountPanel key={`${asset.kind}:${asset.id}`} assetId={asset.id} kind={asset.kind} />
+    </div>
+  );
+  const summary = (
+    <div className="detail-block detail-summary">
+      <ExpandedBody kind={asset.kind} id={asset.id} />
+    </div>
+  );
+  const relations = (
+    <div className="detail-block">
+      <AssetRelations key={`links:${asset.kind}:${asset.id}`} asset={asset} />
+    </div>
+  );
+  const accountInAside =
+    !currentAccount &&
+    asset.kind !== "service" &&
+    (asset.kind !== "ai" || !aiAssets.find((item) => item.id === asset.id)?.oauthAccountId);
 
-  if (!visible) return null;
+  let body: ReactNode;
+  if (currentServer && serverTab !== "overview") {
+    body = (
+      <div className="detail-block">
+        {serverTab === "nodes" && (
+          <ServerNodesPanel key={`nodes:${asset.id}`} server={currentServer} />
+        )}
+        {serverTab === "docs" && (
+          <ServerDocsPanel key={`docs:${asset.id}`} server={currentServer} />
+        )}
+        {serverTab === "secrets" && (
+          <ServerSecretsPanel key={`secrets:${asset.id}`} server={currentServer} />
+        )}
+        {serverTab === "ops" && (
+          <ServerOpsToolbox key={`ops:${asset.id}`} server={currentServer} />
+        )}
+        {serverTab === "files" && <SftpBrowser key={`files:${asset.id}`} serverId={asset.id} />}
+      </div>
+    );
+  } else if (currentServer) {
+    body = (
+      <div className="detail-layout">
+        <div className="detail-column">
+          {summary}
+          <div className="detail-block">
+            <Suspense fallback={<p className="p-5 text-sm text-muted">{t("正在加载…")}</p>}>
+              <MetricHistory key={`metrics:${asset.id}`} serverId={asset.id} />
+            </Suspense>
+          </div>
+        </div>
+        <div className="detail-column">
+          {relations}
+          {account}
+        </div>
+      </div>
+    );
+  } else {
+    body = (
+      <div className="detail-layout">
+        <div className="detail-column">
+          {summary}
+          {currentAccount && account}
+        </div>
+        <div className="detail-column">
+          {relations}
+          <div className="detail-block">
+            <AssetDocuments asset={asset} />
+          </div>
+          {accountInAside && account}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-8 sm:py-12"
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("资产详情")}
-    >
+    <section className="asset-detail" aria-label={t("资产详情")} data-kind={asset.kind}>
       {confirmDelete && currentAccount && (
         <EditorDialog title={t("删除账号")} onClose={() => setConfirmDelete(false)}>
           <p className="text-sm leading-relaxed text-muted">
@@ -223,151 +226,74 @@ export function ExpandLayer() {
           </div>
         </EditorDialog>
       )}
-      <button
-        type="button"
-        aria-label={t("关闭")}
-        className="anim-scrim absolute inset-0 bg-ink/35"
-        data-shown={shown}
-        onClick={close}
-      />
-      <div
-        ref={panel}
-        className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl bg-card shadow-float"
-      >
-        <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <span className="text-meta font-medium text-muted">{t("资产详情")}</span>
-          <div className="flex items-center gap-1">
-            {isProbeKind(visible.kind) && <RefreshOneButton kind={visible.kind} id={visible.id} />}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => openComposer(visible.kind, visible.id)}
-              aria-label={t("编辑")}
-            >
-              <Pencil className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={deleting}
-              onClick={() =>
-                currentAccount ? setConfirmDelete(true) : remove(visible.kind, visible.id)
-              }
-              aria-label={t("删除")}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-            <Button variant="ghost" size="icon-sm" onClick={close} aria-label={t("关闭")}>
-              <X className="size-4" />
-            </Button>
-          </div>
-        </div>
 
-        {/* 服务器详情的分页：中性图标、不换行，选中项为浅灰轨道上的白块。 */}
-        {visible.kind === "server" && currentServer && (
-          <div className="detail-tabs" role="group" aria-label={t("资产详情")}>
-            {(
-              [
-                ["overview", "监控概览", Activity, 0],
-                ["nodes", "自建节点", Zap, currentServer.nodes?.length ?? 0],
-                ["docs", "服务文档", BookOpen, 0],
-                ["secrets", "绑定密钥", KeyRound, currentServer.customSecrets?.length ?? 0],
-                ["ops", "运维工具", Wrench, 0],
-                ["files", "文件SFTP", FolderArchive, 0],
-              ] as const
-            ).map(([id, label, Icon, count]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={serverTab === id}
-                onClick={() => setServerTab(id)}
-                className="detail-tab"
-              >
-                <Icon aria-hidden="true" />
-                <span>{t(label)}</span>
-                {count > 0 && <span className="detail-tab-count">{count}</span>}
-                {id === "docs" && Boolean(currentServer.docs?.trim()) && (
-                  <span className="detail-tab-dot" aria-hidden="true" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="max-h-[min(70vh,640px)] overflow-y-auto">
-          {visible.kind === "server" && currentServer ? (
-            <>
-              {serverTab === "overview" && (
-                <>
-                  <ExpandedBody kind={visible.kind} id={visible.id} />
-                  <Suspense fallback={<p className="p-4 text-sm text-muted">{t("正在加载…")}</p>}>
-                    <MetricHistory key={`metrics:${visible.id}`} serverId={visible.id} />
-                  </Suspense>
-                  <AssetRelations key={`links:${visible.kind}:${visible.id}`} asset={visible} />
-                  <div ref={accountSection} tabIndex={-1} aria-label={t("凭据位置")}>
-                    <AccountPanel
-                      key={`${visible.kind}:${visible.id}`}
-                      assetId={visible.id}
-                      kind={visible.kind}
-                    />
-                  </div>
-                </>
-              )}
-              {serverTab === "nodes" && (
-                <ServerNodesPanel key={`nodes:${visible.id}`} server={currentServer} />
-              )}
-              {serverTab === "docs" && (
-                <ServerDocsPanel key={`docs:${visible.id}`} server={currentServer} />
-              )}
-              {serverTab === "secrets" && (
-                <ServerSecretsPanel key={`secrets:${visible.id}`} server={currentServer} />
-              )}
-              {serverTab === "ops" && (
-                <ServerOpsToolbox key={`ops:${visible.id}`} server={currentServer} />
-              )}
-              {serverTab === "files" && (
-                <SftpBrowser key={`files:${visible.id}`} serverId={visible.id} />
-              )}
-            </>
-          ) : (
-            <>
-              <ExpandedBody kind={visible.kind} id={visible.id} />
-              {currentAccount && (
-                <div ref={accountSection} tabIndex={-1} aria-label={t("凭据位置")}>
-                  <AccountPanel
-                    key={`${visible.kind}:${visible.id}`}
-                    assetId={visible.id}
-                    kind={visible.kind}
-                  />
-                </div>
-              )}
-              {visible.kind === "server" && (
-                <Suspense fallback={<p className="p-4 text-sm text-muted">{t("正在加载…")}</p>}>
-                  <MetricHistory key={`metrics:${visible.id}`} serverId={visible.id} />
-                </Suspense>
-              )}
-              {visible.kind === "server" && (
-                <SftpBrowser key={`files:${visible.id}`} serverId={visible.id} />
-              )}
-              <AssetRelations key={`links:${visible.kind}:${visible.id}`} asset={visible} />
-              <AssetDocuments asset={visible} />
-              {!currentAccount &&
-                visible.kind !== "service" &&
-                (visible.kind !== "ai" ||
-                  !aiAssets.find((item) => item.id === visible.id)?.oauthAccountId) && (
-                  <div ref={accountSection} tabIndex={-1} aria-label={t("凭据位置")}>
-                    <AccountPanel
-                      key={`${visible.kind}:${visible.id}`}
-                      assetId={visible.id}
-                      kind={visible.kind}
-                    />
-                  </div>
-                )}
-            </>
-          )}
+      <div className="detail-bar">
+        <button type="button" className="detail-back" onClick={close} aria-label={t("返回列表")}>
+          <ArrowLeft aria-hidden="true" />
+          <span>{t(parent?.label ?? "返回")}</span>
+        </button>
+        <div className="detail-actions">
+          {isProbeKind(asset.kind) && <RefreshOneButton kind={asset.kind} id={asset.id} />}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openComposer(asset.kind, asset.id)}
+            aria-label={t("编辑")}
+          >
+            <Pencil className="size-3.5" />
+            {t("编辑")}
+          </Button>
+          <Button
+            variant="danger-ghost"
+            size="icon-sm"
+            disabled={deleting}
+            title={t("删除")}
+            onClick={() =>
+              currentAccount ? setConfirmDelete(true) : remove(asset.kind, asset.id)
+            }
+            aria-label={t("删除")}
+          >
+            <Trash2 className="size-4" />
+          </Button>
         </div>
       </div>
-    </div>
+
+      {/* 服务器详情的分页：中性图标、不换行，选中项为浅灰轨道上的白块。 */}
+      {currentServer && (
+        <div className="detail-tabs" role="group" aria-label={t("资产详情")}>
+          {(
+            [
+              ["overview", "监控概览", Activity, 0],
+              ["nodes", "自建节点", Zap, currentServer.nodes?.length ?? 0],
+              ["docs", "服务文档", BookOpen, 0],
+              ["secrets", "绑定密钥", KeyRound, currentServer.customSecrets?.length ?? 0],
+              ["ops", "运维工具", Wrench, 0],
+              ["files", "文件SFTP", FolderArchive, 0],
+            ] as const
+          ).map(([id, label, Icon, count]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={serverTab === id}
+              onClick={() => setServerTab(id)}
+              className="detail-tab"
+            >
+              <Icon aria-hidden="true" />
+              <span>{t(label)}</span>
+              {count > 0 && <span className="detail-tab-count">{count}</span>}
+              {id === "docs" && Boolean(currentServer.docs?.trim()) && (
+                <span className="detail-tab-dot" aria-hidden="true" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 换分页时重建，内容按卡片依次浮入。 */}
+      <div className="detail-body" key={serverTab}>
+        {body}
+      </div>
+    </section>
   );
 }
 

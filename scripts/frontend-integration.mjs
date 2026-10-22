@@ -156,9 +156,9 @@ try {
   );
   await page.getByRole("button", { name: "适应画布", exact: true }).click();
   await page.locator('[data-asset-id="primary"] .asset-name').click();
-  await page.getByRole("dialog", { name: "资产详情" }).waitFor();
+  await page.getByRole("region", { name: "资产详情" }).waitFor();
   await page.keyboard.press("Escape");
-  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page.getByRole("region", { name: "资产详情" }).waitFor({ state: "detached" });
   await page.screenshot({ path: "release/screenshots/nanpad-graph.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "适应画布", exact: true }).click();

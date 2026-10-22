@@ -217,13 +217,12 @@ export function Sidebar({
     const measure = () => {
       const active = nav.querySelector<HTMLElement>('.sidebar-nav-item[data-active="true"]');
       if (!active) return setPill(null);
-      const box = active.getBoundingClientRect();
-      const host = nav.getBoundingClientRect();
+      // offset* 相对导航的内边距盒，与绝对定位的参照一致，不受滚动条槽位和按压缩放影响。
       setPill({
-        top: box.top - host.top + nav.scrollTop,
-        left: box.left - host.left,
-        width: box.width,
-        height: box.height,
+        top: active.offsetTop,
+        left: active.offsetLeft,
+        width: active.offsetWidth,
+        height: active.offsetHeight,
       });
     };
     measure();

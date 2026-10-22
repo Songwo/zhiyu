@@ -16,6 +16,11 @@ export const useNavHistory = create<NavHistory>(() => ({ past: [], future: [] })
 let traversing = false;
 
 function go(from: "past" | "future") {
+  // 详情是当前页面上的一层，后退先回到列表。
+  if (from === "past" && useAppStore.getState().expanded) {
+    useAppStore.getState().setExpanded(null);
+    return;
+  }
   const state = useNavHistory.getState();
   const stack = state[from];
   const target = stack[stack.length - 1];
