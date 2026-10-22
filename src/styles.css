@@ -5972,3 +5972,289 @@ p {
   margin-top: 6px;
   padding-top: 6px;
 }
+
+/* ==========================================================================
+   首页「快速开始」与「近期续费」
+   ========================================================================== */
+.quick-start {
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+.quick-start-progress {
+  height: 6px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.quick-start-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8db0f5, #3b6fe0);
+  transition: width var(--dur-slow) var(--ease-out-soft);
+}
+.quick-start-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quick-start-step {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    translate var(--dur-base) var(--ease-out-soft);
+}
+.quick-start-step:hover {
+  background: var(--color-surface);
+  translate: 0 -1px;
+}
+.quick-start-check {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.quick-start-check svg {
+  width: 14px;
+  height: 14px;
+}
+.quick-start-step[data-done="true"] .quick-start-check {
+  background: color-mix(in oklab, var(--color-ok) 16%, transparent);
+  color: var(--color-ok);
+}
+.quick-start-title {
+  display: block;
+  color: var(--color-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.quick-start-step[data-done="true"] .quick-start-title {
+  color: var(--color-muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--color-muted) 50%, transparent);
+}
+.quick-start-detail {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.quick-start-arrow {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--color-subtle);
+}
+.section-link svg {
+  width: 14px;
+  height: 14px;
+}
+.upcoming-list {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+.upcoming-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.upcoming-row:hover {
+  background: color-mix(in oklab, var(--color-selected) 75%, var(--color-card));
+}
+.upcoming-name {
+  display: block;
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.upcoming-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.upcoming-meta i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--event, var(--color-muted));
+}
+.upcoming-row[data-kind="server"] {
+  --event: var(--kind-server);
+}
+.upcoming-row[data-kind="domain"] {
+  --event: var(--kind-domain);
+}
+.upcoming-row[data-kind="cert"] {
+  --event: var(--kind-cert);
+}
+.upcoming-row[data-kind="ai"] {
+  --event: var(--kind-ai);
+}
+.upcoming-row[data-kind="service"] {
+  --event: var(--kind-service);
+}
+.upcoming-row[data-kind="phone"] {
+  --event: var(--kind-phone);
+}
+
+/* ==========================================================================
+   新建：常用订阅模板
+   ========================================================================== */
+.template-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+}
+.template-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.template-section > p {
+  margin: 4px 0 12px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.template-group + .template-group {
+  margin-top: 10px;
+}
+.template-group-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-subtle);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.template-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.template-chip {
+  --chip: var(--kind-service);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--chip) 9%, var(--color-card));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--chip) 22%, transparent);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    translate var(--dur-base) var(--ease-out-soft);
+}
+.template-chip[data-group="ai"] {
+  --chip: var(--kind-ai);
+}
+.template-chip[data-group="life"] {
+  --chip: var(--kind-phone);
+}
+.template-chip:hover {
+  background: color-mix(in oklab, var(--chip) 16%, var(--color-card));
+  translate: 0 -1px;
+}
+.template-chip-name {
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.template-chip-price {
+  color: var(--color-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.create-type-option {
+  border: 0;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.create-type-option:hover {
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+}
+
+/* ==========================================================================
+   键盘快捷键
+   ========================================================================== */
+.shortcut-groups {
+  display: grid;
+  gap: 18px;
+}
+.shortcut-groups h3 {
+  margin-bottom: 6px;
+  color: var(--color-subtle);
+  font-size: 12px;
+  font-weight: 600;
+}
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-line) 70%, transparent);
+  font-size: 13.5px;
+}
+.shortcut-row:last-child {
+  border-bottom: 0;
+}
+.shortcut-row dd {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+}
+.shortcut-row kbd {
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 7px;
+  background: var(--color-surface);
+  box-shadow: inset 0 -1px 0 var(--color-line-strong);
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick-start-step,
+  .template-chip {
+    transition: none;
+  }
+}

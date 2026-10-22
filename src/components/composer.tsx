@@ -121,7 +121,7 @@ function ComposerBody({
     ...preset,
   }));
   const [aiMode, setAiMode] = useState<"choose" | "api" | "login" | "manual">(() =>
-    initialAiMode(existing),
+    initialAiMode(existing, preset),
   );
   const [serverMode, setServerMode] = useState<"record" | "ssh">(() =>
     initialServerMode(existing, form),
@@ -196,7 +196,7 @@ function ComposerBody({
     const current = findAsset(kind, editingId, useAppStore.getState());
     const next = { ...defaults(kind, current), ...preset };
     setForm(next);
-    setAiMode(initialAiMode(current));
+    setAiMode(initialAiMode(current, preset));
     setServerMode(initialServerMode(current, next));
     setImageBusy(false);
   }, [kind, editingId, preset]);

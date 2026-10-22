@@ -15,6 +15,7 @@ import { SshTerminal } from "./ssh-terminal";
 import { TitleBar } from "./title-bar";
 import { VaultGate } from "./vault-gate";
 import { Onboarding } from "./onboarding";
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { MainView, TopTabs } from "./views";
 import { desktop, isDesktop } from "@/lib/desktop";
 import { useLive } from "@/lib/live";
@@ -313,6 +314,7 @@ export function AppShell() {
       <CaptureInbox />
       <GlobalMarkdownImport />
       <CommandPalette />
+      <KeyboardShortcuts />
       <VaultGate />
       <Onboarding />
       <Toaster

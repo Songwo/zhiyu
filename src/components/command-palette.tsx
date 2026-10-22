@@ -1,7 +1,12 @@
 import { Command } from "cmdk";
 import {
   Bot,
+  CalendarDays,
+  Keyboard,
   Phone,
+  Settings2,
+  SunMoon,
+  Sparkles,
   Globe,
   KeyRound,
   Mail,
@@ -21,6 +26,8 @@ import { KIND_LABEL } from "@/lib/status";
 import { tagIndex, tagsOf } from "@/lib/tags";
 import type { AssetKind } from "@/lib/types";
 import { t } from "@/lib/i18n";
+import { useSettings } from "@/lib/settings";
+import { SHORTCUTS_EVENT } from "./keyboard-shortcuts";
 
 const KIND_ICON: Record<AssetKind, LucideIcon> = {
   server: ServerIcon,
@@ -141,6 +148,64 @@ function Palette({ shown, onClose }: { shown: boolean; onClose: () => void }) {
       },
     }));
     out.push({ heading: t("页面"), entries: pages });
+
+    // 常用操作：搜「主题」「设置」「模板」「快捷键」都能直达。
+    out.push({
+      heading: t("操作"),
+      entries: [
+        {
+          id: "action:templates",
+          search: t("订阅模板 常用订阅 新建 ChatGPT iCloud Cloudflare"),
+          icon: Sparkles,
+          label: t("从常用订阅模板添加"),
+          run: () => {
+            onClose();
+            useAppStore.getState().setCreatePickerOpen(true);
+          },
+        },
+        {
+          id: "action:calendar",
+          search: t("续费日历 到期 续费 费用"),
+          icon: CalendarDays,
+          label: t("打开续费日历"),
+          run: () => {
+            setView("renewals");
+            onClose();
+          },
+        },
+        {
+          id: "action:theme",
+          search: t("切换主题 深色 浅色 外观 dark light"),
+          icon: SunMoon,
+          label: t("切换深色 / 浅色外观"),
+          run: () => {
+            const settings = useSettings.getState();
+            settings.setTheme(settings.resolved === "dark" ? "light" : "dark");
+            onClose();
+          },
+        },
+        {
+          id: "action:settings",
+          search: t("系统设置 偏好 备份 数据"),
+          icon: Settings2,
+          label: t("打开系统设置"),
+          run: () => {
+            onClose();
+            useAppStore.getState().openSettingsPage();
+          },
+        },
+        {
+          id: "action:shortcuts",
+          search: t("键盘快捷键 快捷键 帮助 shortcut"),
+          icon: Keyboard,
+          label: t("键盘快捷键"),
+          run: () => {
+            onClose();
+            window.dispatchEvent(new Event(SHORTCUTS_EVENT));
+          },
+        },
+      ],
+    });
 
     const sshEntries: Entry[] = servers
       .filter((server) => server.sshConfigured !== false)

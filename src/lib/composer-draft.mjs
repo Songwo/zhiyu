@@ -20,9 +20,12 @@ export function initialServerMode(existing, form) {
     : "record";
 }
 
-/** @param {unknown} existing @returns {"choose" | "manual"} */
-export function initialAiMode(existing) {
-  return existing ? "manual" : "choose";
+/**
+ * 编辑已有订阅或从订阅模板新建时直接进入手动表单；空白新建先选择来源。
+ * @param {unknown} existing @param {{ name?: string } | null} [preset] @returns {"choose" | "manual"}
+ */
+export function initialAiMode(existing, preset = null) {
+  return existing || preset?.name ? "manual" : "choose";
 }
 
 /** @param {Form} form @param {"record" | "ssh"} mode @returns {Form | null} */

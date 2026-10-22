@@ -70,6 +70,14 @@ a {
   position: absolute;
   left: -999px;
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 .skip:focus {
   left: 16px;
   top: 16px;
@@ -108,7 +116,7 @@ a {
   color: var(--muted);
   font-weight: 500;
 }
-nav {
+.site-header nav {
   display: flex;
   gap: 4px;
   font-size: 14px;
@@ -525,7 +533,7 @@ details p {
 
 /* ------------------------------------------------------------- 窄屏 */
 @media (max-width: 860px) {
-  nav a:not(.nav-github) {
+  .site-header nav a:not(.nav-github) {
     display: none;
   }
   .hero {
@@ -557,5 +565,233 @@ details p {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------- 使用指南 */
+nav a[aria-current="page"] {
+  background: var(--line);
+  color: var(--ink);
+}
+.guide-hero {
+  padding: 56px 0 28px;
+}
+.guide-hero h1 {
+  font-size: clamp(32px, 5vw, 48px);
+}
+.guide-hero .intro {
+  margin: 14px 0 0;
+}
+.guide-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+  padding-bottom: 72px;
+}
+.guide-toc {
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.guide-search input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.guide-search input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+.guide-toc nav {
+  display: grid;
+  gap: 1px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+.guide-toc nav p {
+  margin: 14px 0 4px;
+  padding-left: 10px;
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.guide-toc nav a {
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.guide-toc nav a[aria-current] {
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 600;
+}
+.guide-content {
+  min-width: 0;
+}
+.guide-section {
+  padding: 8px 0 40px;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: 80px;
+}
+.guide-section + .guide-section {
+  padding-top: 40px;
+}
+.guide-section:last-child {
+  border-bottom: 0;
+}
+.guide-section h2 {
+  margin-bottom: 14px;
+  font-size: 26px;
+}
+.guide-section p,
+.guide-section li {
+  color: var(--muted);
+}
+.guide-section strong {
+  color: var(--ink);
+}
+.guide-steps,
+.guide-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding-left: 22px;
+}
+.guide-steps li::marker {
+  color: var(--blue);
+  font-weight: 700;
+}
+.guide-tip {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--amber) 14%, transparent);
+  color: var(--ink) !important;
+  font-size: 15px;
+}
+.guide-shot {
+  margin: 4px 0 20px;
+}
+.guide-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.guide-card {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+}
+.guide-card span {
+  color: var(--muted);
+  font-size: 14px;
+}
+a.guide-card {
+  transition: transform 0.25s var(--ease);
+}
+a.guide-card:hover {
+  transform: translateY(-2px);
+}
+.guide-table {
+  margin-top: 12px;
+  overflow-x: auto;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+.guide-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.guide-table th,
+.guide-table td {
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: top;
+}
+.guide-table th {
+  color: var(--subtle);
+  font-size: 13px;
+  font-weight: 600;
+}
+.guide-table tr + tr td,
+.guide-table tbody tr:first-child td {
+  border-top: 1px solid var(--line);
+}
+.guide-table td:first-child {
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.guide-section code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  color: var(--ink);
+  font-size: 0.9em;
+}
+kbd {
+  display: inline-block;
+  min-width: 24px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px var(--line),
+    inset 0 -1px 0 var(--line);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.85em;
+  text-align: center;
+}
+.guide-empty {
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--muted);
+}
+.guide-section .faq-like,
+.guide-section details {
+  margin-top: 10px;
+}
+@media (max-width: 860px) {
+  .guide-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .guide-toc {
+    position: static;
+    max-height: none;
+  }
+  .guide-toc nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .guide-toc nav p {
+    display: none;
+  }
+  .guide-toc nav a {
+    background: var(--card);
+    box-shadow: var(--shadow-card);
+    font-size: 13px;
+  }
+  .guide-cards {
+    grid-template-columns: 1fr;
   }
 }

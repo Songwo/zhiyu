@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>使用指南 · 知屿 Zhiyu</title>
+    <meta
+      name="description"
+      content="知屿 Zhiyu 使用指南：安装、首次设置、添加资产、资产关联、续费日历、用量记录、文档、密钥库、备份与常见问题。"
+    />
+    <link rel="canonical" href="https://songwo.github.io/zhiyu/guide.html" />
+    <link rel="icon" href="./favicon.svg?v={{ASSET_REVISION}}" type="image/svg+xml" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta property="og:title" content="知屿 Zhiyu 使用指南" />
+    <meta property="og:description" content="从安装到日常使用，一页讲清楚知屿的每个功能。" />
+    <meta property="og:type" content="article" />
+    <link rel="stylesheet" href="./style.css?v={{ASSET_REVISION}}" />
+  </head>
+  <body class="guide-page">
+    <a class="skip" href="#guide-main">跳到正文</a>
+    <header class="site-header">
+      <div class="wrap header-row">
+        <a class="brand" href="./"
+          ><img src="./favicon.svg?v={{ASSET_REVISION}}" width="34" height="34" alt="" />知屿
+          <span>Zhiyu</span></a
+        >
+        <nav aria-label="网站导航">
+          <a href="./#features">功能</a><a href="./guide.html" aria-current="page">使用指南</a
+          ><a href="./#download">下载</a
+          ><a class="nav-github" href="https://github.com/Songwo/zhiyu">GitHub ↗</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wrap guide-hero">
+      <p class="eyebrow">使用指南 · v{{VERSION}}</p>
+      <h1>从安装到日常，一页讲清楚。</h1>
+      <p class="intro">
+        跟着顺序读能完整上手；只想解决一个问题，直接搜索关键词，比如「额度」「备份」「便携版」。
+      </p>
+    </div>
+
+    <div class="wrap guide-layout">
+      <aside class="guide-toc" aria-label="目录">
+        <label class="guide-search">
+          <span class="sr-only">搜索指南</span>
+          <input type="search" id="guide-search" placeholder="搜索指南，如：续费、额度、备份" />
+        </label>
+        <nav>
+          <p>开始</p>
+          <a href="#install">下载与安装</a>
+          <a href="#first-run">首次使用</a>
+          <a href="#tour">界面导览</a>
+          <p>管理资产</p>
+          <a href="#add">添加资产与订阅模板</a>
+          <a href="#detail">资产详情与关联</a>
+          <a href="#renewals">费用与续费日历</a>
+          <a href="#usage">用量记录</a>
+          <a href="#docs">文档</a>
+          <p>安全与数据</p>
+          <a href="#vault">密钥库与网站账号</a>
+          <a href="#backup">备份、恢复与换电脑</a>
+          <a href="#agent">AI 助手</a>
+          <a href="#settings">设置与个性化</a>
+          <p>更多</p>
+          <a href="#scenarios">适合怎样使用</a>
+          <a href="#faq">常见问题与排查</a>
+        </nav>
+      </aside>
+
+      <main id="guide-main" class="guide-content" data-app-ready="true">
+        <p class="guide-empty" id="guide-empty" hidden>没有找到相关内容，换个关键词试试，或到 <a href="https://github.com/Songwo/zhiyu/issues">GitHub Issues</a> 提问。</p>
+
+        <section id="install" class="guide-section">
+          <h2>下载与安装</h2>
+          <p>知屿是 Windows 桌面应用，资料默认保存在本机，无需注册账号。</p>
+          <div class="guide-cards">
+            <a class="guide-card" href="{{INSTALLER_URL}}"
+              ><strong>安装版（推荐）</strong
+              ><span>下载 <code>Zhiyu-{{VERSION}}-setup.exe</code>，运行后选择安装位置。之后可以在「设置 → 关于知屿」直接检查更新并重启安装。</span></a
+            >
+            <a class="guide-card" href="{{PORTABLE_URL}}"
+              ><strong>便携版</strong
+              ><span>下载 <code>portable-x64.zip</code> 解压即用，资料保存在程序旁的 <code>data</code> 文件夹，适合放在 U 盘或不想安装的电脑上。</span></a
+            >
+          </div>
+          <ol class="guide-steps">
+            <li>安装包目前没有代码签名，Windows 可能弹出提示。请只从 GitHub Releases 下载，并对照 <a href="{{CHECKSUM_URL}}">SHA256 校验文件</a>。</li>
+            <li>升级时直接覆盖安装，资产、文档与密钥库都会保留；升级前建议先做一次加密备份（见<a href="#backup">备份</a>）。</li>
+            <li>不需要安装 Node.js 或其他运行环境。macOS 目前只提供未签名的测试包，见 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 说明</a>。</li>
+          </ol>
+        </section>
+
+        <section id="first-run" class="guide-section">
+          <h2>首次使用</h2>
+          <ol class="guide-steps">
+            <li><strong>工作区名称</strong>：显示在左下角，可以随时在「个人资料」里修改。</li>
+            <li><strong>主密码</strong>：10 至 256 位，用来加密密钥库里的密码、API Key 和 SSH 凭据。主密码<em>无法找回</em>，请妥善保管。</li>
+            <li><strong>Linux.do 登录（可选）</strong>：只用于绑定主身份和同步昵称、头像，不上传本机资产，也不能代替主密码。</li>
+            <li>进入后，首页的<strong>「快速开始」</strong>列出五步：添加第一项资产、记录费用与续费日、写一篇运维文档、关联两项资产、用标签分组。每完成一步会自动打勾；不需要时点「不再显示」。</li>
+          </ol>
+          <p class="guide-tip">不确定从哪里开始？按 <kbd>Ctrl</kbd> <kbd>K</kbd> 搜「模板」，从一个常用订阅开始，续费日历和每月支出马上就有内容。</p>
+        </section>
+
+        <section id="tour" class="guide-section">
+          <h2>界面导览</h2>
+          <p>左侧导航按用途分成四组：<strong>工作台</strong>（资产总览、费用与续费、文档、AI 助手）、<strong>基础设施</strong>（服务器、节点、域名、证书、服务资产）、<strong>账号与订阅</strong>（AI 订阅、用量记录、邮箱、号码）和<strong>安全与整理</strong>（密钥库、标签）。</p>
+          <ul class="guide-list">
+            <li><kbd>Ctrl</kbd> <kbd>K</kbd> 打开搜索：资产、页面、标签和常用操作（切换主题、订阅模板、续费日历）都能直接搜到。</li>
+            <li>点任意资产，详情<strong>在页面里打开</strong>，面包屑显示所在位置；<kbd>Esc</kbd>、<kbd>Alt</kbd> <kbd>←</kbd> 或左上角「返回」回到原列表，筛选和滚动位置都还在。</li>
+            <li>窗口较窄时点左上角按钮收起侧栏，只保留图标；按 <kbd>?</kbd> 查看全部快捷键。</li>
+          </ul>
+        </section>
+
+        <section id="add" class="guide-section">
+          <h2>添加资产与订阅模板</h2>
+          <p>点侧栏「新建资产」或按 <kbd>Ctrl</kbd> <kbd>N</kbd>，选择要记录的类型：</p>
+          <div class="guide-table">
+            <table>
+              <thead><tr><th>类型</th><th>适合记录</th></tr></thead>
+              <tbody>
+                <tr><td>服务器</td><td>VPS、云主机。只做记录，或配置 SSH 后采集 CPU / 内存 / 磁盘、打开终端和 SFTP。</td></tr>
+                <tr><td>域名 · 证书</td><td>注册商、DNS、到期日；证书可直接检查 TLS 有效期。</td></tr>
+                <tr><td>服务资产</td><td>Workers、博客、自建服务，以及任何按月或按年付费的在线服务。</td></tr>
+                <tr><td>AI 订阅</td><td>ChatGPT、Claude、Grok、Gemini 等。可授权订阅账号读取额度，也可只手动记录月费。</td></tr>
+                <tr><td>邮箱 · 号码</td><td>邮箱收件状态与写信；手机号码的服务商、到期日与绑定的订阅。</td></tr>
+                <tr><td>密钥 · 网站账号</td><td>API Key、令牌、登录网址与密码，全部加密保存。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>订阅模板</strong>：在同一个窗口下方的「从常用订阅开始」，选 ChatGPT Plus、Claude Pro、Cloudflare Workers、iCloud+、Netflix 等，名称、金额、周期和下次续费日都已经填好，保存前可以修改。也可以在 <kbd>Ctrl</kbd> <kbd>K</kbd> 里搜「模板」。</p>
+        </section>
+
+        <section id="detail" class="guide-section">
+          <h2>资产详情与关联</h2>
+          <figure class="shot guide-shot">
+            <img src="./detail.png?v={{ASSET_REVISION}}" width="1920" height="1200" loading="lazy" alt="服务器详情页：左侧监控与指标，右侧关联资产与凭据位置" />
+          </figure>
+          <p>详情页左列是资产本身和监控指标，右列是<strong>关联资产</strong>、关联文档和凭据位置。服务器还有自建节点、服务文档、绑定密钥、运维工具和 SFTP 分页。</p>
+          <ol class="guide-steps">
+            <li>在右列「关联资产」里选择另一项资产并添加，比如把网站、证书、数据库只读账号都关联到它所在的主机。</li>
+            <li>点「搜索与多选关联」可以一次关联多项。</li>
+            <li>之后在左侧「标签 → 关系图」或任意列表切到关系图视图，能看到所有已确认的连接：某台主机出问题时，牵连哪些网站、订阅和恢复手册一目了然。</li>
+            <li>「发现关联」会根据相同主机地址、共同标签或文档标题给出建议，勾选确认后才写入。</li>
+          </ol>
+        </section>
+
+        <section id="renewals" class="guide-section">
+          <h2>费用与续费日历</h2>
+          <figure class="shot guide-shot">
+            <img src="./renewals.png?v={{ASSET_REVISION}}" width="1920" height="1200" loading="lazy" alt="续费日历月视图与所选日期的续费事项" />
+          </figure>
+          <ol class="guide-steps">
+            <li>编辑服务器、域名、服务资产或号码时，填写金额、币种（CNY / USD）、周期（每月 / 每年 / 一次性）和到期日。AI 订阅填写美元月费与续费日。</li>
+            <li>「费用与续费」页顶部按月、按年折算支出；人民币和美元分开合计，填写汇率后可统一折成人民币。</li>
+            <li><strong>续费日历</strong>按资产类型配色，月付、年付的资产会按周期推算之后的续费日（空心标记）。点任一天，右侧列出当天要处理的事项。</li>
+            <li>首页「近期续费」列出未来 14 天的续费；「到期时间线」可导出 ICS，导入手机或电脑日历提醒。</li>
+          </ol>
+        </section>
+
+        <section id="usage" class="guide-section">
+          <h2>用量记录</h2>
+          <figure class="shot guide-shot">
+            <img src="./usage.png?v={{ASSET_REVISION}}" width="1920" height="1200" loading="lazy" alt="用量记录：指标卡片、每日趋势与来源构成" />
+          </figure>
+          <p>用量页把四类数据分开统计，每类一种颜色：</p>
+          <ul class="guide-list">
+            <li><strong>本机 Token</strong>（紫）：读取 Codex、Claude Code、Grok Build、Gemini CLI 在本机保存的用量日志，默认开启，可在「采集与监控」中关闭。</li>
+            <li><strong>API Token</strong>（绿）：连接 OpenAI / Anthropic 组织 API，需要相应的查询权限。</li>
+            <li><strong>流量增量</strong>（橙）：机场订阅链接或 3x-ui 面板，只累计两次采集之间的有效增量。</li>
+            <li><strong>订阅额度</strong>（玫红）：在「AI 订阅」中授权的订阅账号，记录各窗口的已用百分比。</li>
+          </ul>
+          <p>点「连接用量来源」添加机场、3x-ui 或 API；「订阅与来源」分页里每个来源一张卡片，显示连接状态、最近数值和失败原因。API 与订阅每 5 分钟自动更新，也可以点「刷新全部」。</p>
+        </section>
+
+        <section id="docs" class="guide-section">
+          <h2>文档</h2>
+          <figure class="shot guide-shot">
+            <img src="./documents.png?v={{ASSET_REVISION}}" width="1920" height="1200" loading="lazy" alt="文档阅读：居中正文、字数与阅读时长、目录" />
+          </figure>
+          <ul class="guide-list">
+            <li>从「＋」新建，或把 Markdown 文件拖进窗口任意位置批量导入。</li>
+            <li>阅读时显示字数和阅读时长，底部「目录」一键跳到章节；点「编辑文档」才展开工具栏。</li>
+            <li>「关联与设置」把文档绑定到服务器、域名或账号，在资产详情里就能看到对应的手册。</li>
+            <li>安装浏览器插件后，可以把网页正文确认后保存为文档。</li>
+          </ul>
+        </section>
+
+        <section id="vault" class="guide-section">
+          <h2>密钥库与网站账号</h2>
+          <ul class="guide-list">
+            <li>密码、API Key、SSH 私钥都用主密码派生的密钥（scrypt）以 AES-256-GCM 加密保存，锁定后需要重新输入主密码。</li>
+            <li>「浏览器密码」可导入 Chrome / Edge 导出的 CSV：先预览新增、重复和冲突，冲突时保留原记录。</li>
+            <li>网站账号支持 TOTP 动态验证码；浏览器插件在登录页给出同站账号建议，选中后填写。</li>
+            <li>AI 助手只知道「凭据在哪里」，不会读取密钥库里的密码。</li>
+          </ul>
+        </section>
+
+        <section id="backup" class="guide-section">
+          <h2>备份、恢复与换电脑</h2>
+          <ol class="guide-steps">
+            <li>「设置 → 数据 → 创建加密备份」：把资产、文档、密钥库、设置、对话、知识库和用量记录打包成一个 <code>.zhiyu-backup</code> 文件，用备份密码加密。</li>
+            <li>换电脑时勾选「同时包含系统保护的凭据」，模型 API Key、云服务连接等也会一起迁移。</li>
+            <li>「从备份恢复」先预览内容再确认；当前资料会保存为快照，可随时找回。</li>
+            <li>「自动备份」按每天、每 3 天或每周写入你选择的文件夹，只清理自己生成的旧备份。</li>
+          </ol>
+          <p class="guide-tip">备份密码和创建备份时的主密码都无法找回，请一起记好。</p>
+        </section>
+
+        <section id="agent" class="guide-section">
+          <h2>AI 助手</h2>
+          <ul class="guide-list">
+            <li>在「设置 → 模型与知识库」选择 OpenAI 兼容服务、填写 API Key 和模型名，保存后测试连接。</li>
+            <li>可以问「哪些资产需要优先处理」「工作邮箱里有哪些账号」，回答会标出来源资产和文档。</li>
+            <li>勾选「本次生成修改建议」后，AI 会给出修改前后的对比，由你逐项确认才写入；查询实时邮件数量等需要单次授权。</li>
+          </ul>
+        </section>
+
+        <section id="settings" class="guide-section">
+          <h2>设置与个性化</h2>
+          <ul class="guide-list">
+            <li>头像菜单里的「系统设置」以页面打开；右上角的设置按钮和 <kbd>Ctrl</kbd> <kbd>,</kbd> 打开同样内容的弹窗。</li>
+            <li>「外观」可切换浅色 / 深色 / 跟随系统、语言，以及 100%–150% 界面大小。</li>
+            <li>「监控采集」设置主机指标的采样周期；「邮件推送」可把新邮件数量推送到 Telegram、Server酱、企业微信或 WxPusher。</li>
+            <li>「存储」查看缓存占用并清理；「关于知屿」检查更新。</li>
+          </ul>
+        </section>
+
+        <section id="scenarios" class="guide-section">
+          <h2>适合怎样使用</h2>
+          <div class="guide-cards scenarios">
+            <div class="guide-card">
+              <strong>独立开发者 · 小团队</strong>
+              <span>记录 VPS、域名、证书和 Workers，把部署文档关联到主机；续费日历避免域名、证书过期，关系图看清一处故障的影响面。</span>
+            </div>
+            <div class="guide-card">
+              <strong>AI 重度用户</strong>
+              <span>把 ChatGPT、Claude、Cursor 等订阅用模板一键记下，订阅额度与本机 Token 用量分开看，每月 AI 支出一目了然。</span>
+            </div>
+            <div class="guide-card">
+              <strong>个人订阅管理</strong>
+              <span>iCloud、Netflix、Spotify、1Password 这类生活订阅同样适用：填好周期，日历提前提醒续费，月度支出自动折算。</span>
+            </div>
+            <div class="guide-card">
+              <strong>自建与网络爱好者</strong>
+              <span>机场订阅和 3x-ui 面板的流量、节点，v2rayN 本机流量，都在用量页集中查看；节点分享链接可直接导入。</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="faq" class="guide-section">
+          <h2>常见问题与排查</h2>
+          <details>
+            <summary>「订阅额度」图表是空的？</summary>
+            <p>额度来自「AI 订阅」里授权的账号。到「用量记录 → 订阅与来源」查看对应账号的卡片：每次查询失败的原因都会显示在上面。部分套餐（例如免费版）本身不提供额度查询；登录失效时在 AI 订阅详情里重新授权，然后点「刷新全部」。</p>
+          </details>
+          <details>
+            <summary>主机一直显示「未采集」？</summary>
+            <p>记录模式只保存资料。编辑服务器，切到「SSH 连接」填写地址、用户名和私钥或密码，解锁密钥库后点刷新；采样周期在「设置 → 监控采集」。</p>
+          </details>
+          <details>
+            <summary>续费日历上没有我的订阅？</summary>
+            <p>日历只显示填写了到期日（或 AI 订阅的续费日）的资产。编辑该资产补上日期和周期；月付、年付会自动推算之后的续费日。</p>
+          </details>
+          <details>
+            <summary>忘记主密码怎么办？</summary>
+            <p>主密码无法找回，加密内容也无法解开。如果有加密备份，可以用备份密码和当时的主密码在新安装上恢复。请不要删除数据目录来「重置」，先备份再排查。</p>
+          </details>
+          <details>
+            <summary>窗口太大或文字太小？</summary>
+            <p>默认窗口为 1280×800；「设置 → 外观 → 界面大小」可调到 110%–150%，或按 <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd>，<kbd>Ctrl</kbd> <kbd>0</kbd> 恢复。</p>
+          </details>
+          <details>
+            <summary>数据保存在哪里？会上传吗？</summary>
+            <p>安装版保存在系统用户目录，便携版保存在程序旁的 <code>data</code> 文件夹。资料默认不上传；只有你连接的服务（邮箱、面板、模型、图床）会收到对应请求。</p>
+          </details>
+          <details>
+            <summary>遇到问题去哪里反馈？</summary>
+            <p>到 <a href="https://github.com/Songwo/zhiyu/issues">GitHub Issues</a> 描述操作步骤、看到的提示和版本号（「设置 → 关于知屿」）。请不要贴出密码、API Key 或真实服务器地址。</p>
+          </details>
+        </section>
+      </main>
+    </div>
+
+    <footer class="wrap site-footer">
+      <span>知屿 Zhiyu · Made by Songwo · MIT</span
+      ><a href="./">产品主页</a
+      ><a href="https://github.com/Songwo/zhiyu/blob/main/docs/USER-GUIDE.md">完整使用教程 ↗</a
+      ><a href="https://github.com/Songwo/zhiyu/blob/main/CHANGELOG.md">更新日志 ↗</a>
+    </footer>
+
+    <script>
+      // 目录搜索：按关键词筛出相关段落；目录高亮当前阅读位置。
+      (() => {
+        const input = document.getElementById("guide-search");
+        const sections = [...document.querySelectorAll(".guide-section")];
+        const links = [...document.querySelectorAll(".guide-toc nav a")];
+        const empty = document.getElementById("guide-empty");
+        input.addEventListener("input", () => {
+          const words = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+          let shown = 0;
+          for (const section of sections) {
+            const text = section.textContent.toLowerCase();
+            const match = words.every((word) => text.includes(word));
+            section.hidden = !match;
+            if (match) shown += 1;
+            const link = links.find((a) => a.hash === "#" + section.id);
+            if (link) link.hidden = !match;
+            if (match && words.length)
+              for (const item of section.querySelectorAll("details")) item.open = words.some((w) => item.textContent.toLowerCase().includes(w));
+          }
+          empty.hidden = shown > 0;
+        });
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries)
+              if (entry.isIntersecting)
+                for (const link of links) link.toggleAttribute("aria-current", link.hash === "#" + entry.target.id);
+          },
+          { rootMargin: "-20% 0px -70% 0px" },
+        );
+        sections.forEach((section) => observer.observe(section));
+      })();
+    </script>
+  </body>
+</html>

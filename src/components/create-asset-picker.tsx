@@ -2,6 +2,13 @@ import { Bot, FileText, Globe, KeyRound, Mail, Phone, Server, Shield } from "luc
 import { createAsset, CREATE_LABELS, type CreateTarget } from "@/lib/create-asset";
 import { useAppStore } from "@/lib/store";
 import { t } from "@/lib/i18n";
+import {
+  SUBSCRIPTION_TEMPLATES,
+  TEMPLATE_GROUPS,
+  templatePreset,
+  type SubscriptionTemplate,
+} from "@/lib/subscription-templates";
+import { formatBilling } from "@/lib/billing";
 import { EditorDialog } from "./ui/editor-dialog";
 
 const targets = [
@@ -15,6 +22,13 @@ const targets = [
   { target: "cert", Icon: Shield, detail: "记录证书与到期时间" },
   { target: "secret", Icon: KeyRound, detail: "保存账号与加密凭据" },
 ] satisfies { target: CreateTarget; Icon: typeof Server; detail: string }[];
+
+/** 从模板新建：AI 工具进 AI 订阅，其余作为服务资产，带好费用与下次续费日。 */
+function startFromTemplate(template: SubscriptionTemplate) {
+  const state = useAppStore.getState();
+  state.setCreatePickerOpen(false);
+  state.openComposer(template.kind, null, templatePreset(template, new Date()));
+}
 
 export function CreateAssetPicker() {
   const open = useAppStore((state) => state.createPickerOpen);
@@ -41,6 +55,33 @@ export function CreateAssetPicker() {
             </button>
           ))}
         </div>
+
+        <section className="template-section" aria-labelledby="subscription-templates-title">
+          <h3 id="subscription-templates-title">{t("从常用订阅开始")}</h3>
+          <p>{t("选一个模板，金额、周期和下次续费日都已填好，保存前可以修改。价格以实际账单为准。")}</p>
+          {TEMPLATE_GROUPS.map((group) => (
+            <div key={group.id} className="template-group" role="group" aria-label={t(group.label)}>
+              <span className="template-group-label">{t(group.label)}</span>
+              <div className="template-chips">
+                {SUBSCRIPTION_TEMPLATES.filter((item) => item.group === group.id).map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className="template-chip"
+                    data-group={item.group}
+                    aria-label={t("用模板添加 {0}", item.name)}
+                    onClick={() => startFromTemplate(item)}
+                  >
+                    <span className="template-chip-name">{item.name}</span>
+                    <span className="template-chip-price">
+                      {formatBilling({ amount: item.amount, currency: item.currency, cycle: item.cycle })}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
       </div>
     </EditorDialog>
   );

@@ -23,6 +23,7 @@ import { attentionOf } from "@/lib/status";
 import { t } from "@/lib/i18n";
 import type { ViewId } from "@/lib/types";
 import { ActivityJournal } from "./activity-journal";
+import { QuickStart, UpcomingRenewals } from "./overview-guides";
 import { Button } from "./ui/button";
 import { DepthHero, PageSection, RowButton } from "./ui/page";
 import { createAsset } from "@/lib/create-asset";
@@ -182,6 +183,9 @@ export function Overview() {
           </button>
         ))}
       </section>
+
+      <QuickStart />
+      <UpcomingRenewals />
 
       {attention.length > 0 && (
         <PageSection

@@ -25,6 +25,9 @@ test("首次AI录入先选择来源，编辑旧资产仍直达原表单", () => 
   assert.equal(initialAiMode(null), "choose");
   assert.equal(initialAiMode({ id: "manual" }), "manual");
   assert.equal(initialAiMode({ id: "linked", oauthAccountId: "oauth-1" }), "manual");
+  // 从订阅模板新建：名称、月费已预填，直接进入手动表单。
+  assert.equal(initialAiMode(null, { name: "ChatGPT Plus" }), "manual");
+  assert.equal(initialAiMode(null, {}), "choose");
 });
 test("切回仅记录不会把隐藏的SSH草稿写入密钥库", () => {
   const form = { _authKind: "agent", _password: "unsubmitted-ssh" };

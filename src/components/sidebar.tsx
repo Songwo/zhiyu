@@ -39,6 +39,7 @@ import { safeImageDataUrl } from "../../electron/services/image-data.mjs";
 import { createInCurrentView } from "@/lib/create-asset";
 import { LogoMark } from "./logo";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { SHORTCUTS_EVENT } from "./keyboard-shortcuts";
 
 export interface NavGroup {
   title: string;
@@ -579,6 +580,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             input.click();
           })}
           {item(t("系统设置…"), () => useAppStore.getState().openSettingsPage())}
+          {item(t("键盘快捷键"), () => window.dispatchEvent(new Event(SHORTCUTS_EVENT)))}
           {vaultUnlocked && item(t("立即锁定密钥库"), () => void lockVault())}
           <div className="my-1 border-t border-line" />
           {item(isDesktop() ? t("清空全部数据") : t("重置演示数据"), () => resetDemo(), "danger")}

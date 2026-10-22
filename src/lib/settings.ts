@@ -23,6 +23,9 @@ interface SettingsState {
   monitorReady: boolean;
   setServerMonitorMinutes: (minutes: number) => Promise<void>;
   sidebarCollapsed: boolean;
+  /** 首页「快速开始」是否已被用户收起。 */
+  quickStartHidden: boolean;
+  setQuickStartHidden: (hidden: boolean) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   documentListCollapsed: boolean;
   setDocumentListCollapsed: (collapsed: boolean) => void;
@@ -98,6 +101,8 @@ export const useSettings = create<SettingsState>()(
           set({ zoomPercent });
         }
       },
+      quickStartHidden: false,
+      setQuickStartHidden: (quickStartHidden) => set({ quickStartHidden }),
       usdToCny: null,
       setUsdToCny: (rate) => set({ usdToCny: readRate(rate) }),
       assetLayout: "cards",
@@ -129,6 +134,7 @@ export const useSettings = create<SettingsState>()(
           zoomPercent: s.zoomPercent,
           toolsExpanded: s.toolsExpanded,
           sidebarCollapsed: s.sidebarCollapsed,
+          quickStartHidden: s.quickStartHidden,
           documentListCollapsed: s.documentListCollapsed,
         }) as SettingsState,
       merge: (persisted, current) => {
@@ -142,6 +148,7 @@ export const useSettings = create<SettingsState>()(
           serverMonitorMinutes: readMonitorMinutes(saved?.serverMonitorMinutes),
           toolsExpanded: saved?.toolsExpanded === true,
           sidebarCollapsed: saved?.sidebarCollapsed === true,
+          quickStartHidden: saved?.quickStartHidden === true,
           documentListCollapsed: saved?.documentListCollapsed === true,
           usdToCny: readRate(saved?.usdToCny),
         };
