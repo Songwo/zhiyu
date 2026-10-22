@@ -330,3 +330,89 @@ test("忽略过期或重启前的建议可清理对话，但不会中断正在�
   await applying;
   assert.throws(() => actions.discard(proposal.id), /已经应用/);
 });
+
+test("资产修改建议：只允许白名单字段，应用后写入费用与日期，域名状态随到期日更新", async (t) => {
+  const f = await fixture(t);
+  const snapshot = f.getSnapshot();
+  snapshot.domains = [{ id: "domain-1", name: "example.test", expiresAt: "2030-01-01", status: "online" }];
+  await assert.rejects(
+    f.actions.propose("propose_asset_update", {
+      asset: { kind: "server", id: "server-1" },
+      patch: { host: "10.0.0.1" },
+      reason: "改地址",
+    }),
+    /只能修改/,
+  );
+  await assert.rejects(
+    f.actions.propose("propose_asset_update", {
+      asset: { kind: "server", id: "server-1" },
+      patch: { expiresAt: "2026-02-30" },
+      reason: "无效日期",
+    }),
+    /有效的 YYYY-MM-DD/,
+  );
+  const soon = new Date(Date.now() + 3 * 86_400_000);
+  const day = `${soon.getFullYear()}-${String(soon.getMonth() + 1).padStart(2, "0")}-${String(soon.getDate()).padStart(2, "0")}`;
+  const proposal = await f.actions.propose("propose_asset_update", {
+    asset: { kind: "domain", id: "domain-1" },
+    patch: { expiresAt: day, billing: { amount: 69, currency: "CNY", cycle: "year" }, tags: ["博客"] },
+    reason: "用户说明了续费日期与价格。",
+  });
+  assert.equal(proposal.type, "asset-update");
+  assert.match(proposal.before, /到期日：2030-01-01/);
+  assert.match(proposal.after, /费用：¥69 · 每年/);
+  await f.actions.apply(proposal.id);
+  const domain = f.getSnapshot().domains[0];
+  assert.equal(domain.expiresAt, day);
+  assert.deepEqual(domain.billing, { amount: 69, currency: "CNY", cycle: "year" });
+  assert.deepEqual(domain.tags, ["博客"]);
+  assert.equal(domain.status, "offline");
+});
+
+test("资产修改建议在资产变化后拒绝应用；AI 月费写入时标记为已知", async (t) => {
+  const f = await fixture(t);
+  f.getSnapshot().aiAssets = [{ id: "ai-1", name: "测试订阅", monthlyUsd: 0, monthlyUsdKnown: false }];
+  const proposal = await f.actions.propose("propose_asset_update", {
+    asset: { kind: "ai", id: "ai-1" },
+    patch: { monthlyUsd: 20, renewsAt: "2030-05-01" },
+    reason: "账单显示每月 20 美元。",
+  });
+  const stale = await f.actions.propose("propose_asset_update", {
+    asset: { kind: "ai", id: "ai-1" },
+    patch: { notes: "旧建议" },
+    reason: "测试并发。",
+  });
+  await f.actions.apply(proposal.id);
+  const ai = f.getSnapshot().aiAssets[0];
+  assert.equal(ai.monthlyUsd, 20);
+  assert.equal(ai.monthlyUsdKnown, true);
+  assert.equal(ai.renewsAt, "2030-05-01");
+  await assert.rejects(f.actions.apply(stale.id), /已变化/);
+});
+
+test("新建文档建议：应用后创建并关联资产，关联资产缺失时拒绝", async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(
+    f.actions.propose("propose_document_create", {
+      title: "恢复手册",
+      markdown: "# 恢复",
+      bindings: [{ kind: "server", id: "missing" }],
+      reason: "缺失资产",
+    }),
+    /已不存在/,
+  );
+  const proposal = await f.actions.propose("propose_document_create", {
+    title: "隔离主机恢复手册",
+    markdown: "# 隔离主机恢复手册\n\n- [ ] 确认备份位置\n- [ ] 检查服务状态",
+    bindings: [{ kind: "server", id: "server-1" }],
+    reason: "用户要求整理恢复步骤。",
+  });
+  assert.equal(proposal.type, "document-create");
+  assert.match(proposal.after, /关联：隔离主机/);
+  const { document } = await f.actions.apply(proposal.id);
+  assert.equal(document.title, "隔离主机恢复手册");
+  assert.deepEqual(document.bindings, [{ kind: "server", id: "server-1" }]);
+  const saved = await f.documents.get(document.id);
+  assert.match(JSON.stringify(saved.content), /确认备份位置/);
+  await assert.rejects(f.actions.apply(proposal.id), /已经应用/);
+});

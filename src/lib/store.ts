@@ -86,6 +86,10 @@ export interface AppState extends Snapshot {
   settingsOpen: boolean;
   /** 系统设置作为主内容区的一页打开（头像菜单进入），与右上角的设置弹窗互不影响。 */
   settingsPage: boolean;
+  /** 从其他页面带到 AI 助手的问题；助手页填入输入框后清空。 */
+  agentPrompt: { text: string; changes?: boolean } | null;
+  askAgent: (text: string, options?: { changes?: boolean }) => void;
+  clearAgentPrompt: () => void;
   settingsTab: string;
   composerOpen: boolean;
   createPickerOpen: boolean;
@@ -161,6 +165,7 @@ const emptyUi = {
   commandOpen: false,
   settingsOpen: false,
   settingsPage: false,
+  agentPrompt: null,
   settingsTab: "appearance",
   composerOpen: false,
   createPickerOpen: false,
@@ -310,6 +315,16 @@ export const useAppStore = create<AppState>()(
           mobileNav: false,
         }),
       closeSettingsPage: () => set({ settingsPage: false }),
+      askAgent: (text, options = {}) =>
+        set({
+          view: "agent",
+          expanded: null,
+          settingsPage: false,
+          commandOpen: false,
+          mobileNav: false,
+          agentPrompt: { text, changes: options.changes },
+        }),
+      clearAgentPrompt: () => set({ agentPrompt: null }),
       setSettingsTab: (settingsTab) => set({ settingsTab }),
       openComposer: (composerKind, editingId = null, preset) =>
         set({

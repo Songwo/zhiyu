@@ -1360,3 +1360,93 @@ test("未变化资料复用内存索引，知识库与资产变化后重新索�
   assert.notStrictEqual(changed, updated);
   assert.ok(changed.byId.has("asset:secret:added"));
 });
+
+test("续费工具返回到期与按周期推算的续费、合计与支出，回答与「下一步」一并结束", async (t) => {
+  const f = await fixture(t, (_req, res, body, requests) => {
+    if (requests.length === 1)
+      sse(res, [
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: "call-renewals",
+                function: { name: "list_renewals", arguments: '{"withinDays":60}' },
+              },
+            ],
+          },
+          finish_reason: "tool_calls",
+        },
+      ]);
+    else {
+      const renewals = JSON.parse(body.messages.at(-1).content);
+      assert.equal(renewals.withinDays, 60);
+      assert.ok(Array.isArray(renewals.entries));
+      assert.ok(renewals.spend && renewals.dueTotals);
+      assert.ok(renewals.entries.every((entry) => entry.sourceId.startsWith("asset:")));
+      sse(res, [
+        { delta: { content: "未来 60 天的续费已整理 [S1]。" } },
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: "call-next",
+                function: {
+                  name: "suggest_next_steps",
+                  arguments: JSON.stringify({
+                    steps: [
+                      { label: "打开续费日历", kind: "open", view: "renewals" },
+                      { label: "看看这台主机", kind: "open", asset: { kind: "server", id: "demo-server-1" } },
+                      { label: "补齐缺失费用", kind: "ask", question: "哪些资产还没填写费用？帮我补上。" },
+                      { label: "打开不存在的资产", kind: "open", asset: { kind: "server", id: "nope" } },
+                      { label: "未知页面", kind: "open", view: "terminal" },
+                    ],
+                  }),
+                },
+              },
+            ],
+          },
+          finish_reason: "tool_calls",
+        },
+      ]);
+    }
+  });
+  const result = await f.service.run({ id: "request-renewals", question: "接下来要续费什么", history: [] });
+  // 最终回答与「下一步」在同一轮给出时直接结束，不再请求模型第三次。
+  assert.equal(f.requests.length, 2);
+  assert.equal(result.steps, 2);
+  assert.deepEqual(result.nextSteps, [
+    { label: "打开续费日历", kind: "open", view: "renewals" },
+    { label: "看看这台主机", kind: "open", asset: { kind: "server", id: "demo-server-1" } },
+    { label: "补齐缺失费用", kind: "ask", question: "哪些资产还没填写费用？帮我补上。" },
+  ]);
+  assert.ok(result.sourceItems.some((item) => item.title.startsWith("续费与费用")));
+  assert.equal(f.events.at(-1).type, "done");
+});
+
+test("续费工具拒绝越界天数与额外参数", async (t) => {
+  const f = await fixture(t, (_req, res, body, requests) => {
+    if (requests.length === 1)
+      sse(res, [
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: "call-bad",
+                function: { name: "list_renewals", arguments: '{"withinDays":9999,"x":1}' },
+              },
+            ],
+          },
+          finish_reason: "tool_calls",
+        },
+      ]);
+    else {
+      assert.match(JSON.parse(body.messages.at(-1).content).error, /Unknown tool or invalid/);
+      sse(res, [{ delta: { content: "参数无效。" }, finish_reason: "stop" }]);
+    }
+  });
+  const result = await f.service.run({ id: "request-bad", question: "续费", history: [] });
+  assert.deepEqual(result.nextSteps, []);
+});

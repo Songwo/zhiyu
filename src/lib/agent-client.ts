@@ -40,7 +40,14 @@ export interface KnowledgeStatus {
 export interface WorkspaceProposal {
   id: string;
   status?: "applied" | "dismissed";
-  type: "document-edit" | "document-rename" | "account-edit" | "asset-link" | "document-binding";
+  type:
+    | "document-edit"
+    | "document-rename"
+    | "document-create"
+    | "account-edit"
+    | "asset-update"
+    | "asset-link"
+    | "document-binding";
   title: string;
   documentId?: string;
   assetId?: string;
@@ -49,6 +56,11 @@ export interface WorkspaceProposal {
   reason: string;
   expiresAt: number;
 }
+/** 回答下方的「下一步」：继续提问，或打开页面 / 资产。主进程已校验目标存在。 */
+export type NextStep =
+  | { label: string; kind: "ask"; question: string }
+  | { label: string; kind: "open"; view: import("./types").ViewId }
+  | { label: string; kind: "open"; asset: { kind: AssetKind; id: string } };
 export interface WorkspaceAccessRequest {
   permissions: Array<"documentContent" | "workspaceChanges">;
   reason: string;
@@ -86,6 +98,7 @@ export interface AgentBridge {
     tools: string[];
     proposals?: WorkspaceProposal[];
     accessRequests?: WorkspaceAccessRequest[];
+    nextSteps?: NextStep[];
   }>;
   cancel(id: string): Promise<boolean>;
   onEvent(handler: (event: AgentEvent) => void): () => void;

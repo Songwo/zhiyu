@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { documentRevision } from "./documents.mjs";
 import { markdownContent } from "./document-markdown.mjs";
+import { calendarDay, normalizeBilling } from "./renewals.mjs";
 
 const COLLECTIONS = {
   server: "servers",
@@ -44,6 +45,83 @@ const accountPreview = (value) =>
     )
     .join("\n");
 
+/** 每类资产允许由修改建议更新的字段；凭据、主机地址、连接配置都不在其中。 */
+const ASSET_FIELDS = {
+  server: ["tags", "notes", "expiresAt", "billing"],
+  domain: ["tags", "notes", "expiresAt", "billing"],
+  service: ["tags", "notes", "expiresAt", "billing"],
+  ai: ["tags", "notes", "renewsAt", "monthlyUsd"],
+  cert: ["tags", "notes"],
+  mail: ["tags", "notes"],
+};
+const FIELD_LABEL = {
+  tags: "标签",
+  notes: "备注",
+  expiresAt: "到期日",
+  renewsAt: "续费日",
+  billing: "费用",
+  monthlyUsd: "美元月费",
+};
+const CYCLE_LABEL = { month: "每月", year: "每年", once: "一次性" };
+function fieldText(field, value) {
+  if (value === undefined || value === null || value === "") return "未填写";
+  if (field === "tags") return value.length ? value.join("、") : "无";
+  if (field === "billing")
+    return `${value.currency === "USD" ? "$" : "¥"}${value.amount} · ${CYCLE_LABEL[value.cycle]}`;
+  if (field === "monthlyUsd") return `$${value}`;
+  return String(value);
+}
+const fieldsPreview = (value) =>
+  Object.entries(value)
+    .map(([field, content]) => `${FIELD_LABEL[field]}：${fieldText(field, content)}`)
+    .join("\n");
+/** 校验并规范化资产字段补丁；不允许的字段直接拒绝，而不是悄悄丢弃。 */
+function assetPatch(kind, input) {
+  const allowed = ASSET_FIELDS[kind];
+  if (!allowed) throw new Error("这类资产不支持通过建议修改。");
+  if (!ownKeys(input, allowed) || !Object.keys(input).length)
+    throw new Error(`这类资产只能修改：${allowed.map((field) => FIELD_LABEL[field]).join("、")}。`);
+  const patch = {};
+  for (const [field, value] of Object.entries(input)) {
+    if (field === "tags") {
+      if (
+        !Array.isArray(value) ||
+        value.length > 20 ||
+        value.some((tag) => typeof tag !== "string" || !tag.trim() || tag.length > 80)
+      )
+        throw new Error("标签格式无效。");
+      patch.tags = [...new Set(value.map((tag) => tag.trim()))];
+    } else if (field === "notes") {
+      if (typeof value !== "string" || value.length > 2000) throw new Error("备注过长或格式无效。");
+      patch.notes = value;
+    } else if (field === "expiresAt" || field === "renewsAt") {
+      const day =
+        typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? calendarDay(value) : "";
+      if (!day) throw new Error(`${FIELD_LABEL[field]}必须是有效的 YYYY-MM-DD 日期。`);
+      patch[field] = day;
+    } else if (field === "billing") {
+      if (value === null) patch.billing = null;
+      else {
+        const billing = normalizeBilling(value);
+        if (!billing)
+          throw new Error("费用格式无效：需要金额、币种（CNY/USD）和周期（month/year/once）。");
+        patch.billing = billing;
+      }
+    } else if (field === "monthlyUsd") {
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100000)
+        throw new Error("美元月费无效。");
+      patch.monthlyUsd = Math.round(value * 100) / 100;
+    }
+  }
+  return patch;
+}
+/** 域名状态跟着到期日走，与编辑器保存时的规则一致。 */
+function expiryStatus(day, now) {
+  const days = Math.ceil((Date.parse(`${day}T00:00:00`) - now) / 86_400_000);
+  return days <= 7 ? "offline" : days <= 21 ? "warning" : "online";
+}
+const NEW_DOCUMENT_ID = () => `doc-${randomUUID()}`;
+
 /** 模型只能暂存建议；应用入口只接受主进程签发的随机标识。 */
 export class WorkspaceActions {
   constructor({ getSnapshot, documents, mutateAssets, now = Date.now }) {
@@ -78,6 +156,9 @@ export class WorkspaceActions {
         "patch",
         "from",
         "to",
+        "asset",
+        "markdown",
+        "bindings",
         "reason",
       ])
     )
@@ -220,6 +301,51 @@ export class WorkspaceActions {
         assetRevision: hash(asset),
         next: { ...doc, bindings: [...doc.bindings, args.to] },
       };
+    } else if (name === "propose_asset_update") {
+      if (!ownKeys(args, ["asset", "patch", "reason"])) throw new Error("不允许的资产修改字段。");
+      const asset = resource(snapshot, args.asset);
+      const patch = assetPatch(args.asset.kind, args.patch);
+      const before = Object.fromEntries(Object.keys(patch).map((field) => [field, asset[field]]));
+      if (JSON.stringify(before) === JSON.stringify(patch)) throw new Error("建议的值与当前一致。");
+      details = {
+        type: "asset-update",
+        title: label(asset),
+        assetId: asset.id,
+        asset: args.asset,
+        before: fieldsPreview(before),
+        after: fieldsPreview(patch),
+        revision: hash(asset),
+        patch,
+      };
+    } else if (name === "propose_document_create") {
+      if (!ownKeys(args, ["title", "markdown", "bindings", "reason"]))
+        throw new Error("不允许的新文档字段。");
+      const title = text(args.title, 160, "文档标题").trim();
+      const markdown = text(args.markdown, 20000, "文档正文");
+      const bindings = args.bindings ?? [];
+      if (!Array.isArray(bindings) || bindings.length > 10)
+        throw new Error("文档最多关联 10 项资产。");
+      const assets = bindings.map((ref) => resource(snapshot, ref));
+      const id = NEW_DOCUMENT_ID();
+      // 预先按正式规则解析一次，格式问题在审阅前就暴露。
+      markdownContent(markdown);
+      details = {
+        type: "document-create",
+        title,
+        before: "（新文档）",
+        after: [
+          markdown.length > 600 ? `${markdown.slice(0, 600)}…` : markdown,
+          assets.length ? `\n关联：${assets.map(label).join("、")}` : "",
+        ].join(""),
+        next: {
+          id,
+          title,
+          markdown,
+          bindings: bindings.map((ref) => ({ kind: ref.kind, id: ref.id })),
+        },
+        assetRevision: hash(assets),
+        bindings,
+      };
     } else throw new Error("未知的修改建议。");
     this.prune();
     if (this.pending.size >= 80) throw new Error("待审阅建议过多，请先应用或放弃已有建议。");
@@ -266,7 +392,19 @@ export class WorkspaceActions {
     proposal.state = "applying";
     try {
       let result;
-      if (["document-edit", "document-rename", "document-binding"].includes(proposal.type)) {
+      if (proposal.type === "document-create") {
+        const assertCurrent = () => {
+          const assets = proposal.bindings.map((ref) => resource(this.getSnapshot(), ref));
+          if (hash(assets) !== proposal.assetRevision)
+            throw new Error("关联资产已变化，请重新生成建议。");
+        };
+        assertCurrent();
+        const document = await this.documents.save(
+          { ...proposal.next, createOnly: true },
+          { assertCurrent },
+        );
+        result = { document };
+      } else if (["document-edit", "document-rename", "document-binding"].includes(proposal.type)) {
         const assertCurrent = proposal.to
           ? () => {
               if (hash(resource(this.getSnapshot(), proposal.to)) !== proposal.assetRevision)
@@ -281,6 +419,26 @@ export class WorkspaceActions {
         result = { document };
       } else {
         result = await this.mutateAssets((snapshot) => {
+          if (proposal.type === "asset-update") {
+            const asset = resource(snapshot, proposal.asset);
+            if (hash(asset) !== proposal.revision)
+              throw new Error("资产资料已变化，请重新生成建议。");
+            const next = { ...asset };
+            for (const [field, value] of Object.entries(proposal.patch)) {
+              if (value === null) delete next[field];
+              else next[field] = value;
+            }
+            if (proposal.patch.monthlyUsd !== undefined) next.monthlyUsdKnown = true;
+            if (proposal.asset.kind === "domain" && proposal.patch.expiresAt)
+              next.status = expiryStatus(proposal.patch.expiresAt, this.now());
+            const collection = COLLECTIONS[proposal.asset.kind];
+            return {
+              ...snapshot,
+              [collection]: snapshot[collection].map((item) =>
+                item.id === asset.id ? next : item,
+              ),
+            };
+          }
           if (proposal.type === "account-edit") {
             const asset = resource(snapshot, { kind: "secret", id: proposal.assetId });
             if (hash(asset) !== proposal.revision)

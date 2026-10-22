@@ -13,19 +13,12 @@ import {
   FolderArchive,
   KeyRound,
   Pencil,
+  Sparkles,
   Trash2,
   Wrench,
   Zap,
 } from "lucide-react";
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AiCard, CertCard, DomainCard, MailCard, SecretCard, ServerCard } from "./asset-card";
 const BoundIntegrationPanel = lazy(() =>
   import("./integrations/bound-integration-panel").then((module) => ({
@@ -52,6 +45,7 @@ import { useVault } from "@/lib/vault-state";
 import { deleteEncryptedAccount } from "@/lib/account-delete.mjs";
 import { EditorDialog } from "./ui/editor-dialog";
 import { NAV } from "./sidebar";
+import { assetEntries } from "@/lib/operations";
 import { toast } from "sonner";
 
 /**
@@ -168,9 +162,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
         {serverTab === "secrets" && (
           <ServerSecretsPanel key={`secrets:${asset.id}`} server={currentServer} />
         )}
-        {serverTab === "ops" && (
-          <ServerOpsToolbox key={`ops:${asset.id}`} server={currentServer} />
-        )}
+        {serverTab === "ops" && <ServerOpsToolbox key={`ops:${asset.id}`} server={currentServer} />}
         {serverTab === "files" && <SftpBrowser key={`files:${asset.id}`} serverId={asset.id} />}
       </div>
     );
@@ -233,6 +225,27 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
           <span>{t(parent?.label ?? "返回")}</span>
         </button>
         <div className="detail-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const name =
+                assetEntries(useAppStore.getState()).find(
+                  (entry) => entry.kind === asset.kind && entry.id === asset.id,
+                )?.label ?? "";
+              useAppStore
+                .getState()
+                .askAgent(
+                  t(
+                    "「{0}」现在的状态、关联资产和到期情况怎么样？有哪些需要处理，下一步该做什么？请引用依据。",
+                    name,
+                  ),
+                );
+            }}
+          >
+            <Sparkles className="size-3.5" />
+            {t("问 AI")}
+          </Button>
           {isProbeKind(asset.kind) && <RefreshOneButton kind={asset.kind} id={asset.id} />}
           <Button
             variant="outline"
@@ -248,9 +261,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
             size="icon-sm"
             disabled={deleting}
             title={t("删除")}
-            onClick={() =>
-              currentAccount ? setConfirmDelete(true) : remove(asset.kind, asset.id)
-            }
+            onClick={() => (currentAccount ? setConfirmDelete(true) : remove(asset.kind, asset.id))}
             aria-label={t("删除")}
           >
             <Trash2 className="size-4" />

@@ -5966,7 +5966,13 @@ p {
   mask-image: linear-gradient(to bottom, transparent, #000 28px);
 }
 .sidebar-nav[data-fade="both"] {
-  mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 28px,
+    #000 calc(100% - 28px),
+    transparent
+  );
 }
 .app-sidebar[data-collapsed="true"] .sidebar-section + .sidebar-section {
   margin-top: 6px;
@@ -6257,4 +6263,68 @@ p {
   .template-chip {
     transition: none;
   }
+}
+
+/* ==========================================================================
+   续费行：整行可点开资产，右侧「已续费」把到期日顺延一期。
+   ========================================================================== */
+.renewal-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12px;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.renewal-row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.renewal-row:has(.renewed-action) {
+  padding-right: 8px;
+}
+.renewal-row:hover {
+  background: color-mix(in oklab, var(--color-selected) 75%, var(--color-card));
+}
+.renewal-row > .asset-summary-row:hover,
+.renewal-row > .upcoming-row:hover,
+.timeline-surface .renewal-row > .asset-summary-row:hover {
+  background: transparent;
+}
+.renewed-action {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.renewed-action svg {
+  width: 14px;
+  height: 14px;
+}
+.renewed-action:hover {
+  background: color-mix(in oklab, var(--color-ok) 12%, transparent);
+  color: var(--color-ok);
+}
+/* 日历侧栏与首页列表较窄，只留图标，文字放在提示里。 */
+.calendar-agenda-list .renewed-action span,
+.upcoming-list .renewed-action span {
+  display: none;
+}
+.calendar-agenda-list .renewed-action,
+.upcoming-list .renewed-action {
+  width: 30px;
+  justify-content: center;
+  padding: 0;
+}
+.calendar-agenda-list .renewal-row:has(.renewed-action) {
+  padding-right: 2px;
 }

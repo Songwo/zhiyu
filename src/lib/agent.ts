@@ -17,6 +17,7 @@ export type Block =
   | { type: "access"; request: import("./agent-client").WorkspaceAccessRequest }
   | { type: "proposal"; proposal: import("./agent-client").WorkspaceProposal }
   | { type: "sources"; sources: import("./agent-client").Source[] }
+  | { type: "next"; steps: import("./agent-client").NextStep[] }
   | {
       type: "run";
       model: string;

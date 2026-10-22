@@ -21,8 +21,16 @@ import {
   Check,
   PencilLine,
   Link2,
+  Activity,
+  CalendarCheck,
+  CalendarClock,
+  MessageCircleQuestion,
+  NotebookPen,
+  Sparkles,
 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { renewalCalendar } from "../../electron/services/renewals.mjs";
 import { toast } from "sonner";
 import { EditorDialog } from "./ui/editor-dialog";
 import {
@@ -43,7 +51,8 @@ import { Markdown } from "./markdown";
 import type { Source, WorkspaceProposal, WorkspaceAccessRequest } from "@/lib/agent-client";
 import { useConversations, type Message } from "@/lib/conversations";
 import { accountId, credentialId, desktop } from "@/lib/desktop";
-import { chipClass, dotClass, KIND_LABEL } from "@/lib/status";
+import { attentionOf, chipClass, dotClass, KIND_LABEL } from "@/lib/status";
+import { assetEntries } from "@/lib/operations";
 import { useAppStore } from "@/lib/store";
 import { mergeSnapshotChange } from "@/lib/snapshot-merge";
 import type { AssetKind } from "@/lib/types";
@@ -70,6 +79,10 @@ const toolLabel = (name: string) =>
       propose_account_edit: "建议修改账号",
       propose_asset_link: "建议关联资产",
       propose_document_binding: "建议关联文档",
+      propose_asset_update: "建议修改资产",
+      propose_document_create: "建议新建文档",
+      list_renewals: "续费与费用",
+      suggest_next_steps: "下一步建议",
     }[name] ?? name,
   );
 
@@ -121,6 +134,13 @@ export function AgentView() {
     setAllowWorkspaceChanges(false);
     followBottom.current = true;
   }, [activeId]);
+  const agentPrompt = useAppStore((s) => s.agentPrompt);
+  useEffect(() => {
+    if (!agentPrompt || !hydrated) return;
+    fillDraft(agentPrompt.text);
+    if (agentPrompt.changes) setAllowWorkspaceChanges(true);
+    useAppStore.getState().clearAgentPrompt();
+  }, [agentPrompt, hydrated]);
   const visibleMessages = messages.slice(-visibleCount);
   const hiddenCount = messages.length - visibleMessages.length;
 
@@ -244,6 +264,9 @@ export function AgentView() {
           { type: "sources", sources: result.sourceItems },
           ...(result.proposals ?? []).map((proposal): Block => ({ type: "proposal", proposal })),
           ...(result.accessRequests ?? []).map((request): Block => ({ type: "access", request })),
+          ...(result.nextSteps?.length
+            ? [{ type: "next", steps: result.nextSteps } satisfies Block]
+            : []),
           {
             type: "run",
             model: result.model,
@@ -393,14 +416,35 @@ export function AgentView() {
                       prompt: "请检查账号、服务器和文档，基于具体依据给出尚未保存的关联建议。",
                       note: "区分已有关系与建议",
                     },
-                  ].map(({ icon: Icon, label, prompt, note }) => (
+                    {
+                      icon: CalendarClock,
+                      label: "补齐费用与到期日",
+                      prompt:
+                        "找出还没填写费用或到期日的服务器、域名、服务资产和 AI 订阅；有依据的直接生成补全建议，缺少依据的列出来问我：",
+                      note: "生成可审阅的资产修改",
+                    },
+                    {
+                      icon: NotebookPen,
+                      label: "起草运维文档",
+                      prompt:
+                        "为以下资产起草一份运维文档（部署、巡检、故障恢复步骤），关联到对应资产，不确定的步骤用待办标出：",
+                      note: "新建文档并关联资产",
+                    },
+                    {
+                      icon: CalendarCheck,
+                      label: "规划续费",
+                      prompt: "未来 30 天要续费哪些？合计多少钱？按紧急程度排出处理顺序。",
+                      note: "读取续费日历与支出",
+                      changes: false,
+                    },
+                  ].map(({ icon: Icon, label, prompt, note, changes }) => (
                     <button
                       key={label}
                       type="button"
                       disabled={busy}
                       onClick={() => {
                         fillDraft(t(prompt));
-                        setAllowWorkspaceChanges(true);
+                        setAllowWorkspaceChanges(changes !== false);
                         setCapabilitiesOpen(false);
                       }}
                     >
@@ -434,7 +478,12 @@ export function AgentView() {
               }}
             >
               {messages.length === 0 ? (
-                <Welcome onPick={fillDraft} />
+                <Welcome
+                  onPick={(question, changes) => {
+                    fillDraft(question);
+                    if (changes) setAllowWorkspaceChanges(true);
+                  }}
+                />
               ) : (
                 <div className="agent-message-list">
                   {hiddenCount > 0 && (
@@ -460,6 +509,7 @@ export function AgentView() {
                       key={message.id}
                       message={message}
                       busy={busy}
+                      onAsk={(question) => void send(question)}
                       onSettings={() => setConfigOpen(true)}
                       onRetry={() => {
                         const retry = retryRequest(messages, message.id);
@@ -596,23 +646,111 @@ export function AgentView() {
   );
 }
 
-function Welcome({ onPick }: { onPick: (q: string) => void }) {
+/** 首屏按场景分组的提问，数字取自当前资料，点一下就带好问题。 */
+function Welcome({ onPick }: { onPick: (q: string, changes?: boolean) => void }) {
+  const data = useAppStore(
+    useShallow((s) => ({
+      servers: s.servers,
+      domains: s.domains,
+      services: s.services,
+      phoneNumbers: s.phoneNumbers,
+      aiAssets: s.aiAssets,
+      certs: s.certs,
+    })),
+  );
+  const attention = useAppStore(useShallow(attentionOf)).total;
+  const groups = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const key = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const today = new Date();
+    const end = new Date(today);
+    end.setDate(end.getDate() + 30);
+    const upcoming = renewalCalendar(data, { from: key(today), to: key(end) }).length;
+    const missing =
+      [...data.servers, ...data.domains, ...data.services].filter(
+        (asset) => !asset.billing || !asset.expiresAt,
+      ).length +
+      data.aiAssets.filter((asset) => asset.monthlyUsdKnown === false || !asset.monthlyUsd).length;
+    const server = data.servers.find((item) => !item.demo) ?? data.servers[0];
+    return [
+      {
+        icon: Activity,
+        title: "巡检与处理",
+        prompts: [
+          attention
+            ? {
+                q: t(
+                  "逐项分析需要留意的 {0} 项资产：原因、会影响哪些关联资产、下一步怎么处理。",
+                  attention,
+                ),
+              }
+            : { q: t("检查所有资产的状态，有没有需要提前处理的？请引用依据。") },
+          { q: t("我的主机、域名和证书有哪些关联？哪台主机出问题影响最大？") },
+        ],
+      },
+      {
+        icon: CalendarClock,
+        title: "续费与费用",
+        prompts: [
+          upcoming
+            ? { q: t("未来 30 天有 {0} 项续费，合计多少钱？按紧急程度排出处理顺序。", upcoming) }
+            : { q: t("未来 90 天有哪些续费？每月和每年一共花多少？") },
+          missing
+            ? {
+                q: t("有 {0} 项资产还没填写费用或到期日，帮我列出来并生成补全建议。", missing),
+                changes: true,
+              }
+            : { q: t("统计每月 AI 订阅费用，给出优化建议。") },
+        ],
+      },
+      {
+        icon: NotebookPen,
+        title: "资料整理",
+        prompts: [
+          server
+            ? {
+                q: t("为「{0}」起草一份运维与故障恢复手册，并关联到这台主机。", server.name),
+                changes: true,
+              }
+            : { q: t("帮我起草一份资产巡检清单文档。"), changes: true },
+          {
+            q: t("检查服务器、域名、账号和文档，给出尚未保存的关联建议。"),
+            changes: true,
+          },
+        ],
+      },
+    ];
+  }, [data, attention]);
   return (
-    <div className="stagger-in mx-auto max-w-xl pt-6">
+    <div className="stagger-in agent-welcome mx-auto max-w-2xl pt-6">
       <LogoMark className="size-10" />
       <h2 className="mt-4 text-xl font-semibold tracking-tight">{t("问问你自己的资产")}</h2>
       <p className="mt-2 text-meta leading-relaxed text-muted">
-        {t("基于资产与本地知识文档分析到期、用量和运行状态。")}
+        {t(
+          "分析状态、续费、费用与关联，每个回答都给出下一步；需要修改时先生成建议，由你确认后应用。",
+        )}
       </p>
-      <div className="mt-5 grid gap-2">
-        {[
-          "哪些资产需要优先处理？请引用依据。",
-          "我的主机、域名和证书有哪些关联？",
-          "统计每月 AI 订阅费用，给出优化建议。",
-        ].map((s) => (
-          <button key={s} type="button" className="paste-match" onClick={() => onPick(t(s))}>
-            <span className="flex-1 text-left text-meta">{t(s)}</span>
-          </button>
+      <div className="agent-welcome-groups">
+        {groups.map(({ icon: Icon, title, prompts }) => (
+          <section key={title} aria-label={t(title)}>
+            <h3>
+              <Icon aria-hidden="true" />
+              {t(title)}
+            </h3>
+            {prompts.map((prompt) => (
+              <button
+                key={prompt.q}
+                type="button"
+                className="agent-welcome-prompt"
+                onClick={() => onPick(prompt.q, "changes" in prompt ? prompt.changes : false)}
+              >
+                <span>{prompt.q}</span>
+                {"changes" in prompt && prompt.changes && (
+                  <span className="agent-welcome-badge">{t("生成建议")}</span>
+                )}
+              </button>
+            ))}
+          </section>
         ))}
       </div>
     </div>
@@ -622,6 +760,7 @@ function Welcome({ onPick }: { onPick: (q: string) => void }) {
 function MessageRow({
   message,
   busy,
+  onAsk,
   onRetry,
   onSettings,
   accessOptions,
@@ -629,6 +768,7 @@ function MessageRow({
 }: {
   message: Message;
   busy: boolean;
+  onAsk: (question: string) => void;
   onRetry: () => void;
   onSettings: () => void;
   accessOptions: WorkspaceAccessRequest[];
@@ -650,7 +790,7 @@ function MessageRow({
       <LogoMark className="mt-0.5 size-6 shrink-0" />
       <div className="min-w-0 flex-1 space-y-2.5">
         {message.blocks.map((block, i) => (
-          <BlockView key={i} block={block} />
+          <BlockView key={i} block={block} busy={busy} onAsk={onAsk} />
         ))}
         {accessOptions.length > 0 && (
           <section className="agent-access-request" aria-label={t("继续完成这项任务")}>
@@ -706,7 +846,15 @@ function MessageRow({
   );
 }
 
-function BlockView({ block }: { block: Block }) {
+function BlockView({
+  block,
+  busy = false,
+  onAsk,
+}: {
+  block: Block;
+  busy?: boolean;
+  onAsk?: (question: string) => void;
+}) {
   const setExpanded = useAppStore((s) => s.setExpanded);
   const openSsh = useAppStore((s) => s.openSsh);
 
@@ -723,6 +871,39 @@ function BlockView({ block }: { block: Block }) {
   switch (block.type) {
     case "access":
       return null;
+    case "next":
+      return block.steps.length > 0 ? (
+        <nav className="agent-next" aria-label={t("下一步")}>
+          <span className="agent-next-label">
+            <Sparkles aria-hidden="true" />
+            {t("下一步")}
+          </span>
+          <div className="agent-next-steps">
+            {block.steps.map((step, i) => (
+              <button
+                key={i}
+                type="button"
+                className="agent-next-step"
+                data-kind={step.kind}
+                disabled={step.kind === "ask" && (busy || !onAsk)}
+                title={step.kind === "ask" ? step.question : undefined}
+                onClick={() => {
+                  if (step.kind === "ask") onAsk?.(step.question);
+                  else if ("asset" in step) reveal(step.asset.id, step.asset.kind);
+                  else useAppStore.getState().setView(step.view);
+                }}
+              >
+                {step.kind === "ask" ? (
+                  <MessageCircleQuestion aria-hidden="true" />
+                ) : (
+                  <ArrowUpRight aria-hidden="true" />
+                )}
+                {step.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      ) : null;
     case "proposal":
       return <ProposalCard proposal={block.proposal} />;
     case "sources":
@@ -842,7 +1023,7 @@ function ProposalCard({ proposal }: { proposal: WorkspaceProposal }) {
   const [failure, setFailure] = useState("");
   const [dismissing, setDismissing] = useState(false);
   const expired = Date.now() > proposal.expiresAt;
-  const finish = (status: "applied" | "dismissed") => {
+  const finish = (status: "applied" | "dismissed", documentId?: string) => {
     setState(status);
     useConversations.setState((current) => ({
       conversations: current.conversations.map((conversation) => ({
@@ -851,7 +1032,10 @@ function ProposalCard({ proposal }: { proposal: WorkspaceProposal }) {
           ...message,
           blocks: message.blocks.map((block) =>
             block.type === "proposal" && block.proposal.id === proposal.id
-              ? { ...block, proposal: { ...block.proposal, status } }
+              ? {
+                  ...block,
+                  proposal: { ...block.proposal, status, ...(documentId ? { documentId } : {}) },
+                }
               : block,
           ),
         })),
@@ -903,7 +1087,8 @@ function ProposalCard({ proposal }: { proposal: WorkspaceProposal }) {
           }),
         );
       }
-      finish("applied");
+      // 新建的文档要记下 id，之后才能从卡片直接打开。
+      finish("applied", result.document?.id);
       useAppStore.getState().log(t("已应用 AI 修改建议：{0}", proposal.title));
     } catch (error) {
       setState("pending");
@@ -960,11 +1145,63 @@ function ProposalCard({ proposal }: { proposal: WorkspaceProposal }) {
           </Button>
         </footer>
       ) : (
-        <p className="text-2xs text-subtle">
-          {t(state === "applied" ? "修改已保存到本机。" : "已保留原有内容。")}
-        </p>
+        <footer className="agent-proposal-done">
+          <p className="text-2xs text-subtle">
+            {t(state === "applied" ? "修改已保存到本机。" : "已保留原有内容。")}
+          </p>
+          {state === "applied" && <ProposalTarget proposal={proposal} />}
+        </footer>
       )}
     </section>
+  );
+}
+
+/** 应用之后直接打开改动的文档或资产，确认效果。 */
+function ProposalTarget({ proposal }: { proposal: WorkspaceProposal }) {
+  // 只取种类（字符串），避免每次渲染都生成新对象。
+  const kind = useAppStore((s) =>
+    proposal.assetId && !proposal.documentId
+      ? assetEntries(s).find((entry) => entry.id === proposal.assetId)?.kind
+      : undefined,
+  );
+  if (proposal.documentId) {
+    const id = proposal.documentId;
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={async () => {
+          try {
+            await useDocuments.getState().open(id);
+            useAppStore.getState().setView("docs");
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+          }
+        }}
+      >
+        <ArrowUpRight className="size-3.5" />
+        {t("打开文档")}
+      </Button>
+    );
+  }
+  if (!kind || !proposal.assetId) return null;
+  const id = proposal.assetId;
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={() => {
+        const w = Math.min(560, window.innerWidth - 48);
+        useAppStore.getState().setExpanded({
+          kind,
+          id,
+          origin: { x: (window.innerWidth - w) / 2, y: window.innerHeight * 0.3, w, h: 180 },
+        });
+      }}
+    >
+      <ArrowUpRight className="size-3.5" />
+      {t("查看资产")}
+    </Button>
   );
 }
 

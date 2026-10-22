@@ -534,3 +534,138 @@
     transition: none;
   }
 }
+
+/* 首屏：按场景分组的提问，数字取自当前资料。 */
+.agent-welcome-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+.agent-welcome-groups section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.agent-welcome-groups h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  color: var(--color-subtle);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+}
+.agent-welcome-groups h3 svg {
+  width: 14px;
+  height: 14px;
+}
+.agent-welcome-prompt {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-ink);
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    translate var(--dur-base) var(--ease-out-soft);
+}
+.agent-welcome-prompt:hover {
+  background: color-mix(in oklab, var(--color-selected) 70%, var(--color-card));
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  translate: 0 -1px;
+}
+.agent-welcome-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--kind-ai) 12%, transparent);
+  color: color-mix(in oklab, var(--kind-ai) 85%, var(--color-ink));
+  font-size: var(--text-2xs);
+  font-weight: 500;
+}
+@media (max-width: 760px) {
+  .agent-welcome-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 回答下方的「下一步」：继续提问或打开页面 / 资产。 */
+.agent-next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  animation: agent-enter 240ms var(--ease-out-soft);
+}
+.agent-next-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-subtle);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+}
+.agent-next-label svg {
+  width: 13px;
+  height: 13px;
+  color: var(--kind-ai);
+}
+.agent-next-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.agent-next-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--color-card);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-ink);
+  font-size: var(--text-meta);
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.agent-next-step svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+.agent-next-step[data-kind="ask"] svg {
+  color: var(--kind-ai);
+}
+.agent-next-step:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--color-selected) 70%, var(--color-card));
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+}
+.agent-next-step:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.agent-proposal footer.agent-proposal-done {
+  justify-content: space-between;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-welcome-prompt,
+  .agent-next {
+    transition: none;
+    animation: none;
+  }
+}

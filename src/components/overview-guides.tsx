@@ -12,6 +12,7 @@ import { KIND_LABEL } from "@/lib/status";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PageSection } from "./ui/page";
+import { MarkRenewedButton } from "./mark-renewed";
 
 /** 首页「快速开始」：五步清单，按已有资料自动打勾；全部完成或收起后不再显示。 */
 export function QuickStart() {
@@ -34,7 +35,11 @@ export function QuickStart() {
   );
   const documentCount = useDocuments((s) => (s.loaded ? s.list.length : null));
   useEffect(() => {
-    if (!hidden) void useDocuments.getState().load().catch(() => {});
+    if (!hidden)
+      void useDocuments
+        .getState()
+        .load()
+        .catch(() => {});
   }, [hidden]);
   const steps = useMemo(() => quickStartSteps({ ...data, documentCount }), [data, documentCount]);
   const done = steps.filter((step) => step.done).length;
@@ -53,7 +58,11 @@ export function QuickStart() {
   return (
     <PageSection
       title={t("快速开始")}
-      description={t("完成这几步，续费、关联和资料都会替你记着。已完成 {0} / {1}", done, steps.length)}
+      description={t(
+        "完成这几步，续费、关联和资料都会替你记着。已完成 {0} / {1}",
+        done,
+        steps.length,
+      )}
       aria-label={t("快速开始")}
       action={
         <button type="button" className="section-link" onClick={() => setHidden(true)}>
@@ -141,46 +150,48 @@ export function UpcomingRenewals() {
     >
       <div className="upcoming-list">
         {entries.slice(0, 5).map((entry) => (
-          <button
-            key={entry.key}
-            type="button"
-            className="upcoming-row"
-            data-kind={entry.kind}
-            onClick={(event) => {
-              if (entry.kind === "phone") {
-                state.openPhones({ id: entry.id });
-                return;
-              }
-              const rect = event.currentTarget.getBoundingClientRect();
-              state.setExpanded({
-                kind: entry.kind,
-                id: entry.id,
-                origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
-              });
-            }}
-          >
-            <span className="date-block" aria-label={entry.date}>
-              <span className="date-block-month">{entry.date.slice(5, 7)}</span>
-              <span className="date-block-day">{entry.date.slice(8, 10)}</span>
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="upcoming-name">{entry.name}</span>
-              <span className="upcoming-meta">
-                <i aria-hidden="true" />
-                {t(entry.kind === "phone" ? "号码" : KIND_LABEL[entry.kind])}
-                {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
-                {entry.projected ? ` · ${t("按周期推算")}` : ""}
-              </span>
-            </span>
-            <span
-              className={cn(
-                "due-pill",
-                entry.days <= 3 ? "text-crit" : entry.days <= 7 ? "text-warn" : "text-muted",
-              )}
+          <div key={entry.key} className="renewal-row">
+            <button
+              type="button"
+              className="upcoming-row"
+              data-kind={entry.kind}
+              onClick={(event) => {
+                if (entry.kind === "phone") {
+                  state.openPhones({ id: entry.id });
+                  return;
+                }
+                const rect = event.currentTarget.getBoundingClientRect();
+                state.setExpanded({
+                  kind: entry.kind,
+                  id: entry.id,
+                  origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
+                });
+              }}
             >
-              {entry.days === 0 ? t("今天") : t("{0} 天后", entry.days)}
-            </span>
-          </button>
+              <span className="date-block" aria-label={entry.date}>
+                <span className="date-block-month">{entry.date.slice(5, 7)}</span>
+                <span className="date-block-day">{entry.date.slice(8, 10)}</span>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="upcoming-name">{entry.name}</span>
+                <span className="upcoming-meta">
+                  <i aria-hidden="true" />
+                  {t(entry.kind === "phone" ? "号码" : KIND_LABEL[entry.kind])}
+                  {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
+                  {entry.projected ? ` · ${t("按周期推算")}` : ""}
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "due-pill",
+                  entry.days <= 3 ? "text-crit" : entry.days <= 7 ? "text-warn" : "text-muted",
+                )}
+              >
+                {entry.days === 0 ? t("今天") : t("{0} 天后", entry.days)}
+              </span>
+            </button>
+            <MarkRenewedButton entry={entry} projected={entry.projected} />
+          </div>
         ))}
       </div>
     </PageSection>

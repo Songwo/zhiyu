@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   CalendarArrowDown,
   CalendarCheck2,
+  Sparkles,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +29,7 @@ import { t, intlLocale } from "@/lib/i18n";
 import { KIND_LABEL } from "@/lib/status";
 import { cn, downloadText } from "@/lib/utils";
 import { Button } from "./ui/button";
+import { MarkRenewedButton } from "./mark-renewed";
 import { DepthHero, PageSection } from "./ui/page";
 import { Input } from "./ui/input";
 
@@ -74,6 +76,23 @@ export function RenewalsWorkspace() {
                 </button>
               ))}
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                useAppStore
+                  .getState()
+                  .askAgent(
+                    t(
+                      "未来 {0} 天要续费哪些？合计多少钱？按紧急程度排出处理顺序；缺少费用或到期日的资产也一并指出。",
+                      withinDays,
+                    ),
+                  )
+              }
+            >
+              <Sparkles className="size-4" />
+              {t("让 AI 规划")}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -264,43 +283,46 @@ function TimelineRow({ entry, projected = false }: { entry: RenewalEntry; projec
   const tone =
     entry.days < 0 || entry.days <= 7 ? "text-crit" : entry.days <= 21 ? "text-warn" : "text-muted";
   return (
-    <button
-      type="button"
-      className="asset-summary-row"
-      onClick={(event) => {
-        const state = useAppStore.getState();
-        if (entry.kind === "phone") {
-          state.openPhones({ id: entry.id });
-          return;
-        }
-        const rect = event.currentTarget.getBoundingClientRect();
-        state.setExpanded({
-          kind: entry.kind,
-          id: entry.id,
-          origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
-        });
-      }}
-    >
-      <span className="date-block" aria-label={entry.date}>
-        <span className="date-block-month">{entry.date.slice(5, 7)}</span>
-        <span className="date-block-day">{entry.date.slice(8, 10)}</span>
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{entry.name}</span>
-        <span className="mt-1 block truncate text-sm text-muted">
-          {kindLabel(entry.kind)}
-          {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
-          {projected && <span className="calendar-projected">{t("按周期推算")}</span>}
+    <div className="renewal-row">
+      <button
+        type="button"
+        className="asset-summary-row"
+        onClick={(event) => {
+          const state = useAppStore.getState();
+          if (entry.kind === "phone") {
+            state.openPhones({ id: entry.id });
+            return;
+          }
+          const rect = event.currentTarget.getBoundingClientRect();
+          state.setExpanded({
+            kind: entry.kind,
+            id: entry.id,
+            origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
+          });
+        }}
+      >
+        <span className="date-block" aria-label={entry.date}>
+          <span className="date-block-month">{entry.date.slice(5, 7)}</span>
+          <span className="date-block-day">{entry.date.slice(8, 10)}</span>
         </span>
-      </span>
-      <span className={cn("due-pill", tone)}>
-        {entry.days < 0
-          ? t("已过期 {0} 天", -entry.days)
-          : entry.days === 0
-            ? t("今天到期")
-            : t("{0} 天后", entry.days)}
-      </span>
-    </button>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{entry.name}</span>
+          <span className="mt-1 block truncate text-sm text-muted">
+            {kindLabel(entry.kind)}
+            {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
+            {projected && <span className="calendar-projected">{t("按周期推算")}</span>}
+          </span>
+        </span>
+        <span className={cn("due-pill", tone)}>
+          {entry.days < 0
+            ? t("已过期 {0} 天", -entry.days)
+            : entry.days === 0
+              ? t("今天到期")
+              : t("{0} 天后", entry.days)}
+        </span>
+      </button>
+      <MarkRenewedButton entry={entry} projected={projected} />
+    </div>
   );
 }
 
@@ -389,7 +411,9 @@ function RenewalCalendar({ snapshot }: { snapshot: Parameters<typeof renewalCale
             <ChevronLeft className="size-4" />
           </Button>
           <span className="calendar-month" aria-live="polite">
-            {new Intl.DateTimeFormat(intlLocale(), { year: "numeric", month: "long" }).format(first)}
+            {new Intl.DateTimeFormat(intlLocale(), { year: "numeric", month: "long" }).format(
+              first,
+            )}
           </span>
           <Button
             variant="ghost"
@@ -427,11 +451,7 @@ function RenewalCalendar({ snapshot }: { snapshot: Parameters<typeof renewalCale
                   data-today={day === today}
                   aria-pressed={day === selected}
                   data-tone={overdue ? "overdue" : soon ? "soon" : undefined}
-                  aria-label={
-                    items.length
-                      ? t("{0}，{1} 项续费", day, items.length)
-                      : day
-                  }
+                  aria-label={items.length ? t("{0}，{1} 项续费", day, items.length) : day}
                   onClick={() => {
                     setSelected(day);
                     if (!day.startsWith(month)) shift(day < month ? -1 : 1);

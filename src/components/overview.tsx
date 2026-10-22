@@ -15,6 +15,7 @@ import {
   FileText,
   Phone,
   ChartNoAxesCombined,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -192,6 +193,25 @@ export function Overview() {
           title={t("待处理事项")}
           description={t("点击分类查看异常资产")}
           aria-label={t("待处理事项")}
+          action={
+            <button
+              type="button"
+              className="section-link"
+              onClick={() =>
+                useAppStore
+                  .getState()
+                  .askAgent(
+                    t(
+                      "逐项分析需要留意的 {0} 项资产：原因、会影响哪些关联资产、下一步怎么处理。请引用依据。",
+                      counts.total,
+                    ),
+                  )
+              }
+            >
+              <Sparkles aria-hidden="true" />
+              {t("让 AI 逐项分析")}
+            </button>
+          }
         >
           <div className="row-grid">
             {attention.map(([view, label, count]) => (

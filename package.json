@@ -21,7 +21,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test scripts/*.test.mjs electron/services/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/parse-paste.test.ts src/lib/agent.test.ts src/lib/i18n.test.ts src/lib/operations.test.ts src/lib/asset-view.test.ts src/lib/ai-subscriptions.test.ts src/lib/mail-folders.test.ts src/lib/secret-folders.test.ts src/lib/quick-start.test.ts src/lib/subscription-templates.test.ts",
+    "test": "node --test scripts/*.test.mjs electron/services/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/parse-paste.test.ts src/lib/agent.test.ts src/lib/i18n.test.ts src/lib/operations.test.ts src/lib/asset-view.test.ts src/lib/ai-subscriptions.test.ts src/lib/mail-folders.test.ts src/lib/secret-folders.test.ts src/lib/quick-start.test.ts src/lib/subscription-templates.test.ts src/lib/renewal-step.test.ts",
     "i18n:check": "node --experimental-strip-types scripts/i18n-check.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
