@@ -301,3 +301,188 @@
     font-size: 17px;
   }
 }
+
+/* ==========================================================================
+   用量图表 v3：按指标配色、渐变柱、依次长出的入场动画与悬停聚焦。
+   ========================================================================== */
+.usage-charts {
+  --usage-chart-primary: #6d5ce6;
+  --usage-chart-secondary: #b9aef6;
+  --usage-chart-cursor: color-mix(in oklab, var(--usage-chart-primary) 8%, transparent);
+  --usage-series-1: var(--usage-chart-primary);
+  --usage-series-2: #3a8fd0;
+  --usage-series-3: #1f9a8f;
+  --usage-series-4: #e0913a;
+  --usage-series-5: #d9587a;
+  --usage-series-6: #8a8f98;
+}
+.usage-charts[data-metric="api"] {
+  --usage-chart-primary: #1f9467;
+  --usage-chart-secondary: #93d6b8;
+}
+.usage-charts[data-metric="traffic"] {
+  --usage-chart-primary: #e07a2f;
+  --usage-chart-secondary: #f5c48f;
+}
+.usage-charts[data-metric="quota"] {
+  --usage-chart-primary: #dc4f74;
+  --usage-chart-secondary: #f3a7bb;
+}
+:root[data-theme="dark"] .usage-charts {
+  --usage-chart-primary: #9b8cff;
+  --usage-chart-secondary: #6f63c9;
+  --usage-series-2: #5aa9e6;
+  --usage-series-3: #3cbfae;
+  --usage-series-4: #f0a65a;
+  --usage-series-5: #ef7d9a;
+  --usage-series-6: #9a9fa8;
+}
+:root[data-theme="dark"] .usage-charts[data-metric="api"] {
+  --usage-chart-primary: #45c08e;
+  --usage-chart-secondary: #2f8f6a;
+}
+:root[data-theme="dark"] .usage-charts[data-metric="traffic"] {
+  --usage-chart-primary: #f39a52;
+  --usage-chart-secondary: #c27a3e;
+}
+:root[data-theme="dark"] .usage-charts[data-metric="quota"] {
+  --usage-chart-primary: #f0728f;
+  --usage-chart-secondary: #b8566f;
+}
+
+.usage-chart-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 22px 22px 18px;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  animation: stagger-in 560ms var(--ease-out-soft) both;
+}
+.usage-chart-card + .usage-chart-card {
+  animation-delay: 90ms;
+}
+/* 卡片右上角一团跟随指标颜色的柔光，切换指标时颜色平滑过渡。 */
+.usage-chart-card::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  z-index: -1;
+  width: 280px;
+  height: 220px;
+  border-radius: 50%;
+  background: var(--usage-chart-primary);
+  opacity: 0.09;
+  filter: blur(48px);
+  transition: background-color 400ms var(--ease-out);
+  pointer-events: none;
+}
+.usage-chart-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--usage-chart-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.usage-chart-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 18%, transparent);
+}
+.usage-chart-total strong {
+  font-size: 22px;
+  animation: usage-number-in 520ms var(--ease-out-soft) both;
+}
+@keyframes usage-number-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+.usage-chart-legend i,
+.usage-chart-tooltip i {
+  border-radius: 50%;
+}
+.usage-chart-count {
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--usage-chart-primary) 10%, transparent);
+  color: var(--usage-chart-primary);
+  font-weight: 600;
+}
+.usage-chart-canvas,
+.usage-chart-empty {
+  height: 232px;
+}
+.usage-chart-today {
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--usage-chart-primary) 7%, var(--color-surface));
+}
+.usage-chart-tooltip {
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--shadow-popover);
+  backdrop-filter: blur(10px);
+}
+
+/* 柱子依次长出：只动 transform，以柱子自身底边（或左边）为原点。 */
+.usage-bar-rise,
+.usage-bar-grow {
+  transform-box: fill-box;
+  animation: usage-bar-rise 720ms var(--ease-out-soft) both;
+}
+.usage-bar-rise {
+  transform-origin: 50% 100%;
+}
+.usage-bar-grow {
+  transform-origin: 0 50%;
+  animation-name: usage-bar-grow;
+}
+@keyframes usage-bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes usage-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+/* 悬停时其余柱子退后，当前柱子保持原色。 */
+.usage-chart-canvas .recharts-bar-rectangle path {
+  transition:
+    opacity 200ms var(--ease-out),
+    filter 200ms var(--ease-out);
+}
+.usage-chart-canvas .recharts-bar-rectangles:hover .recharts-bar-rectangle path {
+  opacity: 0.45;
+}
+.usage-chart-canvas .recharts-bar-rectangles:hover .recharts-bar-rectangle:hover path {
+  opacity: 1;
+  filter: saturate(1.15);
+}
+.usage-chart-canvas .usage-chart-small-value circle {
+  animation: usage-dot-pop 420ms var(--ease-out-soft) 600ms both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes usage-dot-pop {
+  from {
+    transform: scale(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-chart-card,
+  .usage-chart-total strong,
+  .usage-bar-rise,
+  .usage-bar-grow,
+  .usage-chart-canvas .usage-chart-small-value circle {
+    animation: none;
+  }
+}

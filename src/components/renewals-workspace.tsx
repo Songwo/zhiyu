@@ -1,10 +1,19 @@
 import { useMemo, useState } from "react";
-import { CalendarArrowDown, CalendarClock, X } from "lucide-react";
+import {
+  CalendarArrowDown,
+  CalendarCheck2,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 import {
   combinedInCny,
+  daysUntilDay,
   dueTotals,
+  renewalCalendar,
   renewalTimeline,
   spendSummary,
   type BillingCurrency,
@@ -45,6 +54,7 @@ export function RenewalsWorkspace() {
   return (
     <div className="overview-layout page-stagger">
       <SpendHero summary={summary} due={due} withinDays={withinDays} />
+      <RenewalCalendar snapshot={snapshot} />
       <PageSection
         title={t("到期时间线")}
         description={t("未来 {0} 天内到期的资产，以及近 30 天已过期的。", withinDays)}
@@ -250,7 +260,7 @@ function Timeline({ entries }: { entries: RenewalEntry[] }) {
   );
 }
 
-function TimelineRow({ entry }: { entry: RenewalEntry }) {
+function TimelineRow({ entry, projected = false }: { entry: RenewalEntry; projected?: boolean }) {
   const tone =
     entry.days < 0 || entry.days <= 7 ? "text-crit" : entry.days <= 21 ? "text-warn" : "text-muted";
   return (
@@ -280,6 +290,7 @@ function TimelineRow({ entry }: { entry: RenewalEntry }) {
         <span className="mt-1 block truncate text-sm text-muted">
           {kindLabel(entry.kind)}
           {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
+          {projected && <span className="calendar-projected">{t("按周期推算")}</span>}
         </span>
       </span>
       <span className={cn("due-pill", tone)}>
@@ -290,6 +301,200 @@ function TimelineRow({ entry }: { entry: RenewalEntry }) {
             : t("{0} 天后", entry.days)}
       </span>
     </button>
+  );
+}
+
+type CalendarEntry = RenewalEntry & { projected: boolean };
+
+/** 本地日历日 YYYY-MM-DD。 */
+function dayKey(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+/** 月视图的 42 个日历日：从包含 1 号那一周的周一开始。 */
+function monthGrid(month: string) {
+  const [year, index] = month.split("-").map(Number);
+  const first = new Date(year, index - 1, 1);
+  const start = new Date(first);
+  start.setDate(1 - ((first.getDay() + 6) % 7));
+  return Array.from({ length: 42 }, (_, i) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    return dayKey(date);
+  });
+}
+
+/**
+ * 续费日历：月视图里每天列出到期和按周期推算的续费，右侧是所选日期的事项。
+ * 周一开头，固定 6 行，切换月份时整页从切换方向滑入。
+ */
+function RenewalCalendar({ snapshot }: { snapshot: Parameters<typeof renewalCalendar>[0] }) {
+  const today = dayKey(new Date());
+  const [month, setMonth] = useState(() => today.slice(0, 7));
+  const [selected, setSelected] = useState(today);
+  const [direction, setDirection] = useState<"next" | "prev">("next");
+  const [year, monthIndex] = month.split("-").map(Number);
+  const first = new Date(year, monthIndex - 1, 1);
+  const days = useMemo(() => monthGrid(month), [month]);
+  const entries = useMemo(
+    () => renewalCalendar(snapshot, { from: days[0], to: days[41] }),
+    [snapshot, days],
+  );
+  const byDay = new Map<string, CalendarEntry[]>();
+  for (const entry of entries) byDay.set(entry.date, [...(byDay.get(entry.date) ?? []), entry]);
+  const inMonth = entries.filter((entry) => entry.date.startsWith(month));
+  const monthDue = dueTotals(inMonth);
+  const monthText = (["CNY", "USD"] as const)
+    .filter((currency) => monthDue[currency] > 0)
+    .map((currency) => formatMoney(monthDue[currency], currency))
+    .join(" + ");
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Intl.DateTimeFormat(intlLocale(), { weekday: "narrow" }).format(new Date(2024, 0, 1 + i)),
+  );
+  const shift = (delta: number) => {
+    const next = new Date(year, monthIndex - 1 + delta, 1);
+    setDirection(delta > 0 ? "next" : "prev");
+    setMonth(dayKey(next).slice(0, 7));
+  };
+  const goToday = () => {
+    setDirection(today.slice(0, 7) < month ? "prev" : "next");
+    setMonth(today.slice(0, 7));
+    setSelected(today);
+  };
+  const agenda = byDay.get(selected) ?? [];
+  const selectedDate = new Date(`${selected}T12:00:00`);
+
+  return (
+    <PageSection
+      title={t("续费日历")}
+      description={
+        monthText
+          ? t("本月 {0} 项续费，合计 {1}。", inMonth.length, monthText)
+          : t("到期日与按月付、年付推算的续费日；点日期查看当天事项。")
+      }
+      aria-label={t("续费日历")}
+      action={
+        <div className="calendar-nav">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("上个月")}
+            title={t("上个月")}
+            onClick={() => shift(-1)}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="calendar-month" aria-live="polite">
+            {new Intl.DateTimeFormat(intlLocale(), { year: "numeric", month: "long" }).format(first)}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("下个月")}
+            title={t("下个月")}
+            onClick={() => shift(1)}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={goToday}>
+            {t("今天")}
+          </Button>
+        </div>
+      }
+    >
+      <div className="calendar-surface">
+        <div className="calendar-board">
+          <div className="calendar-weekdays" aria-hidden="true">
+            {weekdays.map((day, i) => (
+              <span key={i}>{day}</span>
+            ))}
+          </div>
+          <div key={month} className="calendar-grid" data-direction={direction}>
+            {days.map((day) => {
+              const items = byDay.get(day) ?? [];
+              const overdue = items.some((x) => x.days < 0 && !x.projected);
+              const soon = items.some((x) => x.days >= 0 && x.days <= 7);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  className="calendar-day"
+                  data-outside={!day.startsWith(month)}
+                  data-today={day === today}
+                  aria-pressed={day === selected}
+                  data-tone={overdue ? "overdue" : soon ? "soon" : undefined}
+                  aria-label={
+                    items.length
+                      ? t("{0}，{1} 项续费", day, items.length)
+                      : day
+                  }
+                  onClick={() => {
+                    setSelected(day);
+                    if (!day.startsWith(month)) shift(day < month ? -1 : 1);
+                  }}
+                >
+                  <span className="calendar-day-number">{Number(day.slice(8))}</span>
+                  {items.length > 0 && (
+                    <span className="calendar-day-events">
+                      {items.slice(0, 2).map((entry) => (
+                        <span
+                          key={entry.key}
+                          className="calendar-event"
+                          data-kind={entry.kind}
+                          data-projected={entry.projected}
+                        >
+                          <i aria-hidden="true" />
+                          <span>{entry.name}</span>
+                        </span>
+                      ))}
+                      {items.length > 2 && (
+                        <span className="calendar-event-more">+{items.length - 2}</span>
+                      )}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <aside className="calendar-agenda" aria-label={t("所选日期")}>
+          <header>
+            <strong>
+              {new Intl.DateTimeFormat(intlLocale(), {
+                month: "long",
+                day: "numeric",
+                weekday: "short",
+              }).format(selectedDate)}
+            </strong>
+            <span>
+              {selected === today
+                ? t("今天")
+                : daysUntilDay(selected) > 0
+                  ? t("{0} 天后", daysUntilDay(selected))
+                  : t("{0} 天前", -daysUntilDay(selected))}
+            </span>
+          </header>
+          {agenda.length ? (
+            <ul key={selected} className="calendar-agenda-list">
+              {agenda.map((entry) => (
+                <li key={entry.key}>
+                  <TimelineRow entry={entry} projected={entry.projected} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p key={selected} className="calendar-agenda-empty">
+              <CalendarCheck2 aria-hidden="true" />
+              {t("这一天没有续费。")}
+            </p>
+          )}
+        </aside>
+      </div>
+    </PageSection>
   );
 }
 

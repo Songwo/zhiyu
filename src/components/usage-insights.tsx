@@ -176,6 +176,7 @@ export function UsageInsights({
             key={item.value}
             type="button"
             className="usage-metric"
+            data-tone={item.value}
             aria-pressed={category === item.value}
             onClick={() => select("category", category === item.value ? "all" : item.value)}
           >

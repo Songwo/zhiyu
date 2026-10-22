@@ -5390,3 +5390,430 @@ p {
     transition: none;
   }
 }
+
+/* ==========================================================================
+   表格视图 v3：表格是一张白卡，行悬停是左右对称的圆角浅底，不再用整宽硬线。
+   ========================================================================== */
+.asset-list-toolbar {
+  border-bottom-color: transparent;
+}
+.workspace-summary {
+  min-height: 40px;
+  padding-inline: 4px;
+}
+.asset-table-scroll {
+  padding: 6px 8px;
+  border-block: 0;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+  animation: stagger-in 520ms var(--ease-out-soft) both;
+}
+.asset-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.asset-table th {
+  height: 40px;
+  border-bottom: 1px solid var(--color-line);
+  background: transparent;
+  color: var(--color-subtle);
+  font-size: 11.5px;
+}
+.asset-table th button {
+  height: 40px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.asset-table th button:hover {
+  color: var(--color-ink);
+}
+.asset-table th[aria-sort="ascending"] button,
+.asset-table th[aria-sort="descending"] button {
+  color: var(--color-ink);
+}
+.asset-table th:first-child {
+  background: var(--color-card);
+}
+.asset-table td {
+  height: 60px;
+  border-top: 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-line) 70%, transparent);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.asset-table tbody tr:last-child td {
+  border-bottom-color: transparent;
+}
+.asset-table tbody tr,
+.asset-table tbody tr:hover {
+  background: transparent;
+}
+.asset-table tbody tr:hover td,
+.asset-table tbody tr:hover td:first-child {
+  background: color-mix(in oklab, var(--color-selected) 75%, var(--color-card));
+}
+/* 悬停行与上一行之间的分隔线一起隐去，浅底看起来是一块完整的圆角条。 */
+.asset-table tbody tr:hover td,
+.asset-table tbody tr:has(+ tr:hover) td {
+  border-bottom-color: transparent;
+}
+.asset-table tbody td:first-child {
+  border-radius: 10px 0 0 10px;
+}
+.asset-table tbody td:last-child {
+  border-radius: 0 10px 10px 0;
+}
+.asset-table tbody tr {
+  animation: table-row-in 420ms var(--ease-out-soft) both;
+}
+.asset-table tbody tr:nth-child(2) {
+  animation-delay: 30ms;
+}
+.asset-table tbody tr:nth-child(3) {
+  animation-delay: 60ms;
+}
+.asset-table tbody tr:nth-child(4) {
+  animation-delay: 90ms;
+}
+.asset-table tbody tr:nth-child(5) {
+  animation-delay: 120ms;
+}
+.asset-table tbody tr:nth-child(n + 6) {
+  animation-delay: 150ms;
+}
+@keyframes table-row-in {
+  from {
+    opacity: 0;
+  }
+}
+.table-tags button {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.table-tags button:hover {
+  background: var(--color-selected);
+  color: var(--color-ink);
+}
+.table-pagination {
+  padding: 6px 4px 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .asset-table-scroll,
+  .asset-table tbody tr {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   续费日历
+   ========================================================================== */
+:root {
+  --kind-server: #2f8f6b;
+  --kind-domain: #d08a2e;
+  --kind-cert: #3a8fd0;
+  --kind-ai: #7a62e6;
+  --kind-service: #1f9aa0;
+  --kind-phone: #d9587a;
+}
+:root[data-theme="dark"] {
+  --kind-server: #4cc093;
+  --kind-domain: #f0ad5a;
+  --kind-cert: #66b1ec;
+  --kind-ai: #a493ff;
+  --kind-service: #45c4c9;
+  --kind-phone: #f0839f;
+}
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.calendar-month {
+  min-width: 7.5em;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.calendar-surface {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+@container (min-width: 860px) {
+  .calendar-surface {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+.calendar-board,
+.calendar-agenda {
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+.calendar-board {
+  padding: 14px 14px 12px;
+}
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding-bottom: 8px;
+  color: var(--color-subtle);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: center;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  animation: calendar-in-next 380ms var(--ease-out-soft) both;
+}
+.calendar-grid[data-direction="prev"] {
+  animation-name: calendar-in-prev;
+}
+@keyframes calendar-in-next {
+  from {
+    opacity: 0;
+    translate: 20px 0;
+  }
+}
+@keyframes calendar-in-prev {
+  from {
+    opacity: 0;
+    translate: -20px 0;
+  }
+}
+.calendar-day {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 86px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 12px;
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+.calendar-day:hover {
+  background: var(--color-surface);
+}
+.calendar-day[data-outside="true"] {
+  opacity: 0.38;
+}
+.calendar-day[data-outside="true"]:hover {
+  opacity: 0.7;
+}
+.calendar-day[data-tone="soon"] {
+  background: color-mix(in oklab, var(--color-warn) 8%, transparent);
+}
+.calendar-day[data-tone="overdue"] {
+  background: color-mix(in oklab, var(--color-crit) 7%, transparent);
+}
+.calendar-day[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--color-ink);
+}
+.calendar-day:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 1px;
+}
+.calendar-day-number {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--color-ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.calendar-day[data-today="true"] .calendar-day-number {
+  background: var(--color-ink);
+  color: var(--color-card);
+  font-weight: 600;
+}
+.calendar-day-events {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.calendar-event {
+  --event: var(--color-muted);
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--event) 13%, transparent);
+  color: color-mix(in oklab, var(--event) 72%, var(--color-ink));
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.calendar-event i {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--event);
+}
+.calendar-event span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 按周期推算的续费：空心描边，与真实到期日区分。 */
+.calendar-event[data-projected="true"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--event) 38%, transparent);
+}
+.calendar-event[data-kind="server"] {
+  --event: var(--kind-server);
+}
+.calendar-event[data-kind="domain"] {
+  --event: var(--kind-domain);
+}
+.calendar-event[data-kind="cert"] {
+  --event: var(--kind-cert);
+}
+.calendar-event[data-kind="ai"] {
+  --event: var(--kind-ai);
+}
+.calendar-event[data-kind="service"] {
+  --event: var(--kind-service);
+}
+.calendar-event[data-kind="phone"] {
+  --event: var(--kind-phone);
+}
+.calendar-event-more {
+  padding-left: 6px;
+  color: var(--color-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+@container (max-width: 640px) {
+  .calendar-day {
+    min-height: 52px;
+    align-items: center;
+  }
+  .calendar-day-events {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+  }
+  .calendar-event {
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .calendar-event[data-projected="true"] {
+    box-shadow: none;
+  }
+  .calendar-event[data-projected="true"] i {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--event);
+  }
+  .calendar-event span,
+  .calendar-event-more {
+    display: none;
+  }
+}
+.calendar-agenda {
+  padding: 18px 16px 10px;
+}
+.calendar-agenda > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 12px;
+  border-bottom: 1px solid var(--color-line);
+}
+.calendar-agenda > header strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.calendar-agenda > header span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.calendar-agenda-list,
+.calendar-agenda-empty {
+  animation: stagger-in 360ms var(--ease-out-soft) both;
+}
+.calendar-agenda-list .asset-summary-row {
+  padding-inline: 4px;
+}
+.calendar-agenda-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 8px 20px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.calendar-agenda-empty svg {
+  width: 22px;
+  height: 22px;
+  color: var(--color-subtle);
+}
+.calendar-projected {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-grid,
+  .calendar-agenda-list,
+  .calendar-agenda-empty {
+    animation: none;
+  }
+}
+
+/* 到期时间线：月份标题不再是整条灰底，行悬停是左右留白一致的圆角浅底。 */
+.timeline-surface {
+  padding: 4px 8px 8px;
+}
+.timeline-surface h3 {
+  padding: 14px 12px 6px;
+  background: transparent;
+  color: var(--color-subtle);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.timeline-surface > div > p {
+  margin: 0 4px;
+  padding-inline: 8px;
+  border-color: var(--color-line);
+}
+.timeline-surface ul {
+  --tw-divide-y-reverse: 0;
+}
+.timeline-surface ul > li + li {
+  border-color: color-mix(in oklab, var(--color-line) 70%, transparent);
+}
+.timeline-surface .asset-summary-row {
+  border-radius: 12px;
+  padding-inline: 12px;
+}
+.timeline-surface .asset-summary-row:hover {
+  background: color-mix(in oklab, var(--color-selected) 75%, var(--color-card));
+}

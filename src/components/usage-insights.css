@@ -353,3 +353,104 @@
     animation: none;
   }
 }
+
+/* ==========================================================================
+   用量页 v3：白卡浅环、每类指标一种颜色，选中时用该颜色描边。
+   ========================================================================== */
+.usage-filter-panel,
+.usage-history {
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+}
+.usage-metric {
+  --tone: #6d5ce6;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  animation: stagger-in 560ms var(--ease-out-soft) both;
+  transition:
+    translate var(--dur-base) var(--ease-out-soft),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.usage-metric[data-tone="traffic"] {
+  --tone: #e07a2f;
+}
+.usage-metric[data-tone="api"] {
+  --tone: #1f9467;
+}
+.usage-metric[data-tone="quota"] {
+  --tone: #dc4f74;
+}
+:root[data-theme="dark"] .usage-metric {
+  --tone: #9b8cff;
+}
+:root[data-theme="dark"] .usage-metric[data-tone="traffic"] {
+  --tone: #f39a52;
+}
+:root[data-theme="dark"] .usage-metric[data-tone="api"] {
+  --tone: #45c08e;
+}
+:root[data-theme="dark"] .usage-metric[data-tone="quota"] {
+  --tone: #f0728f;
+}
+.usage-metric:nth-child(2) {
+  animation-delay: 50ms;
+}
+.usage-metric:nth-child(3) {
+  animation-delay: 100ms;
+}
+.usage-metric:nth-child(4) {
+  animation-delay: 150ms;
+}
+/* 右下角一抹该指标颜色的柔光。 */
+.usage-metric::after {
+  content: "";
+  position: absolute;
+  right: -60px;
+  bottom: -90px;
+  z-index: -1;
+  width: 180px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--tone);
+  opacity: 0.08;
+  filter: blur(36px);
+  transition: opacity var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+.usage-metric:hover {
+  background: var(--color-card);
+  transform: none;
+  translate: 0 -2px;
+  box-shadow: var(--shadow-card-hover);
+}
+.usage-metric:hover::after {
+  opacity: 0.16;
+}
+.usage-metric[aria-pressed="true"] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--tone),
+    var(--shadow-card);
+}
+.usage-metric[aria-pressed="true"]::after {
+  opacity: 0.2;
+}
+.usage-metric-label > svg {
+  box-sizing: content-box;
+  padding: 6px;
+  border-radius: 9px;
+  background: color-mix(in oklab, var(--tone) 13%, transparent);
+  color: var(--tone);
+}
+.usage-selection-dot {
+  background: var(--tone);
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-metric {
+    animation: none;
+  }
+}

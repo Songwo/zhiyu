@@ -8,6 +8,7 @@ import {
   daysUntilDay,
   dueTotals,
   normalizeBilling,
+  renewalCalendar,
   renewalTimeline,
   spendSummary,
 } from "./renewals.mjs";
@@ -239,4 +240,42 @@ test("托盘通知包含服务器与服务资产的到期日，跳过演示数�
   );
   assert.match(items[0].key, /:week$/);
   assert.match(items[1].key, /:expired$/);
+});
+
+test("续费日历：列出区间内的到期日，并按月付、年付周期推算后续续费日", () => {
+  const november = renewalCalendar(snapshot, { from: "2026-11-01", to: "2026-11-30", now });
+  assert.deepEqual(
+    november.map((x) => [x.key, x.projected]),
+    [
+      ["cert:c1:2026-11-01", false],
+      ["server:vps:2026-11-05", false],
+      ["ai:a2:2026-11-15", false],
+      ["ai:a1:2026-11-28", true],
+    ],
+  );
+  const next = renewalCalendar(snapshot, { from: "2027-10-01", to: "2027-10-31", now });
+  // 年付图床顺延一年；月付服务器与 ChatGPT 每月出现；一次性号码与无费用的域名不再重复。
+  assert.deepEqual(
+    next.map((x) => x.key),
+    ["server:vps:2027-10-05", "service:s1:2027-10-10", "ai:a1:2027-10-28"],
+  );
+  assert.equal(next[0].days, daysUntilDay("2027-10-05", now));
+  assert.ok(next.every((x) => x.projected));
+});
+
+test("续费日历：月底日期顺延到较短月份的最后一天", () => {
+  const monthEnd = {
+    servers: [
+      {
+        id: "m",
+        name: "月底主机",
+        expiresAt: "2027-01-31",
+        billing: { amount: 3, currency: "USD", cycle: "month" },
+      },
+    ],
+  };
+  assert.deepEqual(
+    renewalCalendar(monthEnd, { from: "2027-02-01", to: "2027-04-30", now }).map((x) => x.date),
+    ["2027-02-28", "2027-03-31", "2027-04-30"],
+  );
 });

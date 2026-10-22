@@ -152,6 +152,53 @@ export function renewalTimeline(snapshot, { withinDays = 90, now = new Date() } 
 }
 
 /**
+ * 续费日历：每项资产在 `from`–`to`（含）之间的续费日。到期日本身照常列出；
+ * 月付、年付再按周期向后推算之后的续费日，标记为 `projected`。一次性费用和未填费用只列到期日。
+ * @param {any} snapshot
+ * @param {{ from: string, to: string, now?: Date }} range 日历日 YYYY-MM-DD
+ * @returns {(RenewalEntry & { projected: boolean })[]}
+ */
+export function renewalCalendar(snapshot, { from, to, now = new Date() }) {
+  /** @type {(RenewalEntry & { projected: boolean })[]} */
+  const out = [];
+  for (const x of renewableAssets(snapshot)) {
+    if (!x.date) continue;
+    const step = x.billing?.cycle === "month" ? 1 : x.billing?.cycle === "year" ? 12 : 0;
+    // 最多推算 50 年，避免很早以前的到期日在长区间里空转。
+    for (let n = 0; n <= 600; n++) {
+      const date = n === 0 ? x.date : addMonths(x.date, step * n);
+      if (date > to) break;
+      if (date >= from)
+        out.push({
+          ...x,
+          key: `${x.kind}:${x.id}:${date}`,
+          date,
+          days: daysUntilDay(date, now),
+          projected: n > 0,
+        });
+      if (!step) break;
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
+}
+
+/**
+ * 按月推算日历日；目标月份没有这一天时取当月最后一天（1 月 31 日 → 2 月 28/29 日）。
+ * @param {string} day
+ * @param {number} months
+ */
+function addMonths(day, months) {
+  const [year, month, date] = day.split("-").map(Number);
+  const index = year * 12 + (month - 1) + months;
+  const y = Math.floor(index / 12);
+  const m = index % 12;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return [y, String(m + 1).padStart(2, "0"), String(Math.min(date, last)).padStart(2, "0")].join(
+    "-",
+  );
+}
+
+/**
  * 填写了费用的资产，不论有没有日期。
  * @param {any} snapshot
  * @returns {BilledItem[]}

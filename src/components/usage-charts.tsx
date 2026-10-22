@@ -4,6 +4,8 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Rectangle,
   ReferenceDot,
   ResponsiveContainer,
   Tooltip,
@@ -35,6 +37,23 @@ const compact = (value: number) =>
     value,
   );
 const shortened = (name: string) => (name.length > 18 ? `${name.slice(0, 17)}…` : name);
+
+type BarShapeProps = Record<string, unknown> & { index?: number };
+
+/**
+ * 柱子从基线依次长出：每根柱子包一层只做 CSS 动画的 <g>，按序号错开起点。
+ * 动画只在挂载时播放一次，采集更新数值时柱高直接变化，不会反复闪动。
+ */
+function RiseBar({ index = 0, delay = 0, axis = "y", ...props }: BarShapeProps & { delay?: number; axis?: "x" | "y" }) {
+  return (
+    <g
+      className={axis === "y" ? "usage-bar-rise" : "usage-bar-grow"}
+      style={{ animationDelay: `${delay + index * 28}ms` }}
+    >
+      <Rectangle {...props} />
+    </g>
+  );
+}
 
 function EmptyChart({ unknown = false }: { unknown?: boolean }) {
   return (
@@ -148,6 +167,7 @@ export function UsageCharts({
     ),
   ];
   const tick = { fill: "var(--color-muted)", fontSize: 10 };
+  const gradient = `usage-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
 
   return (
     <section className="usage-charts" aria-labelledby={headingId} data-metric={current}>
@@ -227,10 +247,27 @@ export function UsageCharts({
             >
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
+                  key={`${current}:${selectedQuota?.id ?? ""}`}
                   data={quota ? quotaDaily : chart.daily}
                   margin={{ top: 12, right: 8, left: -12, bottom: 0 }}
                   accessibilityLayer
                 >
+                  <defs>
+                    <linearGradient id={`${gradient}-a`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" style={{ stopColor: "var(--usage-chart-primary)" }} />
+                      <stop
+                        offset="100%"
+                        style={{ stopColor: "var(--usage-chart-primary)", stopOpacity: 0.62 }}
+                      />
+                    </linearGradient>
+                    <linearGradient id={`${gradient}-b`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" style={{ stopColor: "var(--usage-chart-secondary)" }} />
+                      <stop
+                        offset="100%"
+                        style={{ stopColor: "var(--usage-chart-secondary)", stopOpacity: 0.7 }}
+                      />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     vertical={false}
                     stroke="var(--color-line)"
@@ -255,27 +292,31 @@ export function UsageCharts({
                   />
                   <Tooltip
                     content={<ChartTooltip format={format} />}
-                    cursor={{ fill: "var(--color-surface)" }}
+                    cursor={{ fill: "var(--usage-chart-cursor)" }}
                   />
                   {/* Recharts 2 在 React 19 下依赖直接子项识别序列，不包入 Fragment。 */}
                   <Bar
                     dataKey={quota ? "value" : "first"}
                     name={quota ? t("使用比例") : firstLabel}
                     stackId={quota ? undefined : "usage"}
-                    fill="var(--usage-chart-primary)"
+                    fill={`url(#${gradient}-a)`}
                     maxBarSize={28}
-                    radius={quota ? [3, 3, 0, 0] : undefined}
+                    radius={quota ? [5, 5, 0, 0] : undefined}
                     isAnimationActive={false}
+                    shape={(props: unknown) => <RiseBar {...(props as BarShapeProps)} />}
                   />
                   {!quota && (
                     <Bar
                       dataKey="second"
                       name={secondLabel}
                       stackId="usage"
-                      fill="var(--usage-chart-secondary)"
+                      fill={`url(#${gradient}-b)`}
                       maxBarSize={28}
-                      radius={[3, 3, 0, 0]}
+                      radius={[5, 5, 0, 0]}
                       isAnimationActive={false}
+                      shape={(props: unknown) => (
+                        <RiseBar {...(props as BarShapeProps)} delay={160} />
+                      )}
                     />
                   )}
                   {smallPoints.map((point) => (
@@ -369,6 +410,7 @@ export function UsageCharts({
             >
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
+                  key={`${current}:${group}`}
                   layout="vertical"
                   data={visibleComposition}
                   margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
@@ -401,16 +443,23 @@ export function UsageCharts({
                   />
                   <Tooltip
                     content={<ChartTooltip format={format} />}
-                    cursor={{ fill: "var(--color-surface)" }}
+                    cursor={{ fill: "var(--usage-chart-cursor)" }}
                   />
                   <Bar
                     dataKey="value"
                     name={t(quota ? "使用比例" : "合计")}
                     fill="var(--usage-chart-primary)"
                     maxBarSize={18}
-                    radius={[0, 3, 3, 0]}
+                    radius={[0, 6, 6, 0]}
                     isAnimationActive={false}
-                  />
+                    shape={(props: unknown) => (
+                      <RiseBar {...(props as BarShapeProps)} axis="x" delay={80} />
+                    )}
+                  >
+                    {visibleComposition.map((item, index) => (
+                      <Cell key={item.axisName} fill={`var(--usage-series-${(index % 6) + 1})`} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
