@@ -1,16 +1,24 @@
-/** 知屿标记：两片互相承接的岛形纸页；同一几何用于界面与安装图标。 */
+/**
+ * 知屿标记：一本摊开的书像浮在海面的小岛，右上方一轮初升的太阳，前面一道海浪。
+ * 没有底板，透明背景；配色在浅色与深色背景上都能看清。
+ * 同一几何用于界面、安装图标、网站图标与浏览器插件。
+ */
 export const BRAND_MARK = {
-  upper:
-    "M18 12H43C46.6 12 48.4 16.4 45.8 19L29 36H14C10.4 36 8.6 31.6 11.2 29L27 13.2C27.8 12.4 28.7 12 30 12Z",
-  lower:
-    "M35 28H50C53.6 28 55.4 32.4 52.8 35L37 50.8C36.2 51.6 35.3 52 34 52H21C17.4 52 15.6 47.6 18.2 45Z",
-  plate: "#123D39",
-  edge: "#34635B",
-  paper: "#F4F3E9",
-  jade: "#9EDBBD",
+  /** 只取图形所在的区域，透明图标里标记尽量撑满。 */
+  viewBox: "8 8 48 48",
+  pageLeft: "M31 34.4C26.2 30 18.6 28.6 10 30.2V41.8C18.6 40.4 26 41.6 31 45.8Z",
+  pageRight: "M33 34.4C37.8 30 45.4 28.6 54 30.2V41.8C45.4 40.4 38 41.6 33 45.8Z",
+  wavePath: "M12.5 51C17.6 48.1 22.8 48.1 28 51S38.4 53.9 43.6 51S50.2 48.9 51.5 48.9",
+  sun: { cx: 45.5, cy: 19, r: 5.2 },
+  page: "#3B6FE0",
+  pageShade: "#8DB0F5",
+  waveColor: "#2BB3C0",
+  glow: "#FFB23F",
 };
-export function brandSvg({ plate = true } = {}) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
-${plate ? `<rect x="1" y="1" width="62" height="62" rx="16" fill="${BRAND_MARK.plate}"/><rect x="1.5" y="1.5" width="61" height="61" rx="15.5" stroke="${BRAND_MARK.edge}"/>` : ""}
-<g transform="translate(6 6) scale(.8125)"><path d="${BRAND_MARK.upper}" fill="${plate ? BRAND_MARK.paper : BRAND_MARK.plate}"/><path d="${BRAND_MARK.lower}" fill="${plate ? BRAND_MARK.jade : "#367B66"}"/></g></svg>`;
+
+/** 输出独立的 SVG 文本（透明背景）。 */
+export function brandSvg() {
+  const m = BRAND_MARK;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.viewBox}" width="64" height="64" fill="none">
+<circle cx="${m.sun.cx}" cy="${m.sun.cy}" r="${m.sun.r}" fill="${m.glow}"/><path d="${m.pageLeft}" fill="${m.page}"/><path d="${m.pageRight}" fill="${m.pageShade}"/><path d="${m.wavePath}" stroke="${m.waveColor}" stroke-width="3.4" stroke-linecap="round"/></svg>`;
 }

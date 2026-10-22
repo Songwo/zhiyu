@@ -114,21 +114,28 @@ export function SubscriptionSourceCard({
       tabIndex={-1}
       data-highlighted={highlighted || undefined}
       data-expanded={expanded || undefined}
+      data-tone="traffic"
+      data-state={error ? "error" : row ? "ok" : "idle"}
     >
       <div className="usage-source-heading">
         <div className="min-w-0">
-          <div className="subscription-title">
-            <ArrowDownUp className="size-4" />
-            <h3>{source.name}</h3>
-          </div>
-          <p>
-            {t("机场订阅")} ·{" "}
-            <span
-              className={error || traffic.expired || traffic.exhausted ? "text-crit" : undefined}
-            >
-              {t(state)}
+          <div className="usage-source-title">
+            <span className="usage-source-icon" aria-hidden="true">
+              <ArrowDownUp />
             </span>
-          </p>
+            <div className="min-w-0">
+              <h3>{source.name}</h3>
+              <p>
+                {t("机场订阅")}
+                <span
+                  className="usage-source-state"
+                  data-bad={error || traffic.expired || traffic.exhausted ? true : undefined}
+                >
+                  {t(state)}
+                </span>
+              </p>
+            </div>
+          </div>
           {nodeName && (
             <p>
               {t("关联节点")}：{nodeName}

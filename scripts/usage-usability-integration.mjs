@@ -145,7 +145,9 @@ try {
   forbidden = false;
   await sourceCard.getByRole("button", { name: "刷新 QA-HY2", exact: true }).click();
   await sourceCard.getByRole("alert").waitFor({ state: "detached" });
-  await sourceCard.getByText("3x-ui 面板 · 已连接", { exact: true }).waitFor();
+  // 来源类型与连接状态分开显示，状态是单独的胶囊。
+  await sourceCard.locator(".usage-source-state").getByText("已连接", { exact: true }).waitFor();
+  await sourceCard.getByText("3x-ui 面板", { exact: false }).first().waitFor();
   usage = await page.evaluate(() => window.sinan.usage.list());
   assert.equal(usage.sources.length, 1);
   assert.equal(usage.records[0].upload, 1024);

@@ -47,7 +47,8 @@ try {
   const openProfile = async () => {
     await page.getByRole("button", { name: "更多操作", exact: true }).click();
     await page.getByText("系统设置…", { exact: true }).click();
-    const settings = page.getByRole("dialog", { name: "设置", exact: true });
+    // 头像菜单进入的系统设置在主内容区里打开。
+    const settings = page.getByRole("region", { name: "设置", exact: true });
     await settings.getByRole("button", { name: "个人资料", exact: true }).click();
     await settings.getByLabel("个人头像", { exact: true }).waitFor({ state: "attached" });
     return settings;
@@ -116,7 +117,7 @@ try {
   );
   await settings.getByRole("button", { name: "移除图片", exact: true }).click();
   assert.equal((await profileSaved(settings)).avatarDataUrl, "");
-  await settings.getByRole("button", { name: "关闭", exact: true }).click();
+  await settings.getByRole("button", { name: "返回", exact: true }).click();
   await settings.waitFor({ state: "detached" });
 
   await page

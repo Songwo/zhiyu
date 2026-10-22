@@ -3,7 +3,10 @@ name: macOS 打包检查
 on:
   push:
     branches: [main]
+    # 只改文档、产品主页或图片时不跑完整检查；产品主页由「产品主页」工作流单独部署。
+    paths-ignore: ["docs/**", "site/**", "**/*.md", "screenshots/**"]
   pull_request:
+    paths-ignore: ["docs/**", "site/**", "**/*.md", "screenshots/**"]
   workflow_dispatch:
 
 permissions:

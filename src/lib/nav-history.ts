@@ -21,6 +21,10 @@ function go(from: "past" | "future") {
     useAppStore.getState().setExpanded(null);
     return;
   }
+  if (from === "past" && useAppStore.getState().settingsPage) {
+    useAppStore.getState().closeSettingsPage();
+    return;
+  }
   const state = useNavHistory.getState();
   const stack = state[from];
   const target = stack[stack.length - 1];

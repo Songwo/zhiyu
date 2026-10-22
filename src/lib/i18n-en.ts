@@ -1881,6 +1881,11 @@ export const EN: Record<string, string> = {
   邮件阅读区: "Message reader",
   返回列表: "Back to list",
   返回: "Back",
+  "外观、连接、数据与安全，都在这里调整。": "Appearance, connections, data and security, all in one place.",
+  系统设置: "System settings",
+  订阅账号还没有返回额度: "Subscription accounts have not reported quota yet",
+  "在「订阅与来源」查看每个账号的采集状态；部分套餐不提供额度查询。":
+    "Check each account's status under Sources. Some plans do not expose quota.",
   续费日历: "Renewal calendar",
   上个月: "Previous month",
   下个月: "Next month",

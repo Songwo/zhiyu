@@ -35,7 +35,8 @@ export function TitleBar() {
           ?.label ?? null)
       : null,
   );
-  const canBack = useNavHistory((s) => s.past.length > 0) || detail !== null;
+  const settingsPage = useAppStore((s) => s.settingsPage);
+  const canBack = useNavHistory((s) => s.past.length > 0) || detail !== null || settingsPage;
   const canForward = useNavHistory((s) => s.future.length > 0);
   const view = useAppStore((s) => s.view);
   const page = NAV.find((item) => item.id === view);
@@ -112,7 +113,9 @@ export function TitleBar() {
         <nav aria-label={t("当前位置")} className="titlebar-crumbs">
           <span className="titlebar-crumb-root">{t("知屿")}</span>
           <ChevronRight className="titlebar-crumb-sep" aria-hidden="true" />
-          {detail === null ? (
+          {settingsPage ? (
+            <span className="titlebar-crumb-current">{t("系统设置")}</span>
+          ) : detail === null ? (
             <span className="titlebar-crumb-current">
               {t(page?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
             </span>

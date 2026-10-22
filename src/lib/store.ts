@@ -84,6 +84,9 @@ export interface AppState extends Snapshot {
   sshServerId: string | null;
   commandOpen: boolean;
   settingsOpen: boolean;
+  /** 系统设置作为主内容区的一页打开（头像菜单进入），与右上角的设置弹窗互不影响。 */
+  settingsPage: boolean;
+  settingsTab: string;
   composerOpen: boolean;
   createPickerOpen: boolean;
   setCreatePickerOpen: (open: boolean) => void;
@@ -109,6 +112,9 @@ export interface AppState extends Snapshot {
   closeSsh: () => void;
   setCommandOpen: (v: boolean) => void;
   setSettingsOpen: (v: boolean) => void;
+  openSettingsPage: (tab?: string) => void;
+  closeSettingsPage: () => void;
+  setSettingsTab: (tab: string) => void;
   openComposer: (
     kind: AssetKind,
     editingId?: string | null,
@@ -154,6 +160,8 @@ const emptyUi = {
   sshServerId: null,
   commandOpen: false,
   settingsOpen: false,
+  settingsPage: false,
+  settingsTab: "appearance",
   composerOpen: false,
   createPickerOpen: false,
   composerKind: "server" as AssetKind,
@@ -229,6 +237,7 @@ export const useAppStore = create<AppState>()(
         set({
           view,
           expanded: null,
+          settingsPage: false,
           filter: "all",
           mobileNav: false,
           query: "",
@@ -268,7 +277,7 @@ export const useAppStore = create<AppState>()(
       setGroupByTag: (groupByTag) => set({ groupByTag }),
       setExpanded: (expanded) => {
         const previous = get().expanded;
-        set({ expanded });
+        set(expanded ? { expanded, settingsPage: false } : { expanded });
         if (!expanded || (previous?.id === expanded.id && previous.kind === expanded.kind)) return;
         if (
           !(get()[collectionKey(expanded.kind)] as { id: string }[]).some(
@@ -291,6 +300,17 @@ export const useAppStore = create<AppState>()(
       closeSsh: () => set({ sshServerId: null }),
       setCommandOpen: (commandOpen) => set({ commandOpen }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen, commandOpen: false }),
+      openSettingsPage: (tab) =>
+        set({
+          settingsPage: true,
+          settingsTab: tab ?? get().settingsTab,
+          settingsOpen: false,
+          expanded: null,
+          commandOpen: false,
+          mobileNav: false,
+        }),
+      closeSettingsPage: () => set({ settingsPage: false }),
+      setSettingsTab: (settingsTab) => set({ settingsTab }),
       openComposer: (composerKind, editingId = null, preset) =>
         set({
           composerOpen: true,

@@ -188,9 +188,10 @@ try {
   await page.getByRole("button", { name: "深色", exact: true }).click();
   await page.getByRole("combobox", { name: "语言", exact: true }).click();
   await page.getByRole("option", { name: "English", exact: true }).click();
+  // 头像菜单进入的系统设置是页面，用「返回」回到原页面。
   await page
-    .getByRole("dialog", { name: "Settings", exact: true })
-    .getByRole("button", { name: "Close", exact: true })
+    .getByRole("region", { name: "Settings", exact: true })
+    .getByRole("button", { name: "Back", exact: true })
     .click();
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();

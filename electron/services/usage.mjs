@@ -614,9 +614,20 @@ export class UsageStore {
       appendRecords(state, source, rows, checkedAt);
     });
   }
-  async markFailure(id, message) {
+  /**
+   * 记录采集失败。订阅账号第一次就失败时还没有来源，按 `meta` 建出来，
+   * 否则失败会被静默丢弃，用量页只剩一张没有任何说明的空图表。
+   * @param {string} id
+   * @param {string} message
+   * @param {{ type?: string, name?: string }} [meta]
+   */
+  async markFailure(id, message, meta = {}) {
     return this.#write((state) => {
-      const source = state.sources.find((s) => s.id === id);
+      let source = state.sources.find((s) => s.id === id);
+      if (!source && meta.type === "oauth" && id.startsWith("oauth:")) {
+        source = { id, name: meta.name || id.slice(6), type: "oauth" };
+        state.sources.push(source);
+      }
       if (source) {
         source.error = message;
         source.attemptedAt = new Date().toISOString();

@@ -42,6 +42,26 @@ test("宣传页以已发布版本为准，同步全部下载入口与更新摘�
   assert.match(details.INSTALLER_URL, /v1\.2\.4\/Nanpad-1\.2\.4-setup\.exe$/);
   assert.match(details.EXTENSION_URL, /v1\.2\.4\/Nanpad-1\.2\.4-browser-extension\.zip$/);
   assert.match(details.CHECKSUM_URL, /v1\.2\.4\/SHA256SUMS\.txt$/);
+  // 没有便携版附件的旧版本退回到 Release 页面。
+  assert.equal(details.PORTABLE_URL, details.RELEASE_URL);
+});
+
+test("有便携版附件时，下载页直接链接便携版", () => {
+  const release = publishedRelease("1.9.0");
+  for (const asset of release.assets) {
+    asset.name = asset.name.replace("Nanpad-", "Zhiyu-");
+    asset.browser_download_url = asset.browser_download_url.replace("Nanpad-", "Zhiyu-");
+  }
+  const name = "Zhiyu-1.9.0-portable-x64.zip";
+  release.assets.push({
+    name,
+    size: 160_000_000,
+    state: "uploaded",
+    browser_download_url: `https://github.com/Songwo/zhiyu/releases/download/v1.9.0/${name}`,
+  });
+  const details = releaseDetails(release);
+  assert.match(details.PORTABLE_URL, /portable-x64\.zip$/);
+  assert.equal(details.PORTABLE_SIZE, "160 MB");
 });
 
 test("未正式发布或附件尚未上传完成时拒绝部署", () => {

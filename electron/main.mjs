@@ -195,6 +195,13 @@ function stepDisplayZoom(command) {
   });
 }
 
+/** 订阅账号作为用量来源时的名称，与成功采集时 `recordAccount` 写入的一致。 */
+function oauthSourceMeta(account) {
+  return account
+    ? { type: "oauth", name: `${account.provider} · ${account.email || account.accountId}` }
+    : { type: "oauth" };
+}
+
 function savePreferences(patch) {
   const task = preferenceWrites.then(async () => {
     const next = { ...preferences, ...patch };
@@ -921,7 +928,8 @@ function registerIpc() {
       await usage.recordAccount(account);
       return account;
     } catch (error) {
-      await usage.markFailure("oauth:" + id, error.message);
+      const account = (await aiAccounts.list().catch(() => [])).find((item) => item.id === id);
+      await usage.markFailure("oauth:" + id, error.message, oauthSourceMeta(account));
       throw error;
     } finally {
       emit("usage:changed", { recordsChanged: true });
@@ -942,7 +950,7 @@ function registerIpc() {
       try {
         await usage.recordAccount(await aiAccounts.refresh(account.id));
       } catch (e) {
-        await usage.markFailure("oauth:" + account.id, e.message);
+        await usage.markFailure("oauth:" + account.id, e.message, oauthSourceMeta(account));
         failures.push(account.provider + "：" + e.message);
       }
     }

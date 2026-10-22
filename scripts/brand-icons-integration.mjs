@@ -41,7 +41,8 @@ try {
     if ((await page.locator("html").getAttribute("data-theme")) !== theme)
       await page.getByRole("button", { name: "切换主题外观", exact: true }).click();
     await page.waitForFunction((value) => document.documentElement.dataset.theme === value, theme);
-    const logo = page.locator('.app-titlebar svg[viewBox="0 0 64 64"]');
+    // 标记透明背景，只取图形所在区域（见 src/lib/brand-mark.mjs）。
+    const logo = page.locator('.app-titlebar svg[viewBox="8 8 48 48"]');
     const fills = await logo
       .locator("path")
       .evaluateAll((paths) => paths.map((path) => getComputedStyle(path).fill));

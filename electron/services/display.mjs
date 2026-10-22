@@ -41,13 +41,13 @@ export function zoomCommandForKey(input) {
 /** @param {{x: number, y: number, width: number, height: number}} area */
 export function initialWindowBounds(area) {
   // 原生窗口在分数 DPI 下会取整，四周留出 8 DIP 避免边框越界。
-  const width = Math.min(1480, Math.max(1, Math.floor(area.width) - 16));
-  const height = Math.min(940, Math.max(1, Math.floor(area.height) - 16));
+  const width = Math.min(1280, Math.max(1, Math.floor(area.width) - 16));
+  const height = Math.min(800, Math.max(1, Math.floor(area.height) - 16));
   return {
     width,
     height,
-    minWidth: Math.min(1040, width),
-    minHeight: Math.min(680, height),
+    minWidth: Math.min(960, width),
+    minHeight: Math.min(620, height),
     x: Math.floor(area.x + (area.width - width) / 2),
     y: Math.floor(area.y + (area.height - height) / 2),
   };

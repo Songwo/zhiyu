@@ -33,6 +33,12 @@ export function releaseDetails(release) {
   const installer = asset(`${brand}-${version}-setup.exe`);
   const extension = asset(`${brand}-${version}-browser-extension.zip`);
   const checksum = asset("SHA256SUMS.txt");
+  // 便携版自 1.7.4 起提供；旧版本没有时退回到 Release 页面。
+  const portable = release.assets?.some(
+    (item) => item.name === `${brand}-${version}-portable-x64.zip`,
+  )
+    ? asset(`${brand}-${version}-portable-x64.zip`)
+    : null;
   // 只取发布说明首段，作为普通文本转义；不执行 Markdown/HTML。
   const paragraph = (release.body ?? "")
     .replaceAll("\r\n", "\n")
@@ -55,6 +61,8 @@ export function releaseDetails(release) {
     INSTALLER_SIZE: `${Math.round(installer.size / 1_000_000)} MB`,
     EXTENSION_URL: extension.browser_download_url,
     CHECKSUM_URL: checksum.browser_download_url,
+    PORTABLE_URL: portable?.browser_download_url ?? releaseUrl,
+    PORTABLE_SIZE: portable ? `${Math.round(portable.size / 1_000_000)} MB` : "解压即用",
   };
 }
 
@@ -86,10 +94,17 @@ async function buildSite(releaseFile, outputDirectory) {
   const files = [
     "style.css",
     "icon.png",
+    "favicon.svg",
     "overview.png",
+    "overview-dark.png",
+    "detail.png",
+    "renewals.png",
     "documents.png",
+    "table.png",
     "usage.png",
-    "passwords.png",
+    "vault.png",
+    "promo.mp4",
+    "promo-poster.jpg",
     "robots.txt",
     "sitemap.xml",
   ];

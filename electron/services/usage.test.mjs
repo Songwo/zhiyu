@@ -304,6 +304,16 @@ test("订阅额度只记录百分比，重复快照去重，过期数据不冒�
     await store.markFailure("oauth:abc", "授权已失效");
     assert.equal((await store.list()).sources[0].error, "授权已失效");
     assert.equal((await store.list()).records.length, 1);
+    // 首次刷新就失败的账号也要留下来源和原因，不能静默丢弃。
+    await store.markFailure("oauth:new", "当前套餐不提供额度查询", {
+      type: "oauth",
+      name: "grok · b@example.com",
+    });
+    const created = (await store.list()).sources.find((source) => source.id === "oauth:new");
+    assert.equal(created?.name, "grok · b@example.com");
+    assert.equal(created?.error, "当前套餐不提供额度查询");
+    await store.markFailure("usage-missing", "非订阅来源不自动创建", { type: "oauth" });
+    assert.equal((await store.list()).sources.length, 2);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

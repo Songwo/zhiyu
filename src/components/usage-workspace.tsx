@@ -3,7 +3,17 @@ import { saveAndVerifyUsageSource } from "@/lib/usage-connect.mjs";
 import { latestSubscriptionRecord } from "@/lib/usage-insights.mjs";
 import { t } from "@/lib/i18n";
 import { useCallback, useEffect, useState } from "react";
-import { Plus, RefreshCw, Trash2, Activity, Pencil, Settings2 } from "lucide-react";
+import {
+  Activity,
+  ArrowDownUp,
+  Cpu,
+  Layers,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { desktop } from "@/lib/desktop";
 import { useAppStore } from "@/lib/store";
@@ -31,6 +41,14 @@ const names: Record<string, string> = {
   "anthropic-api": "Anthropic API",
   oauth: "订阅账号",
 };
+/** 卡片里的细进度条：额度取已用百分比，流量在有总额时取已用占比。 */
+function meterOf(row: UsageRecord) {
+  if (row.kind === "quota") return row.usedPercent == null ? null : clampPercent(row.usedPercent);
+  if (row.kind === "traffic" && row.total)
+    return clampPercent((((row.upload ?? 0) + (row.download ?? 0)) / row.total) * 100);
+  return null;
+}
+const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 function amount(row: UsageRecord) {
   if (row.kind === "traffic") return `↑ ${usageBytes(row.upload)} / ↓ ${usageBytes(row.download)}`;
@@ -382,30 +400,38 @@ export function UsageWorkspace() {
                   onRemove={() => setRemoving(source)}
                 />
               );
+            const SourceIcon =
+              source.type === "oauth" ? Layers : source.type.endsWith("-api") ? Cpu : ArrowDownUp;
             return (
               <section
                 className="usage-source-card"
                 tabIndex={-1}
                 id={`usage-source-${source.id}`}
                 data-highlighted={focusSource === source.id || undefined}
+                data-tone={
+                  source.type === "oauth" ? "quota" : source.type.endsWith("-api") ? "api" : "traffic"
+                }
+                data-state={sourceError ? "error" : source.checkedAt ? "ok" : "idle"}
                 key={source.id}
               >
                 <div className="usage-source-heading">
-                  <div className="min-w-0">
-                    <h3>{source.name}</h3>
-                    <p>
-                      {t(names[source.type] ?? source.type)} ·{" "}
-                      {sourceError
-                        ? t("连接需要处理")
-                        : source.checkedAt
-                          ? t("已连接")
-                          : t("已保存，尚未连接")}
-                    </p>
-                    {nodeName && (
+                  <div className="usage-source-title">
+                    <span className="usage-source-icon" aria-hidden="true">
+                      <SourceIcon />
+                    </span>
+                    <div className="min-w-0">
+                      <h3>{source.name}</h3>
                       <p>
-                        {t("关联节点")}：{nodeName}
+                        {t(names[source.type] ?? source.type)}
+                        <span className="usage-source-state">
+                          {sourceError
+                            ? t("连接需要处理")
+                            : source.checkedAt
+                              ? t("已连接")
+                              : t("已保存，尚未连接")}
+                        </span>
                       </p>
-                    )}
+                    </div>
                   </div>
                   <div className="usage-source-actions">
                     <Button
@@ -449,9 +475,14 @@ export function UsageWorkspace() {
                     ：{sourceError}
                   </p>
                 )}
-                <div className="mt-4 space-y-3">
+                {nodeName && (
+                  <p className="usage-source-node">
+                    {t("关联节点")}：{nodeName}
+                  </p>
+                )}
+                <div className="usage-source-rows">
                   {rows.slice(0, 4).map((row) => (
-                    <div key={row.key} className="text-sm">
+                    <div key={row.key} className="usage-source-row">
                       <div className="flex justify-between gap-2">
                         <span className="truncate text-muted">
                           {row.kind === "tokens" ? row.bucketStart?.slice(0, 10) : row.label}
@@ -468,9 +499,15 @@ export function UsageWorkspace() {
                           {row.counterReset ? ` · ${t("累计计数重置，未跨周期计算增量")}` : ""}
                         </p>
                       )}
+                      {meterOf(row) != null && (
+                        <span className="usage-source-meter" aria-hidden="true">
+                          <span style={{ width: `${meterOf(row)}%` }} />
+                        </span>
+                      )}
                       {row.kind === "quota" && (
                         <p className="mt-1 text-xs text-muted">
-                          {t("统计范围")}：{row.scope} · {t("下次重置")}：
+                          {row.scope ? `${t("统计范围")}：${row.scope} · ` : ""}
+                          {t("下次重置")}：
                           {row.resetsAt ? new Date(row.resetsAt).toLocaleString() : t("未提供")}
                         </p>
                       )}

@@ -202,7 +202,7 @@ try {
   await page.keyboard.press("Escape");
   await details.waitFor({ state: "detached" });
   await page.getByRole("button", { name: "关系图", exact: true }).click();
-  await page.getByText("0 条关联", { exact: true }).waitFor();
+  await page.getByText(/ 0 条已确认关联$/).waitFor();
   await page.getByRole("button", { name: "连接资产", exact: true }).click();
   const source = page.locator(`[data-asset-id="${website.id}"] .react-flow__handle.source`);
   const target = page.locator(
@@ -218,7 +218,7 @@ try {
   await page.waitForFunction(
     async () => (await window.sinan.store.load()).state.links.length === 1,
   );
-  await page.getByText("1 条关联", { exact: true }).waitFor();
+  await page.getByText(/ 1 条已确认关联$/).waitFor();
   await page.waitForFunction(() => {
     const graph = document.querySelector(".asset-graph").getBoundingClientRect();
     return [...document.querySelectorAll(".asset-graph-node")].every((node) => {

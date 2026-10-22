@@ -196,7 +196,7 @@ try {
     const ReactDOM = (await import("/node_modules/.vite/deps/react-dom_client.js")).default;
     const { PrimaryIdentityPanel } = await import("/src/components/primary-identity-panel.tsx");
     const { Onboarding, ProfileForm } = await import("/src/components/onboarding.tsx");
-    const { Settings } = await import("/src/components/settings.tsx");
+    const { Settings, SettingsPage } = await import("/src/components/settings.tsx");
     const { Sidebar } = await import("/src/components/sidebar.tsx");
     const { VaultWorkspace } = await import("/src/components/vault-workspace.tsx");
     const resource = (path) =>
@@ -228,6 +228,7 @@ try {
                 null,
                 React.createElement(Sidebar),
                 React.createElement(Settings),
+                React.createElement(SettingsPage),
               )
             : mode === "vault"
               ? React.createElement(VaultWorkspace)
@@ -381,8 +382,9 @@ try {
   await page.evaluate(() => window.__mount("settings"));
   await page.getByRole("button", { name: "更多操作", exact: true }).click();
   await page.getByRole("button", { name: "个人资料", exact: true }).click();
+  // 头像菜单进入的设置是页面，不是弹窗。
   await page
-    .getByRole("dialog", { name: "设置", exact: true })
+    .getByRole("region", { name: "设置", exact: true })
     .getByText("Linux.do 主身份", { exact: true })
     .waitFor();
   await page.evaluate(() => window.__mount("vault"));

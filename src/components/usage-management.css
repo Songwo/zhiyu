@@ -405,3 +405,202 @@
     animation: none;
   }
 }
+
+/* ==========================================================================
+   来源卡片 v3：白卡浅环；类型色图标、状态胶囊、细进度条，与用量概览同一套配色。
+   ========================================================================== */
+.usage-source-card {
+  --tone: #e07a2f;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 20px 20px 16px;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  animation: stagger-in 520ms var(--ease-out-soft) both;
+}
+.usage-source-card[data-tone="quota"] {
+  --tone: #dc4f74;
+}
+.usage-source-card[data-tone="api"] {
+  --tone: #1f9467;
+}
+:root[data-theme="dark"] .usage-source-card {
+  --tone: #f39a52;
+}
+:root[data-theme="dark"] .usage-source-card[data-tone="quota"] {
+  --tone: #f0728f;
+}
+:root[data-theme="dark"] .usage-source-card[data-tone="api"] {
+  --tone: #45c08e;
+}
+.usage-source-card:nth-child(2) {
+  animation-delay: 60ms;
+}
+.usage-source-card:nth-child(n + 3) {
+  animation-delay: 120ms;
+}
+.usage-source-card::before {
+  content: "";
+  position: absolute;
+  top: -110px;
+  right: -70px;
+  z-index: -1;
+  width: 240px;
+  height: 200px;
+  border-radius: 50%;
+  background: var(--tone);
+  opacity: 0.08;
+  filter: blur(44px);
+  pointer-events: none;
+}
+.usage-source-card[data-highlighted="true"],
+.usage-source-card:focus-visible {
+  box-shadow:
+    inset 0 0 0 1.5px var(--tone),
+    var(--shadow-card);
+}
+.usage-source-heading {
+  align-items: center;
+}
+.usage-source-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.usage-source-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--tone) 13%, transparent);
+  color: var(--tone);
+}
+.usage-source-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.usage-source-heading h3 {
+  font-size: 14px;
+  line-height: 1.35;
+}
+.usage-source-heading p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+.usage-source-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-ok) 12%, transparent);
+  color: var(--color-ok);
+  font-weight: 500;
+}
+.usage-source-state::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.usage-source-card[data-state="idle"] .usage-source-state {
+  background: var(--color-surface);
+  color: var(--color-muted);
+}
+.usage-source-card[data-state="error"] .usage-source-state,
+.usage-source-state[data-bad] {
+  background: color-mix(in oklab, var(--color-crit) 12%, transparent);
+  color: var(--color-crit);
+}
+.usage-source-actions button {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.usage-source-error {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-crit) 8%, transparent);
+}
+.usage-source-node {
+  margin-top: 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.usage-source-rows {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+.usage-source-row {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  font-size: 13px;
+}
+.usage-source-row .text-right {
+  font-weight: 600;
+}
+.usage-source-meter {
+  display: block;
+  height: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--tone) 14%, transparent);
+}
+.usage-source-meter > span,
+.subscription-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--tone) 60%, transparent), var(--tone));
+  transform-origin: left;
+  animation: usage-meter-in 820ms var(--ease-out-soft) 200ms both;
+}
+@keyframes usage-meter-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+.subscription-progress {
+  height: 8px;
+  background: color-mix(in oklab, var(--tone) 14%, transparent);
+}
+.subscription-metrics {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+.subscription-metrics strong {
+  font-size: 19px;
+}
+.usage-source-footer,
+.subscription-expand {
+  border-top-color: color-mix(in oklab, var(--color-line) 70%, transparent);
+}
+.usage-account-link {
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+}
+.usage-sources-empty {
+  border-radius: 18px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-source-card,
+  .usage-source-meter > span,
+  .subscription-progress > span {
+    animation: none;
+  }
+}

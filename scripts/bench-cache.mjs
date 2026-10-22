@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 缓存与性能基准（docs/plans/v0.9.0 验证计划）：
+// 缓存与性能基准（docs/archive/plans/v0.9.0 验证计划）：
 // 对比 RAG 索引「全量重建」与「签名复用」的耗时，数据不变时第二个问题起免重建。
 // 运行：node scripts/bench-cache.mjs
 import { LocalIndex } from "../electron/services/rag.mjs";

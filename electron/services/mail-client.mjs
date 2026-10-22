@@ -140,7 +140,7 @@ export class MailClient {
   /**
    * 会话级缓存（0.9.0）：文件夹列表与分页结果短 TTL 复用，已解析邮件
    * LRU 复用（正文读取与附件下载共享，避免重复拉取与解析同一封邮件）。
-   * 密文级磁盘缓存按 docs/plans/v0.9.0 的评审结论顺延；锁库即全部清除。
+   * 密文级磁盘缓存按 docs/archive/plans/v0.9.0 的评审结论顺延；锁库即全部清除。
    */
   #foldersCache = new Map();
   #pagesCache = new Map();

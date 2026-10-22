@@ -5817,3 +5817,158 @@ p {
 .timeline-surface .asset-summary-row:hover {
   background: color-mix(in oklab, var(--color-selected) 75%, var(--color-card));
 }
+
+/* ==========================================================================
+   设置：弹窗所有分页同一尺寸（取「云服务与探针」的尺寸）；头像菜单进入时是页面。
+   ========================================================================== */
+.settings-dialog {
+  max-width: 70rem;
+  height: min(800px, 90vh);
+}
+.settings-content-body {
+  animation: stagger-in 360ms var(--ease-out-soft) both;
+}
+.settings-page {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 48px;
+}
+.settings-page-head h1 {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.settings-page-head p {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.settings-page-head {
+  animation: stagger-in 480ms var(--ease-out-soft) both;
+}
+/* overflow: clip 不建立滚动容器，左侧导航才能吸顶。 */
+.settings-page-panel {
+  display: flex;
+  min-height: min(680px, calc(100dvh - 220px));
+  overflow: clip;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+  animation: stagger-in 560ms var(--ease-out-soft) 60ms both;
+}
+.settings-page-panel > .settings-nav {
+  position: sticky;
+  top: 52px;
+  width: 188px;
+  max-height: calc(100dvh - 140px);
+  align-self: flex-start;
+  border-right: 0;
+  background: transparent;
+}
+.settings-page-panel > .settings-nav > h2 {
+  display: none;
+}
+.settings-page-panel > .settings-content {
+  overflow: visible;
+  border-left: 1px solid var(--color-line);
+}
+.settings-page-panel .settings-content-body {
+  padding-top: 24px;
+}
+@media (max-width: 639px) {
+  .settings-dialog > nav,
+  .settings-page-panel > .settings-nav {
+    width: 100%;
+  }
+  .settings-dialog > div > div:last-child,
+  .settings-page-panel .settings-content-body {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .settings-page-panel {
+    flex-direction: column;
+  }
+  .settings-page-panel > .settings-nav {
+    position: static;
+    max-height: none;
+    flex-direction: row;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .settings-page-panel > .settings-nav button {
+    flex-shrink: 0;
+    min-height: 44px;
+  }
+  .settings-page-panel > .settings-content {
+    border-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-content-body,
+  .settings-page-head,
+  .settings-page-panel {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   字号收紧：默认窗口改小后，页面标题与头图大字同步缩小，正文不变。
+   ========================================================================== */
+.page-title {
+  font-size: 22px;
+  letter-spacing: -0.015em;
+}
+.depth-hero {
+  gap: 22px;
+  padding: 28px 28px 0;
+  border-radius: 20px;
+}
+.depth-hero-title {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+.hero-stat-value,
+.stat-strip .hero-stat-value {
+  font-size: 22px;
+}
+.page-section-title {
+  font-size: 15px;
+}
+.detail-summary .asset-card-detail > header h3 {
+  font-size: 19px;
+}
+.usage-metric > strong {
+  font-size: 22px;
+}
+.usage-chart-total strong {
+  font-size: 19px;
+}
+.settings-content-body h3.text-lg {
+  font-size: 15px;
+}
+@media (max-width: 767px) {
+  .page-title {
+    font-size: 20px;
+  }
+  .depth-hero {
+    padding: 22px 18px 0;
+  }
+  .depth-hero-title {
+    font-size: 20px;
+  }
+}
+
+/* 侧栏导航放不下时，可滚动的一侧渐隐。 */
+.sidebar-nav[data-fade="bottom"] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+.sidebar-nav[data-fade="top"] {
+  mask-image: linear-gradient(to bottom, transparent, #000 28px);
+}
+.sidebar-nav[data-fade="both"] {
+  mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+.app-sidebar[data-collapsed="true"] .sidebar-section + .sidebar-section {
+  margin-top: 6px;
+  padding-top: 6px;
+}

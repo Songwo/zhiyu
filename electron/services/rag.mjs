@@ -217,7 +217,7 @@ export function knowledgeChunks(documents) {
 export class LocalIndex {
   /**
    * `saved` 为上次持久化的 `rag-index.json` 内容：签名一致时直接
-   * `MiniSearch.loadJSON` 复用，跳过分词与建索引（见 docs/plans/v0.9.0）。
+   * `MiniSearch.loadJSON` 复用，跳过分词与建索引（见 docs/archive/plans/v0.9.0）。
    */
   constructor(snapshot, documents, saved = null) {
     const folders = normalizedMailFolders(snapshot.mailFolders);

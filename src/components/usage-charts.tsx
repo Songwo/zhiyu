@@ -55,16 +55,20 @@ function RiseBar({ index = 0, delay = 0, axis = "y", ...props }: BarShapeProps &
   );
 }
 
-function EmptyChart({ unknown = false }: { unknown?: boolean }) {
+function EmptyChart({ unknown = false, quota = false }: { unknown?: boolean; quota?: boolean }) {
   return (
     <div className="usage-chart-empty">
       <BarChart3 size={24} />
-      <strong>{t(unknown ? "尚无可确认的数值" : "当前范围暂无图表数据")}</strong>
+      <strong>
+        {t(unknown ? "尚无可确认的数值" : quota ? "订阅账号还没有返回额度" : "当前范围暂无图表数据")}
+      </strong>
       <p>
         {t(
           unknown
             ? "首次采集、计数重置或未提供百分比的记录不会画成零。"
-            : "调整筛选范围，或完成采集后查看真实用量。",
+            : quota
+              ? "在「订阅与来源」查看每个账号的采集状态；部分套餐不提供额度查询。"
+              : "调整筛选范围，或完成采集后查看真实用量。",
         )}
       </p>
     </div>
@@ -336,7 +340,10 @@ export function UsageCharts({
               </ResponsiveContainer>
             </div>
           ) : (
-            <EmptyChart unknown={quota ? quotaDaily.length > 0 : chart.unknown > 0} />
+            <EmptyChart
+              quota={quota}
+              unknown={quota ? quotaDaily.length > 0 : chart.unknown > 0}
+            />
           )}
           {today && today.total != null && (
             <div
@@ -464,7 +471,7 @@ export function UsageCharts({
               </ResponsiveContainer>
             </div>
           ) : (
-            <EmptyChart unknown={quota ? quotas.length > 0 : chart.unknown > 0} />
+            <EmptyChart quota={quota} unknown={quota ? quotas.length > 0 : chart.unknown > 0} />
           )}
           <p className="usage-chart-footnote">
             {t(

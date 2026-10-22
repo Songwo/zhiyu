@@ -1,26 +1,57 @@
-# 知屿 Zhiyu
+<p align="center">
+  <img src="public/brand/zhiyu.svg" width="96" height="96" alt="知屿标志" />
+</p>
 
-连接文档、账号与数字资产的个人工作空间，将主机、在线服务、域名、邮箱、AI 订阅、号码、密钥和证书集中到一个桌面应用中。资料保存在本机；通过 SSH、DNS、TLS 和服务商 API 读取实际状态，通过你配置的模型进行有来源的问答。
+<h1 align="center">知屿 Zhiyu</h1>
 
-[产品主页](https://songwo.github.io/zhiyu/) · [下载安装包](https://github.com/Songwo/zhiyu/releases/latest) · [使用教程](docs/USER-GUIDE.md) · [产品介绍](docs/PRODUCT.md) · [主身份登录](docs/MAIN-IDENTITY.md) · [AI 服务授权](docs/AI-ACCOUNTS.md) · [模型与本地 RAG](docs/AGENT-RAG.md) · [安全与备份](docs/SECURITY.md) · [更新日志](CHANGELOG.md)
+<p align="center">连接文档、账号与数字资产的个人工作空间。<br />主机、域名、证书、邮箱、AI 订阅、号码、密钥和运维文档，彼此相连，有处安放。</p>
+
+<p align="center">
+  <a href="https://github.com/Songwo/zhiyu/releases/latest"><img alt="最新版本" src="https://img.shields.io/github/v/release/Songwo/zhiyu?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC&color=3b6fe0" /></a>
+  <a href="https://github.com/Songwo/zhiyu/releases"><img alt="下载量" src="https://img.shields.io/github/downloads/Songwo/zhiyu/total?label=%E4%B8%8B%E8%BD%BD&color=2bb3c0" /></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/Songwo/zhiyu?color=ffb23f" /></a>
+  <a href="https://github.com/Songwo/zhiyu/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Songwo/zhiyu?style=social" /></a>
+</p>
+
+<p align="center">
+  <a href="https://songwo.github.io/zhiyu/">产品主页</a> ·
+  <a href="https://github.com/Songwo/zhiyu/releases/latest">下载安装包</a> ·
+  <a href="https://songwo.github.io/zhiyu/#video">90 秒宣传片</a> ·
+  <a href="docs/USER-GUIDE.md">使用教程</a> ·
+  <a href="docs/SECURITY.md">安全与备份</a> ·
+  <a href="CHANGELOG.md">更新日志</a>
+</p>
+
+![知屿资产总览](site/overview.png)
+
+资料保存在本机；通过 SSH、DNS、TLS 和服务商 API 读取实际状态，通过你配置的模型进行有来源的问答。喜欢知屿的话，欢迎 [Star 本项目](https://github.com/Songwo/zhiyu)、提交 Issue 或贡献改进。
 
 [社区友链 · LINUX DO](https://linux.do/) · 真诚、友善、团结、专业。
 
-![知屿桌面界面](site/overview.png)
+## 最新版本：1.9.0
 
-喜欢知屿的话，欢迎 [Star 本项目](https://github.com/Songwo/zhiyu)、提交 Issue 或贡献改进。
+- **全新标志与界面细节**：书页成屿的透明新标志；默认窗口更紧凑，标题字号收小；收起的侧栏图标居中，放不下时渐隐提示还有更多。
+- **资产详情与系统设置改为页面**：点资产卡片在主内容区打开详情，左列资产与指标、右列关联与凭据；头像菜单里的「系统设置」也是页面，右上角的设置弹窗所有分页同一尺寸。
+- **续费日历**：费用与续费页新增月视图，列出到期日并按月付、年付推算后续续费日，点日期查看当天事项。
+- **更有层次的表格与用量**：表格视图改为白卡与对称的悬停高亮；用量图表按指标配色、柱子依次长出；来源卡片显示连接状态与失败原因，订阅账号额度取不到时会说明原因而不是一片空白。
 
-## 最新版本：1.8.0
+具体调整见 [1.9.0 发布说明](docs/releases/v1.9.0.md)。已有资料沿用原数据目录，可在「设置 → 关于知屿」直接更新。
 
-- 新增「费用与续费」：服务器、域名、服务资产和号码可以记录费用与到期日，按时间线查看未来要续费的资产，并按月、按年折算支出。
-- 新增应用内加密备份与恢复：一键打包全部资料并用备份密码加密，可选包含系统保护的凭据以便换电脑；支持恢复前预览、自动快照和定期自动备份。
-- 1.7.x 起提供的导航分组、后退与前进、Windows 便携版、Cloudflare 资源管理与知屿探针继续可用，详见 [使用教程](docs/USER-GUIDE.md)。
+## 界面一览
 
-具体调整见 [1.8.0 发布说明](docs/releases/v1.8.0.md)。已有资料沿用原数据目录。1.4.0 起支持应用内更新；1.2.3 用户需先安装一次新版。
+| 资产详情与关联                     | 续费日历                              |
+| ---------------------------------- | ------------------------------------- |
+| ![资产详情](site/detail.png)       | ![续费日历](site/renewals.png)        |
+| **用量记录**                       | **文档阅读**                          |
+| ![用量记录](site/usage.png)        | ![文档阅读](site/documents.png)       |
+| **表格视图**                       | **深色模式**                          |
+| ![表格视图](site/table.png)        | ![深色模式](site/overview-dark.png)   |
+
+界面截图使用独立演示数据，不含私人账号和资产。宣传片见 [产品主页](https://songwo.github.io/zhiyu/#video)。
 
 ## 安装与首次使用
 
-1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.8.0-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.8.0-portable-x64.zip`。
+1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.9.0-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.9.0-portable-x64.zip`。
 2. 运行安装程序，选择安装位置。当前安装包未做代码签名，请核对发布者、下载地址和 Release 中的 SHA256 校验文件。
 3. 首次启动可选择「使用 Linux.do 登录」绑定主身份，也可直接使用默认工作区名称。创建 10 至 256 位本地主密码并再次确认，头像可稍后设置；Linux.do 登录不代替主密码，也不能找回主密码。
 4. 已有密钥库的用户确认工作区名称及原主密码即可继续，升级不会自动删除资产或演示记录。
@@ -192,7 +223,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-安装包输出到 `release/v版本号/`，本版为 `release/v1.8.0/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.7.2 发布说明](docs/releases/v1.7.2.md)。
+安装包输出到 `release/v版本号/`，本版为 `release/v1.9.0/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.9.0 发布说明](docs/releases/v1.9.0.md)。
 
 ## 项目结构
 

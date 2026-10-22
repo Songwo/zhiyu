@@ -6,14 +6,16 @@
     <title>知屿 Zhiyu — 让数字资产有处安放</title>
     <meta
       name="description"
-      content="知屿 Zhiyu：连接文档、账号与数字资产的开源本地工作空间。全局导入 Markdown、目录阅读、加密账号、真实关系图与可审阅的 AI 修改建议。下载最新 Windows 正式版。"
+      content="知屿 Zhiyu：连接文档、账号与数字资产的开源本地工作空间。资产详情与关联、续费日历、用量图表、Markdown 文档与加密密钥库。下载最新 Windows 正式版。"
     />
     <link rel="canonical" href="https://songwo.github.io/zhiyu/" />
-    <link rel="icon" href="./icon.png?v={{ASSET_REVISION}}" />
+    <link rel="icon" href="./favicon.svg?v={{ASSET_REVISION}}" type="image/svg+xml" />
+    <link rel="icon" href="./icon.png?v={{ASSET_REVISION}}" type="image/png" />
+    <meta name="theme-color" content="#f7f6f2" />
     <meta property="og:title" content="知屿 Zhiyu · 你的数字工作空间" />
     <meta
       property="og:description"
-      content="文档、账号、资产与 AI，让自己的资料彼此相连。最新正式版 v{{VERSION}}。"
+      content="文档、账号、资产与订阅，让自己的资料彼此相连。最新正式版 v{{VERSION}}。"
     />
     <meta
       property="og:image"
@@ -25,259 +27,301 @@
   </head>
   <body>
     <a class="skip" href="#main">跳到正文</a>
-    <header class="wrap">
-      <a class="brand" href="./"
-        ><img src="./icon.png?v={{ASSET_REVISION}}" width="36" height="36" alt="" />知屿
-        <span>Zhiyu</span></a
-      >
-      <nav aria-label="网站导航">
-        <a href="#features">功能</a><a href="#download">下载与更新</a
-        ><a href="https://github.com/Songwo/zhiyu">GitHub ↗</a>
-      </nav>
+    <header class="site-header">
+      <div class="wrap header-row">
+        <a class="brand" href="./"
+          ><img src="./favicon.svg?v={{ASSET_REVISION}}" width="34" height="34" alt="" />知屿
+          <span>Zhiyu</span></a
+        >
+        <nav aria-label="网站导航">
+          <a href="#video">宣传片</a><a href="#features">功能</a><a href="#download">下载</a
+          ><a href="#faq">常见问题</a
+          ><a class="nav-github" href="https://github.com/Songwo/zhiyu">GitHub ↗</a>
+        </nav>
+      </div>
     </header>
     <main id="main" data-app-ready="true">
-      <section class="hero wrap">
-        <p class="eyebrow">OPEN SOURCE · LOCAL FIRST · v{{VERSION}}</p>
-        <h1>让数字资产<br />有处安放。</h1>
-        <p class="intro">
-          文档里的经验、账号背后的资料、每月的订阅与用量。<br />把散落的数字生活，收进一个彼此相连的工作台。
-        </p>
-        <div class="actions">
-          <a class="button primary" href="{{INSTALLER_URL}}">下载 Windows 版 <span>↓</span></a
-          ><a class="button" href="https://github.com/Songwo/zhiyu"
-            >喜欢这个项目？Star on GitHub ↗</a
-          >
+      <section class="hero">
+        <div class="hero-glow" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="wrap hero-copy">
+          <p class="pill"><span class="dot"></span>开源 · 本地优先 · 最新正式版 v{{VERSION}}</p>
+          <h1>让数字资产<br /><em>有处安放。</em></h1>
+          <p class="intro">
+            服务器、域名、账号、订阅和运维文档，收进一个彼此相连的桌面工作台。<br />哪台主机出了问题、哪项订阅快到期、资料写在哪里，一眼看清。
+          </p>
+          <div class="actions">
+            <a class="button primary" href="{{INSTALLER_URL}}">下载 Windows 版 <span>↓</span></a
+            ><a class="button" href="https://github.com/Songwo/zhiyu">★ Star on GitHub</a>
+          </div>
+          <p class="fine">Windows x64 · v{{VERSION}} · {{INSTALLER_SIZE}} · 另有免安装便携版</p>
         </div>
-        <p class="fine">Windows x64 · v{{VERSION}} · {{INSTALLER_SIZE}} · 开源免费</p>
-        <figure class="product">
-          <img
-            src="./overview.png?v={{ASSET_REVISION}}"
-            width="1480"
-            height="940"
-            alt="彩色知屿标记与资产总览：常用入口、资产摘要和每日活动"
-            fetchpriority="high"
-          />
-          <figcaption>真实应用界面 · 展示数据，不含私人资产</figcaption>
+        <div class="wrap">
+          <figure class="shot hero-shot">
+            <picture>
+              <source
+                srcset="./overview-dark.png?v={{ASSET_REVISION}}"
+                media="(prefers-color-scheme: dark)"
+              />
+              <img
+                src="./overview.png?v={{ASSET_REVISION}}"
+                width="1920"
+                height="1200"
+                alt="知屿资产总览：景深头图里的常用入口、资产摘要与待处理事项"
+                fetchpriority="high"
+              />
+            </picture>
+          </figure>
+        </div>
+      </section>
+
+      <section class="wrap section video-section" id="video" aria-labelledby="video-title">
+        <p class="eyebrow">90 秒看懂</p>
+        <h2 id="video-title">从「放在哪里了」<br />到「都在这里」。</h2>
+        <figure class="video-frame">
+          <video
+            controls
+            preload="none"
+            playsinline
+            poster="./promo-poster.jpg?v={{ASSET_REVISION}}"
+            width="1920"
+            height="1080"
+          >
+            <source src="./promo.mp4?v={{ASSET_REVISION}}" type="video/mp4" />
+            你的浏览器不支持视频播放，可以
+            <a href="./promo.mp4">直接下载宣传片</a>。
+          </video>
+          <figcaption>宣传片录制于 1.8 界面，演示数据，不含私人资产。</figcaption>
         </figure>
       </section>
-      <section class="wrap release-section" id="download" aria-labelledby="release-title">
-        <div class="release-meta">
-          <p class="eyebrow">LATEST RELEASE</p>
-          <h2 id="release-title">正式版 <span>v{{VERSION}}</span></h2>
-          <p><time datetime="{{RELEASE_ISO_DATE}}">{{RELEASE_DATE}}</time> 发布</p>
-          <a class="text-link" href="{{RELEASE_URL}}">查看完整更新说明 ↗</a>
+
+      <section class="section features" id="features" aria-labelledby="features-title">
+        <div class="wrap">
+          <p class="eyebrow">A PLACE FOR YOUR DIGITAL LIFE</p>
+          <h2 id="features-title">资料有上下文，<br />用量有来处。</h2>
         </div>
-        <div class="release-content">
-          <p class="release-summary">{{RELEASE_SUMMARY}}</p>
+
+        <article class="wrap feature">
+          <div class="feature-copy">
+            <span class="tag tag-blue">关联资产</span>
+            <h3>一台主机出问题，牵连什么一眼看到</h3>
+            <p>
+              资产详情在页面里打开：左边是主机状态、指标历史，右边是它关联的网站、证书、账号和恢复手册。后退、Esc
+              都回到原来的列表和位置。
+            </p>
+            <ul>
+              <li>SSH 终端、SFTP、CPU / 内存 / 磁盘采样</li>
+              <li>真实关系图，建议确认后才建立关联</li>
+              <li>凭据位置直达，模型不读取密钥库</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img
+              src="./detail.png?v={{ASSET_REVISION}}"
+              width="1920"
+              height="1200"
+              loading="lazy"
+              alt="服务器详情页：监控概览、指标历史、关联资产与凭据位置"
+            />
+          </figure>
+        </article>
+
+        <article class="wrap feature reverse">
+          <div class="feature-copy">
+            <span class="tag tag-amber">费用与续费</span>
+            <h3>每月花多少，哪天续费，都在日历上</h3>
+            <p>
+              服务器、域名、AI
+              订阅和号码填写费用与到期日后，月付、年付自动折算支出；续费日历按周期推算后续续费日，点日期看当天要处理的事项。
+            </p>
+            <ul>
+              <li>按资产类型配色的月视图，预计续费空心标记</li>
+              <li>到期时间线与 ICS 日历导出</li>
+              <li>人民币、美元分别合计，可设汇率折算</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img
+              src="./renewals.png?v={{ASSET_REVISION}}"
+              width="1920"
+              height="1200"
+              loading="lazy"
+              alt="续费日历月视图，右侧显示所选日期的续费事项"
+            />
+          </figure>
+        </article>
+
+        <article class="wrap feature">
+          <div class="feature-copy">
+            <span class="tag tag-violet">真实用量</span>
+            <h3>Token、流量与订阅额度，分口径看清</h3>
+            <p>
+              本机客户端日志、组织 API、机场与 3x-ui
+              面板和订阅账号额度分别统计。每类指标一种颜色，柱子依次长出，悬停聚焦到具体一天；缺失的数据不会被画成零。
+            </p>
+            <ul>
+              <li>Codex、Claude Code、Grok Build、Gemini CLI 本机用量</li>
+              <li>OpenAI、Claude、Grok、Gemini 订阅额度快照</li>
+              <li>来源卡片显示连接状态与失败原因</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img
+              src="./usage.png?v={{ASSET_REVISION}}"
+              width="1920"
+              height="1200"
+              loading="lazy"
+              alt="用量记录：彩色指标卡片、每日趋势柱状图与来源构成"
+            />
+          </figure>
+        </article>
+
+        <article class="wrap feature reverse">
+          <div class="feature-copy">
+            <span class="tag tag-teal">图文文档</span>
+            <h3>把经验写在资产旁边</h3>
+            <p>
+              部署步骤、运维记录用 Markdown 写下来，目录一键跳转、显示字数和阅读时长；文档可以直接关联到对应的服务器和账号。
+            </p>
+            <ul>
+              <li>批量导入 Markdown，或在任意页面拖入</li>
+              <li>GFM 表格、代码块、图片与图床</li>
+              <li>网页正文确认后保存为文档</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img
+              src="./documents.png?v={{ASSET_REVISION}}"
+              width="1920"
+              height="1200"
+              loading="lazy"
+              alt="文档阅读：居中正文、目录与关联资产"
+            />
+          </figure>
+        </article>
+
+        <div class="wrap mini-grid">
+          <figure class="shot mini">
+            <img
+              src="./table.png?v={{ASSET_REVISION}}"
+              width="1920"
+              height="1200"
+              loading="lazy"
+              alt="服务器表格视图：排序、状态与标签"
+            />
+            <figcaption><strong>卡片、表格、关系图</strong>同一份资产，三种看法。</figcaption>
+          </figure>
+          <figure class="shot mini">
+            <img
+              src="./vault.png?v={{ASSET_REVISION}}"
+              width="1920"
+              height="1200"
+              loading="lazy"
+              alt="密钥库：分组收纳账号与凭据"
+            />
+            <figcaption>
+              <strong>加密密钥库</strong>scrypt + AES-256-GCM，分组收纳，就地解锁。
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="section download" id="download" aria-labelledby="release-title">
+        <div class="wrap download-card">
+          <div class="release-meta">
+            <p class="eyebrow">LATEST RELEASE</p>
+            <h2 id="release-title">正式版 <span>v{{VERSION}}</span></h2>
+            <p><time datetime="{{RELEASE_ISO_DATE}}">{{RELEASE_DATE}}</time> 发布</p>
+            <p class="release-summary">{{RELEASE_SUMMARY}}</p>
+            <a class="text-link" href="{{RELEASE_URL}}">查看完整更新说明 ↗</a>
+          </div>
           <div class="download-options">
-            <a class="download-option" href="{{INSTALLER_URL}}"
+            <a class="download-option primary-option" href="{{INSTALLER_URL}}"
               ><strong>Windows 安装包 <span aria-hidden="true">↓</span></strong
-              ><span>x64 · {{INSTALLER_SIZE}} · 支持覆盖升级</span></a
+              ><span>x64 · {{INSTALLER_SIZE}} · 支持覆盖升级与应用内更新</span></a
+            >
+            <a class="download-option" href="{{PORTABLE_URL}}"
+              ><strong>Windows 便携版 <span aria-hidden="true">↓</span></strong
+              ><span>{{PORTABLE_SIZE}} · 解压即用，资料保存在程序旁</span></a
             >
             <a class="download-option" href="{{EXTENSION_URL}}"
               ><strong>浏览器插件 <span aria-hidden="true">↓</span></strong
-              ><span>Chrome / Edge · 账号建议、填写与文档保存</span></a
+              ><span>Chrome / Edge · 账号建议、填写与网页文档保存</span></a
             >
+            <p class="release-links">
+              <a href="{{CHECKSUM_URL}}">SHA256 校验文件</a
+              ><a href="https://github.com/Songwo/zhiyu/blob/main/docs/USER-GUIDE.md"
+                >安装与使用教程 ↗</a
+              ><a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md"
+                >macOS 测试版说明 ↗</a
+              >
+            </p>
           </div>
-          <p class="release-links">
-            <a href="{{CHECKSUM_URL}}">SHA256 校验文件</a
-            ><a href="https://github.com/Songwo/zhiyu/blob/main/docs/USER-GUIDE.md"
-              >安装与使用教程 ↗</a
-            ><a href="https://github.com/Songwo/zhiyu/releases/tag/mac-test-1.7.1.1"
-              >macOS 公开测试版 ↗</a
-            >
-          </p>
-          <p class="showcase-note">
-            macOS：Apple Silicon / Intel · 独立 Pre-release · 未签名、未公证
-          </p>
         </div>
       </section>
-      <section class="wrap section" id="features">
-        <p class="eyebrow">A PLACE FOR YOUR DIGITAL LIFE</p>
-        <h2>从「放在哪里了」<br />到「都在这里」。</h2>
-        <div class="features">
-          <article>
-            <span class="number">01 / 基础设施</span>
-            <h3>主机与节点，心中有数</h3>
-            <p>
-              SSH 终端、SFTP、主机指标、域名与证书到期提醒。导入 VLESS、VMess、Trojan、SS 和 HY2
-              分享链接。
-            </p>
-          </article>
-          <article>
-            <span class="number">02 / 图文资料</span>
-            <h3>把经验留在资产旁</h3>
-            <p>
-              从「＋」批量导入
-              Markdown，或在任意页面拖入文件。按目录定位章节、查看阅读进度，编辑时再展开工具。网页可见正文也能确认后保存，随时关联资产。
-            </p>
-          </article>
-          <article>
-            <span class="number">03 / 真实用量</span>
-            <h3>看清流量与 Token</h3>
-            <p>
-              用图表查看流量、API Token
-              与订阅额度；读取支持客户端的本机用量日志。采集后更新统计，切页复用缓存；今日明细和小额用量标记保留真实数值，不把缺失数据伪装为零。
-            </p>
-          </article>
-          <article>
-            <span class="number">04 / 账号与密钥</span>
-            <h3>账号与说明，放在一起</h3>
-            <p>
-              从 Chrome / Edge 导出的 CSV
-              快速迁入，也能导回浏览器。同站多账号分别保留；登录页自动建议，选中后填写。点击账号直接查看、就地解锁，使用说明随时关联。
-            </p>
-          </article>
-          <article>
-            <span class="number">05 / 关联问答</span>
-            <h3>让 AI 找到资料之间的联系</h3>
-            <p>
-              关系图呈现已保存的真实连接，建议确认后才建立关联。AI
-              可提出文档改名、正文局部修改与账号名称、标签调整，审阅后应用；缺少权限时允许本次使用并继续原问题，模型不读取密钥库。
-            </p>
-          </article>
-          <article>
-            <span class="number">06 / 号码台账</span>
-            <h3>号码与订阅，对得上</h3>
-            <p>
-              记录已有号码、服务商与到期日期，关联 AI
-              订阅。管理自己的记录，不提供号码购买或接码服务。
-            </p>
-          </article>
-        </div>
-      </section>
-      <section class="wrap showcase" aria-labelledby="showcase-title">
-        <p class="eyebrow">LESS SWITCHING, MORE CONTEXT</p>
-        <h2 id="showcase-title">资料有上下文，<br />用量有来处。</h2>
-        <div class="showcase-grid">
-          <figure class="product" style="grid-column: 1 / -1">
-            <img
-              src="./passwords.png?v={{ASSET_REVISION}}"
-              width="1480"
-              height="940"
-              loading="lazy"
-              alt="浏览器密码迁移预览，分别展示新增账号、完全重复与密码冲突，不显示密码"
-            />
-            <figcaption>
-              <strong>同一个网站，也能各有账号</strong>Chrome / Edge
-              密码迁移先预览，冲突保留原记录。
-            </figcaption>
-          </figure>
-          <figure class="product">
-            <img
-              src="./documents.png?v={{ASSET_REVISION}}"
-              width="1480"
-              height="940"
-              loading="lazy"
-              alt="文档阅读模式，侧栏目录与关联资产一起展示"
-            />
-            <figcaption>
-              <strong>安静地阅读，随时编辑</strong>文档与关联资产同屏，工具按需出现。
-            </figcaption>
-          </figure>
-          <figure class="product">
-            <img
-              src="./usage.png?v={{ASSET_REVISION}}"
-              width="1480"
-              height="940"
-              loading="lazy"
-              alt="用量工作台中的趋势图、来源构成与明细筛选"
-            />
-            <figcaption>
-              <strong>从趋势看到具体来源</strong>API、本机日志与订阅额度分别呈现。
-            </figcaption>
-          </figure>
-        </div>
-        <p class="showcase-note">
-          以上为当前应用界面，使用独立示例资料与示例用量展示，不含私人账号和资产。
-        </p>
-      </section>
-      <section class="statement">
-        <div class="wrap">
-          <p class="eyebrow">BUILT IN THE OPEN</p>
-          <h2>一个人也值得<br />拥有顺手的工具。</h2>
-          <p>
-            知屿为独立开发者、自建服务爱好者，以及想把数字生活整理清楚的人而做。<br />欢迎试用、提交问题，或贡献一个让日常更顺手的改进。
-          </p>
-          <a class="button primary" href="https://github.com/Songwo/zhiyu/issues">反馈与建议 ↗</a>
-        </div>
-      </section>
-      <section class="wrap section faq" id="faq">
-        <h2>开始之前，你可能想知道</h2>
-        <details>
-          <summary>能统计电脑上所有 AI 的 Token 吗？</summary>
-          <p>
-            本机采集支持 Codex、Claude Code、Grok Build 和 Gemini CLI
-            中可读取的用量日志，默认开启，无需解锁密钥库，也可手动关闭。未保存日志的网页或客户端无法据此取得精确
-            Token；没有日志、权限不足和确实没有用量会分别提示。
-          </p>
-        </details>
-        <details>
-          <summary>AI 会直接修改我的资料和密码吗？</summary>
-          <p>
-            开启本次修改建议后，AI
-            先展示依据和修改前后内容，由你逐项确认。标题改名无需正文许可，正文局部替换需本次授权；缺少权限时可在回答下方允许并继续。账号只支持名称和标签，密码等凭据在本机编辑；资料已变化或建议过期时需重新生成。
-          </p>
-        </details>
-        <details>
-          <summary>以后可以在软件里直接更新吗？</summary>
-          <p>
-            1.4.0 起，在「设置 →
-            关于」检查并下载新版本，校验完成后点击「重启并安装」。旧版需先安装一次新版，已有资料继续保留。
-          </p>
-        </details>
+
+      <section class="wrap section faq" id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">开始之前，你可能想知道</h2>
         <details>
           <summary>免费吗？支持什么系统？</summary>
           <p>
-            知屿是开源项目。Windows 提供 x64 正式安装包；macOS 测试包以独立 Pre-release 提供，支持
-            Apple Silicon 和 Intel，具体版本与验证范围请查看
-            <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 说明</a>。
-            Linux 尚未提供经过验证的正式安装包。
+            知屿是开源项目。Windows 提供 x64 正式安装包和免安装便携版；macOS
+            测试包以独立 Pre-release 提供，未签名、未公证，详见
+            <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 说明</a>。Linux
+            尚未提供经过验证的正式安装包。
           </p>
         </details>
         <details>
           <summary>数据会上传吗？</summary>
           <p>
             资产、文档与用量历史默认保存在本机。启用图床会上传所选图片；连接邮箱、面板或 AI
-            服务会请求相应服务。使用远端 AI 问答时，相关上下文会发送给你配置的模型。请阅读安全说明。
+            服务会请求相应服务。使用远端模型问答时，相关上下文会发送给你配置的模型。
           </p>
         </details>
         <details>
-          <summary>ChatGPT / Claude 订阅等于 API Token 用量吗？</summary>
+          <summary>AI 会直接修改我的资料和密码吗？</summary>
           <p>
-            不等于。订阅账号记录接口能提供的额度快照；API
-            用量采集依赖组织查询权限。网页订阅不提供的数据不会被估算成精确 Token。
+            不会。开启本次修改建议后，AI 先展示依据和修改前后内容，由你逐项确认后才写入；密码等凭据只在本机编辑，模型不读取密钥库。
+          </p>
+        </details>
+        <details>
+          <summary>订阅额度为什么是空的？</summary>
+          <p>
+            订阅额度来自你在「AI 订阅」中授权的账号。部分套餐不提供额度查询，失败原因会显示在「用量记录 →
+            订阅与来源」对应账号的卡片上，不会被当作零用量。
+          </p>
+        </details>
+        <details>
+          <summary>以后可以在软件里直接更新吗？</summary>
+          <p>
+            可以。在「设置 → 关于知屿」检查并下载新版本，校验完成后点击「重启并安装」，已有资料继续保留。
           </p>
         </details>
         <details>
           <summary>安装时为什么会有系统提示？</summary>
           <p>
             目前 Windows 安装包没有代码签名。请从本仓库 Releases 下载，并对照随版本提供的 SHA256
-            校验文件。升级前建议按安全文档备份。
-          </p>
-        </details>
-        <details>
-          <summary>在哪里开始使用？</summary>
-          <p>
-            下载后确认工作区名称并创建主密码，再添加第一项资产；无需注册。详见
-            <a href="https://github.com/Songwo/zhiyu/blob/main/docs/USER-GUIDE.md">使用教程</a> 与
-            <a href="https://github.com/Songwo/zhiyu/blob/main/docs/SECURITY.md">安全与备份</a>。
+            校验文件。升级前建议在「设置 → 数据」创建一次加密备份。
           </p>
         </details>
       </section>
-      <section class="wrap closing">
-        <h2>少找一会儿，多做一点。</h2>
-        <p>如果知屿解决了你的一个小麻烦，欢迎给项目一颗 Star。</p>
-        <div class="actions">
-          <a class="button primary" href="{{INSTALLER_URL}}">下载并开始使用 ↓</a
-          ><a class="button" href="https://github.com/Songwo/zhiyu">支持开源 · Star ↗</a>
+
+      <section class="closing">
+        <div class="wrap">
+          <img src="./favicon.svg?v={{ASSET_REVISION}}" width="72" height="72" alt="" />
+          <h2>少找一会儿，多做一点。</h2>
+          <p>如果知屿解决了你的一个小麻烦，欢迎给项目一颗 Star，或者提一个让它更顺手的建议。</p>
+          <div class="actions">
+            <a class="button primary" href="{{INSTALLER_URL}}">下载并开始使用 ↓</a
+            ><a class="button" href="https://github.com/Songwo/zhiyu/issues">反馈与建议 ↗</a>
+          </div>
         </div>
       </section>
     </main>
-    <footer class="wrap">
-      <span>知屿 Zhiyu · Made by Songwo</span
+    <footer class="wrap site-footer">
+      <span>知屿 Zhiyu · Made by Songwo · MIT</span
       ><a href="https://github.com/Songwo/zhiyu/blob/main/CHANGELOG.md">更新日志 ↗</a
-      ><a href="https://github.com/Songwo/zhiyu">查看源码 ↗</a>
+      ><a href="https://github.com/Songwo/zhiyu">查看源码 ↗</a
+      ><a href="https://linux.do/">社区友链 · LINUX DO ↗</a>
     </footer>
   </body>
 </html>

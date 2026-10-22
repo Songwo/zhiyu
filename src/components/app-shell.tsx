@@ -10,7 +10,7 @@ import { AssetDetailPage } from "./expand-layer";
 import { RightRail } from "./right-rail";
 import { Sidebar } from "./sidebar";
 import { GlobalMarkdownImport } from "./global-markdown-import";
-import { Settings } from "./settings";
+import { Settings, SettingsPage } from "./settings";
 import { SshTerminal } from "./ssh-terminal";
 import { TitleBar } from "./title-bar";
 import { VaultGate } from "./vault-gate";
@@ -102,7 +102,8 @@ export function AppShell() {
     };
   }, []);
   const view = useAppStore((s) => s.view);
-  const detailOpen = useAppStore((s) => Boolean(s.expanded));
+  // 资产详情和系统设置页都占据主内容区，列表只隐藏不卸载。
+  const detailOpen = useAppStore((s) => Boolean(s.expanded) || s.settingsPage);
   const workspaceScroll = useRef<HTMLDivElement>(null);
   const listScroll = useRef(0);
   useLayoutEffect(() => {
@@ -113,7 +114,7 @@ export function AppShell() {
   useEffect(
     () =>
       useAppStore.subscribe((state, previous) => {
-        if (state.expanded && !previous.expanded)
+        if ((state.expanded || state.settingsPage) && !previous.expanded && !previous.settingsPage)
           listScroll.current = workspaceScroll.current?.scrollTop ?? 0;
       }),
     [],
@@ -258,6 +259,7 @@ export function AppShell() {
                 )}
               >
                 <AssetDetailPage />
+                <SettingsPage />
                 {/* 详情打开时列表只隐藏不卸载，返回时筛选、展开状态都还在。 */}
                 <div className="workspace-view" hidden={detailOpen}>
                   <TopTabs />

@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   Check,
   ExternalLink,
   FolderOpen,
@@ -89,21 +90,21 @@ const TAB_GROUPS: Array<{ title: string; tabs: Array<{ id: Tab; label: string }>
   },
 ];
 
+/** 右上角的设置弹窗：所有分页同一尺寸（与「云服务与探针」一致），切换分页时窗口不跳动。 */
 export function Settings() {
   const open = useAppStore((s) => s.settingsOpen);
   const setOpen = useAppStore((s) => s.setSettingsOpen);
   const { mounted, shown } = usePresence(open, 180);
-  const [tab, setTab] = useState<Tab>("appearance");
 
   useEffect(() => {
-    const showProfile = () => {
-      setTab("profile");
-      setOpen(true);
+    const show = (tab: Tab) => () => {
+      const state = useAppStore.getState();
+      state.setSettingsTab(tab);
+      // 已经在设置页里时就地切换分页，不再叠一层弹窗。
+      if (!state.settingsPage) setOpen(true);
     };
-    const showIntegrations = () => {
-      setTab("integrations");
-      setOpen(true);
-    };
+    const showProfile = show("profile");
+    const showIntegrations = show("integrations");
     window.addEventListener("settings:profile", showProfile);
     window.addEventListener("settings:integrations", showIntegrations);
     return () => {
@@ -138,76 +139,124 @@ export function Settings() {
         role="dialog"
         aria-modal="true"
         aria-label={t("设置")}
-        className={cn(
-          "settings-dialog anim-panel relative z-10 flex h-[min(620px,86vh)] w-full max-w-3xl overflow-hidden rounded-2xl bg-card shadow-float",
-          tab === "integrations" && "integrations-settings-dialog",
-        )}
+        className="settings-dialog anim-panel relative z-10 flex w-full overflow-hidden rounded-2xl bg-card shadow-float"
       >
-        <nav className="flex min-h-0 w-40 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line p-2">
-          <h2 className="px-3 pb-2 pt-3 text-meta font-semibold tracking-tight">{t("设置")}</h2>
-          {TAB_GROUPS.map((group) => (
-            <div key={group.title} role="group" aria-label={t(group.title)} className="mb-2">
-              <div className="settings-tab-group">{t(group.title)}</div>
-              {group.tabs.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  aria-current={tab === entry.id ? "page" : undefined}
-                  className={cn("settings-tab", tab === entry.id && "settings-tab-on")}
-                  onClick={() => setTab(entry.id)}
-                >
-                  {t(entry.label)}
-                </button>
-              ))}
+        <SettingsBody
+          header={
+            <div className="sticky top-0 z-10 flex items-center justify-end bg-card/90 px-3 py-2 backdrop-blur">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("关闭")}
+                onClick={() => setOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
             </div>
-          ))}
-        </nav>
-
-        <div className="min-w-0 flex-1 overflow-y-auto">
-          <div className="sticky top-0 flex items-center justify-end bg-card/90 px-3 py-2 backdrop-blur">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("关闭")}
-              onClick={() => setOpen(false)}
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
-          <div className="px-6 pb-8">
-            {tab === "profile" &&
-              (desktop() ? (
-                <div className="space-y-6">
-                  <PrimaryIdentityPanel />
-                  <ProfileForm />
-                </div>
-              ) : (
-                <p>{t("仅桌面版可用")}</p>
-              ))}
-            {tab === "appearance" && <Appearance />}
-            {tab === "monitoring" && <Monitoring />}
-            {tab === "integrations" && (
-              <Suspense fallback={<p>{t("正在加载…")}</p>}>
-                <IntegrationsSettings />
-              </Suspense>
-            )}
-            {tab === "vault" && <VaultSection />}
-            {tab === "data" && (
-              <>
-                <DataSection />
-                <BackupSettings />
-              </>
-            )}
-            {tab === "agent" && <AgentSettings />}
-            {tab === "mail-push" && <MailPushSettings />}
-            {tab === "extension" && <ExtensionSettings />}
-            {tab === "storage" && <StorageSettings />}
-            {tab === "about" && <About />}
-            {tab === "changelog" && <Changelog />}
-          </div>
-        </div>
+          }
+        />
       </div>
     </div>
+  );
+}
+
+/**
+ * 头像菜单进入的系统设置：主内容区里的一页，左侧分组导航、右侧内容，
+ * 顶部返回原页面；后退、Esc 都先回到原页面。
+ */
+export function SettingsPage() {
+  const open = useAppStore((s) => s.settingsPage);
+  const close = useAppStore((s) => s.closeSettingsPage);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], .editor-dialog')) return;
+      close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, close]);
+  if (!open) return null;
+  return (
+    <section className="settings-page" aria-label={t("设置")}>
+      <div className="detail-bar">
+        <button type="button" className="detail-back" onClick={close}>
+          <ArrowLeft aria-hidden="true" />
+          <span>{t("返回")}</span>
+        </button>
+      </div>
+      <header className="settings-page-head">
+        <h1>{t("系统设置")}</h1>
+        <p>{t("外观、连接、数据与安全，都在这里调整。")}</p>
+      </header>
+      <div className="settings-page-panel">
+        <SettingsBody />
+      </div>
+    </section>
+  );
+}
+
+function SettingsBody({ header }: { header?: ReactNode }) {
+  const tab = useAppStore((s) => s.settingsTab) as Tab;
+  const setTab = useAppStore((s) => s.setSettingsTab);
+  return (
+    <>
+      <nav className="settings-nav flex min-h-0 w-40 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line p-2">
+        <h2 className="px-3 pb-2 pt-3 text-meta font-semibold tracking-tight">{t("设置")}</h2>
+        {TAB_GROUPS.map((group) => (
+          <div key={group.title} role="group" aria-label={t(group.title)} className="mb-2">
+            <div className="settings-tab-group">{t(group.title)}</div>
+            {group.tabs.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                aria-current={tab === entry.id ? "page" : undefined}
+                className={cn("settings-tab", tab === entry.id && "settings-tab-on")}
+                onClick={() => setTab(entry.id)}
+              >
+                {t(entry.label)}
+              </button>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      <div className="settings-content min-w-0 flex-1 overflow-y-auto">
+        {header}
+        <div key={tab} className="settings-content-body px-6 pb-8">
+          {tab === "profile" &&
+            (desktop() ? (
+              <div className="space-y-6">
+                <PrimaryIdentityPanel />
+                <ProfileForm />
+              </div>
+            ) : (
+              <p>{t("仅桌面版可用")}</p>
+            ))}
+          {tab === "appearance" && <Appearance />}
+          {tab === "monitoring" && <Monitoring />}
+          {tab === "integrations" && (
+            <Suspense fallback={<p>{t("正在加载…")}</p>}>
+              <IntegrationsSettings />
+            </Suspense>
+          )}
+          {tab === "vault" && <VaultSection />}
+          {tab === "data" && (
+            <>
+              <DataSection />
+              <BackupSettings />
+            </>
+          )}
+          {tab === "agent" && <AgentSettings />}
+          {tab === "mail-push" && <MailPushSettings />}
+          {tab === "extension" && <ExtensionSettings />}
+          {tab === "storage" && <StorageSettings />}
+          {tab === "about" && <About />}
+          {tab === "changelog" && <Changelog />}
+        </div>
+      </div>
+    </>
   );
 }
 

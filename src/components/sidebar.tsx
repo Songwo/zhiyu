@@ -225,11 +225,25 @@ export function Sidebar({
         height: active.offsetHeight,
       });
     };
-    measure();
-    const observer = new ResizeObserver(measure);
+    // 导航放不下时在可继续滚动的一侧淡出，让被裁掉的图标看得出下面还有内容。
+    const fade = () => {
+      const top = nav.scrollTop > 2;
+      const bottom = nav.scrollTop + nav.clientHeight < nav.scrollHeight - 2;
+      nav.dataset.fade = top && bottom ? "both" : top ? "top" : bottom ? "bottom" : "none";
+    };
+    const update = () => {
+      measure();
+      fade();
+    };
+    update();
+    const observer = new ResizeObserver(update);
     observer.observe(nav);
     for (const item of nav.querySelectorAll(".sidebar-nav-item")) observer.observe(item);
-    return () => observer.disconnect();
+    nav.addEventListener("scroll", fade, { passive: true });
+    return () => {
+      observer.disconnect();
+      nav.removeEventListener("scroll", fade);
+    };
   }, [view, toolsExpanded, collapsed]);
 
   return (
@@ -497,7 +511,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
       >
         <span className="sidebar-profile-avatar relative grid size-9 shrink-0 place-items-center rounded-full bg-ink text-xs font-semibold text-card">
           {avatar ? (
-            <img src={avatar} alt="" className="size-full rounded-full object-cover" />
+            <img src={avatar} alt={t("个人头像")} className="size-full rounded-full object-cover" />
           ) : (
             Array.from(name)[0]
           )}
@@ -542,10 +556,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
           <div className="border-b border-line px-3 py-1.5 text-[11px] font-semibold text-muted">
             {t("工作区与备份")}
           </div>
-          {item(t("个人资料"), () => {
-            window.dispatchEvent(new Event("settings:profile"));
-            useAppStore.getState().setSettingsOpen(true);
-          })}
+          {item(t("个人资料"), () => useAppStore.getState().openSettingsPage("profile"))}
           {item(t("导出 JSON 快照"), () => {
             const s = useAppStore.getState();
             downloadJson("zhiyu-assets.json", snapshotOf(s));
@@ -567,7 +578,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             };
             input.click();
           })}
-          {item(t("系统设置…"), () => useAppStore.getState().setSettingsOpen(true))}
+          {item(t("系统设置…"), () => useAppStore.getState().openSettingsPage())}
           {vaultUnlocked && item(t("立即锁定密钥库"), () => void lockVault())}
           <div className="my-1 border-t border-line" />
           {item(isDesktop() ? t("清空全部数据") : t("重置演示数据"), () => resetDemo(), "danger")}
