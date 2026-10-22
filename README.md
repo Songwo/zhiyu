@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://songwo.github.io/zhiyu/">产品主页</a> ·
   <a href="https://github.com/Songwo/zhiyu/releases/latest">下载安装包</a> ·
-  <a href="https://songwo.github.io/zhiyu/#video">90 秒宣传片</a> ·
+  <a href="https://songwo.github.io/zhiyu/#video">2 分钟宣传片</a> ·
   <a href="docs/USER-GUIDE.md">使用教程</a> ·
   <a href="docs/SECURITY.md">安全与备份</a> ·
   <a href="CHANGELOG.md">更新日志</a>
@@ -28,7 +28,16 @@
 
 [社区友链 · LINUX DO](https://linux.do/) · 真诚、友善、团结、专业。
 
-## 最新版本：1.9.0
+## 最新版本：1.10.0
+
+- **首页快速开始**：五步清单按已有资料自动打勾，带新用户依次用上续费日历、文档、关联与标签；「近期续费」列出未来 14 天要处理的事项。
+- **常用订阅模板**：ChatGPT、Claude、Cursor、Cloudflare、Vercel、iCloud、Netflix、Spotify 等，一键预填金额、周期与下次续费日，个人订阅也能一起管。
+- **键盘快捷键与命令面板操作**：按 `?` 查看全部快捷键；`Ctrl K` 新增「操作」分组，可直接切换主题、打开订阅模板、续费日历和系统设置。
+- **使用指南与 2 分钟宣传片**：产品主页新增可搜索的[使用指南](https://songwo.github.io/zhiyu/guide.html)，宣传片按 1.9 新界面重录，完整展示详情页、续费日历、用量与快速上手。
+
+具体调整见 [1.10.0 发布说明](docs/releases/v1.10.0.md)。
+
+### 1.9.0
 
 - **全新标志与界面细节**：书页成屿的透明新标志；默认窗口更紧凑，标题字号收小；收起的侧栏图标居中，放不下时渐隐提示还有更多。
 - **资产详情与系统设置改为页面**：点资产卡片在主内容区打开详情，左列资产与指标、右列关联与凭据；头像菜单里的「系统设置」也是页面，右上角的设置弹窗所有分页同一尺寸。
@@ -46,12 +55,14 @@
 | ![用量记录](site/usage.png)        | ![文档阅读](site/documents.png)       |
 | **表格视图**                       | **深色模式**                          |
 | ![表格视图](site/table.png)        | ![深色模式](site/overview-dark.png)   |
+| **快速上手与订阅模板**             | **密钥库**                            |
+| ![订阅模板](site/onboarding.png)   | ![密钥库](site/vault.png)             |
 
-界面截图使用独立演示数据，不含私人账号和资产。宣传片见 [产品主页](https://songwo.github.io/zhiyu/#video)。
+界面截图使用独立演示数据，不含私人账号和资产。宣传片见 [产品主页](https://songwo.github.io/zhiyu/#video)，从安装到每个功能的用法见 [使用指南](https://songwo.github.io/zhiyu/guide.html)。
 
 ## 安装与首次使用
 
-1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.9.0-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.9.0-portable-x64.zip`。
+1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.10.0-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.10.0-portable-x64.zip`。
 2. 运行安装程序，选择安装位置。当前安装包未做代码签名，请核对发布者、下载地址和 Release 中的 SHA256 校验文件。
 3. 首次启动可选择「使用 Linux.do 登录」绑定主身份，也可直接使用默认工作区名称。创建 10 至 256 位本地主密码并再次确认，头像可稍后设置；Linux.do 登录不代替主密码，也不能找回主密码。
 4. 已有密钥库的用户确认工作区名称及原主密码即可继续，升级不会自动删除资产或演示记录。
@@ -223,7 +234,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-安装包输出到 `release/v版本号/`，本版为 `release/v1.9.0/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.9.0 发布说明](docs/releases/v1.9.0.md)。
+安装包输出到 `release/v版本号/`，本版为 `release/v1.10.0/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.10.0 发布说明](docs/releases/v1.10.0.md)。
 
 ## 项目结构
 
