@@ -28,7 +28,15 @@
 
 [社区友链 · LINUX DO](https://linux.do/) · 真诚、友善、团结、专业。
 
-## 最新版本：1.12.2
+## 最新版本：1.13.0
+
+- **备忘提醒与倒计时**：自己写事项和日期（宽带、车险、证件、还款……），可按周、月、年重复，大号倒计时显示还剩几天；完成后自动顺延到下一期。到期前多少天提醒可以调整。
+- **提醒推送到手机**：续费与备忘提醒可以经 Telegram、Server酱 / 微信、企业微信或 WxPusher 推送，只发名称和天数。
+- **自托管网页版**：`docker compose up -d` 部署在自己的服务器上，家里和公司用浏览器打开同一份资料，公司电脑不用安装；整站登录保护，密码类资料在浏览器里加密后才上传。与桌面版备份互通，见 [网页版部署说明](docs/WEB.md)。
+
+具体调整见 [1.13.0 发布说明](docs/releases/v1.13.0.md)。
+
+### 1.12.2
 
 - **全新 2 分钟宣传片**：产品主页的[宣传片](https://songwo.github.io/zhiyu/#video)重制为代码动画，每一帧都由代码画出，原创配乐 120 BPM 卡点，小蟹带你从资产总览一路看到 AI 助手、加密备份和便携版。本版没有应用功能变化。
 
@@ -90,7 +98,7 @@
 
 ## 安装与首次使用
 
-1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.12.2-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.12.2-portable-x64.zip`。
+1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.13.0-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.13.0-portable-x64.zip`。
 2. 运行安装程序，选择安装位置。当前安装包未做代码签名，请核对发布者、下载地址和 Release 中的 SHA256 校验文件。
 3. 首次启动可选择「使用 Linux.do 登录」绑定主身份，也可直接使用默认工作区名称。创建 10 至 256 位本地主密码并再次确认，头像可稍后设置；Linux.do 登录不代替主密码，也不能找回主密码。
 4. 已有密钥库的用户确认工作区名称及原主密码即可继续，升级不会自动删除资产或演示记录。
@@ -99,6 +107,18 @@
 不想安装？Releases 同时提供 Windows 便携版 `Zhiyu-x.y.z-portable-x64.zip`：解压即用，资料保存在程序旁的 `data` 文件夹，详见 [使用教程 · 便携版](docs/USER-GUIDE.md#便携版免安装)。
 
 安装软件无需 Node.js。正式安装包面向 Windows x64；macOS 的源码构建与未签名 CI 测试程序见 [macOS 构建说明](docs/MAC-BUILD.md)，不等同于已签名、公证的正式发行版。Linux 有构建配置，发布验证范围以 Release 记录为准。
+
+## 网页版（自托管）
+
+不想在公司电脑上安装，又想在家和公司都能用？把知屿部署在自己的服务器上：
+
+```bash
+git clone https://github.com/Songwo/zhiyu.git && cd zhiyu
+docker compose up -d --build
+docker compose logs zhiyu   # 找「设置口令」，打开 http://服务器:8848 创建账号
+```
+
+资料存在你的服务器上，整站登录保护；密钥库在浏览器里用主密码解密，服务器只保存密文。SSH 终端、主机监控、本机用量、邮箱检查和 AI 助手需要本机能力，只在桌面版提供。HTTPS、反向代理与备份互通见 [网页版部署说明](docs/WEB.md)。
 
 ## 功能概览
 
@@ -262,7 +282,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-安装包输出到 `release/v版本号/`，本版为 `release/v1.12.2/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.12.2 发布说明](docs/releases/v1.12.2.md)。
+安装包输出到 `release/v版本号/`，本版为 `release/v1.13.0/`。`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及本版验证要求见 [发布说明](docs/RELEASING.md#172-订阅来源与本机流量验证)，本版变化见 [v1.13.0 发布说明](docs/releases/v1.13.0.md)。
 
 ## 项目结构
 

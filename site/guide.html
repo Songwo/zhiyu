@@ -56,6 +56,8 @@
           <a href="#detail">资产详情与关联</a>
           <a href="#custom-types">自定义资产类型</a>
           <a href="#renewals">费用与续费日历</a>
+          <a href="#reminders">备忘提醒与推送</a>
+          <a href="#web">网页版（自托管）</a>
           <a href="#usage">用量记录</a>
           <a href="#docs">文档</a>
           <p>安全与数据</p>
@@ -169,6 +171,27 @@
             <li>首页「近期续费」列出未来 14 天的续费；「到期时间线」可导出 ICS，导入手机或电脑日历提醒。</li>
             <li>续费完成后点「已续费」，到期日按月付或年付顺延一期，提示里可以撤销；「让 AI 规划」会让 AI 按紧急程度排出续费顺序和合计金额。</li>
           </ol>
+        </section>
+
+        <section id="reminders" class="guide-section">
+          <h2>备忘提醒与推送</h2>
+          <ol class="guide-steps">
+            <li>在「费用与续费」的「备忘提醒」点「新建提醒」：写下事项、日期，选择是否每周 / 每月 / 每年重复，以及提前几天提醒。</li>
+            <li>卡片上的大号数字是倒计时；处理完点 ✓，重复的自动顺延到下一期，提示里可以撤销。首页「近期续费」也会列出 14 天内的提醒。</li>
+            <li>桌面版到时间会弹系统通知；在「设置 → 邮件推送」勾选「续费与备忘提醒也推送到这个渠道」，提醒会发到 Telegram、微信（Server酱 / WxPusher）或企业微信。</li>
+            <li>资产到期前多少天开始提醒，在「设置 → 后台运行」调整。</li>
+          </ol>
+        </section>
+
+        <section id="web" class="guide-section">
+          <h2>网页版（自托管）</h2>
+          <ol class="guide-steps">
+            <li>在自己的服务器上运行 <code>docker compose up -d --build</code>，用 <code>docker compose logs zhiyu</code> 找到「设置口令」。</li>
+            <li>浏览器打开 <code>http://服务器:8848</code>，用设置口令创建登录账号；之后在家和公司都用这个账号登录同一份资料。</li>
+            <li>密钥库在浏览器里用主密码解密，服务器只保存密文；放到公网前请放在 HTTPS 反向代理后面。</li>
+            <li>「设置 → 数据」可以下载加密备份到桌面版恢复，也能把桌面版备份恢复到网页版。SSH 终端、主机监控、本机用量和 AI 助手只在桌面版提供。</li>
+          </ol>
+          <p class="guide-tip">完整步骤、环境变量和 HTTPS 示例见仓库里的 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/WEB.md">docs/WEB.md</a>。</p>
         </section>
 
         <section id="usage" class="guide-section">
