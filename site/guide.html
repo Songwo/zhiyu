@@ -54,6 +54,7 @@
           <p>管理资产</p>
           <a href="#add">添加资产与订阅模板</a>
           <a href="#detail">资产详情与关联</a>
+          <a href="#custom-types">自定义资产类型</a>
           <a href="#renewals">费用与续费日历</a>
           <a href="#usage">用量记录</a>
           <a href="#docs">文档</a>
@@ -129,6 +130,17 @@
             </table>
           </div>
           <p><strong>订阅模板</strong>：在同一个窗口下方的「从常用订阅开始」，选 ChatGPT Plus、Claude Pro、Cloudflare Workers、iCloud+、Netflix 等，名称、金额、周期和下次续费日都已经填好，保存前可以修改。也可以在 <kbd>Ctrl</kbd> <kbd>K</kbd> 里搜「模板」。</p>
+        </section>
+
+        <section id="custom-types" class="guide-section">
+          <h2>自定义资产类型</h2>
+          <ol class="guide-steps">
+            <li>打开「服务资产」页，点「管理类型」→「新建类型」，填写名称、选一个图标。</li>
+            <li>添加字段（最多 12 个）：文本、链接、日期或数字，比如「内网地址」「管理页面」「购入日期」。</li>
+            <li>「添加服务」里的「资产类型」下拉选这个类型，填写字段，还可以照常填费用、到期日和标签。</li>
+            <li>用页面上方的类型按钮只看某一类；删除类型不会删除资产，它们回到「其他服务」。</li>
+          </ol>
+          <p class="guide-tip">字段内容明文保存在本机，不要填写密码或密钥；凭据请放进密钥库，再通过关联连接到资产。</p>
         </section>
 
         <section id="detail" class="guide-section">
