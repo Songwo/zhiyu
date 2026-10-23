@@ -30,6 +30,7 @@ import { KIND_LABEL } from "@/lib/status";
 import { cn, downloadText } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { MarkRenewedButton } from "./mark-renewed";
+import { RemindersSection } from "./reminders-section";
 import { DepthHero, PageSection } from "./ui/page";
 import { Input } from "./ui/input";
 
@@ -56,6 +57,7 @@ export function RenewalsWorkspace() {
   return (
     <div className="overview-layout page-stagger">
       <SpendHero summary={summary} due={due} withinDays={withinDays} />
+      <RemindersSection />
       <RenewalCalendar snapshot={snapshot} />
       <PageSection
         title={t("到期时间线")}

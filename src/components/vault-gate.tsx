@@ -1,3 +1,4 @@
+import { isWeb } from "@/lib/web";
 import { KeyRound, Lock, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -137,7 +138,11 @@ export function VaultGate() {
 
               {exists && (
                 <p className="mt-3 rounded-md bg-canvas px-3 py-2 text-2xs leading-relaxed text-muted">
-                  {t("本次运行内无需重复解锁；锁屏、休眠或退出后会重新锁定。")}
+                  {t(
+                    isWeb()
+                      ? "主密码只在这个标签页里用于解密，服务器只保存密文；刷新或关闭页面后会重新锁定。"
+                      : "本次运行内无需重复解锁；锁屏、休眠或退出后会重新锁定。",
+                  )}
                 </p>
               )}
 

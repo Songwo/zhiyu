@@ -1,3 +1,5 @@
+import { isWeb } from "./web";
+import { webStorage } from "./web-store";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { selectiveStorage } from "./selective-storage";
@@ -16,6 +18,7 @@ import type {
   Server,
   ServiceAsset,
   AssetType,
+  Reminder,
   Snapshot,
   ViewId,
 } from "./types";
@@ -34,6 +37,11 @@ import {
 import { normalizeUsageDraft } from "./usage-setup.mjs";
 import { calendarDay, normalizeBilling } from "../../electron/services/renewals.mjs";
 import { normalizeAssetType, normalizeAssetTypes } from "../../electron/services/asset-types.mjs";
+import {
+  completeReminder,
+  normalizeReminder,
+  normalizeReminders,
+} from "../../electron/services/reminders.mjs";
 import { retainActivity } from "./activity-history.mjs";
 
 export interface UsageSetupDraft {
@@ -59,6 +67,11 @@ export interface AppState extends Snapshot {
   services: ServiceAsset[];
   upsertService: (s: ServiceAsset) => void;
   assetTypes: AssetType[];
+  reminders: Reminder[];
+  upsertReminder: (reminder: Reminder) => void;
+  removeReminder: (id: string) => void;
+  /** 完成一次：不重复的标为已完成，重复的顺延到下一期。 */
+  completeReminder: (id: string) => void;
   upsertAssetType: (type: AssetType) => void;
   /** 删除类型；已用这个类型的资产保留，回到「其他服务」。 */
   removeAssetType: (id: string) => void;
@@ -154,8 +167,9 @@ export interface AppState extends Snapshot {
 }
 
 /** Sample data is a web-preview thing; the desktop app starts with your assets only. */
-const initialSnapshot = () => (isDesktop() ? EMPTY_SNAPSHOT : SEED_SNAPSHOT);
-const initialActivity = () => (isDesktop() ? [] : SEED_ACTIVITY);
+// 只有浏览器预览用演示数据；桌面版与自托管网页版从空白开始。
+const initialSnapshot = () => (isDesktop() || isWeb() ? EMPTY_SNAPSHOT : SEED_SNAPSHOT);
+const initialActivity = () => (isDesktop() || isWeb() ? [] : SEED_ACTIVITY);
 
 const emptyUi = {
   view: "overview" as ViewId,
@@ -211,7 +225,7 @@ const noopStorage: StateStorage = {
 // store — and must not touch `window` on the server render.
 function pickStorage(): StateStorage {
   if (typeof window === "undefined") return noopStorage;
-  return isDesktop() ? diskStorage : window.localStorage;
+  return isDesktop() ? diskStorage : isWeb() ? webStorage : window.localStorage;
 }
 
 export const useAppStore = create<AppState>()(
@@ -220,6 +234,7 @@ export const useAppStore = create<AppState>()(
       ...initialSnapshot(),
       services: [],
       assetTypes: [],
+      reminders: [],
       phoneNumbers: [],
       mailFolders: normalizeMailFolders(undefined),
       secretFolders: normalizeSecretFolders(undefined),
@@ -391,6 +406,13 @@ export const useAppStore = create<AppState>()(
       upsertSecret: (s) => set({ secrets: upsert(get().secrets, s) }),
       upsertCert: (s) => set({ certs: upsert(get().certs, s) }),
       upsertService: (s) => set({ services: upsert(get().services, s) }),
+      upsertReminder: (reminder) =>
+        set({
+          reminders: normalizeReminders(upsert(get().reminders, normalizeReminder(reminder))),
+        }),
+      removeReminder: (id) => set({ reminders: get().reminders.filter((r) => r.id !== id) }),
+      completeReminder: (id) =>
+        set({ reminders: get().reminders.map((r) => (r.id === id ? completeReminder(r) : r)) }),
       upsertAssetType: (type) =>
         set({
           assetTypes: normalizeAssetTypes(upsert(get().assetTypes, normalizeAssetType(type))),
@@ -455,6 +477,7 @@ export const useAppStore = create<AppState>()(
           ...initialSnapshot(),
           services: [],
           assetTypes: [],
+          reminders: [],
           phoneNumbers: [],
           links: [],
           activity: initialActivity(),
@@ -467,6 +490,7 @@ export const useAppStore = create<AppState>()(
           links: normalizeLinks(snap.links, snap),
           phoneNumbers: normalizePhoneNumbers(snap.phoneNumbers),
           assetTypes: normalizeAssetTypes(snap.assetTypes),
+          reminders: normalizeReminders(snap.reminders),
           servers: withServerExpiry(snap.servers ?? []),
           domains: withBilling(snap.domains ?? []),
           mailboxes: snap.mailboxes ?? [],
@@ -497,6 +521,7 @@ export const useAppStore = create<AppState>()(
           activity: retainActivity(saved.activity ?? current.activity),
           phoneNumbers: normalizePhoneNumbers(saved.phoneNumbers, false),
           assetTypes: normalizeAssetTypes(saved.assetTypes, false),
+          reminders: normalizeReminders(saved.reminders, false),
           servers: withServerExpiry(withTags(saved.servers)),
           domains: withBilling(withTags(saved.domains)),
           mailboxes: withTags(saved.mailboxes),
@@ -520,6 +545,7 @@ export const useAppStore = create<AppState>()(
       partialize: (s) => ({
         phoneNumbers: s.phoneNumbers,
         assetTypes: s.assetTypes,
+        reminders: s.reminders,
         links: s.links,
         servers: s.servers,
         domains: s.domains,
@@ -569,7 +595,7 @@ function collectionKey(
   kind: AssetKind,
 ): Exclude<
   keyof Snapshot,
-  "links" | "mailFolders" | "secretFolders" | "phoneNumbers" | "assetTypes"
+  "links" | "mailFolders" | "secretFolders" | "phoneNumbers" | "assetTypes" | "reminders"
 > {
   switch (kind) {
     case "server":
@@ -593,6 +619,7 @@ export function snapshotOf(s: Snapshot): Snapshot {
   return {
     phoneNumbers: s.phoneNumbers ?? [],
     assetTypes: s.assetTypes ?? [],
+    reminders: s.reminders ?? [],
     links: s.links ?? [],
     servers: s.servers,
     domains: s.domains,

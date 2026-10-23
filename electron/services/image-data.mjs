@@ -1,5 +1,6 @@
 import { normalizeServices } from "./service-assets.mjs";
 import { normalizeAssetTypes } from "./asset-types.mjs";
+import { normalizeReminders } from "./reminders.mjs";
 import { normalizeIntegrationRef } from "./integration-ref.mjs";
 import { normalizePhoneNumbers } from "./phone-numbers.mjs";
 import { hostedImageUrl } from "./hosted-image.mjs";
@@ -143,6 +144,7 @@ export function normalizeSnapshotImages(
   const result = { ...state };
   if ("services" in state) result.services = normalizeServices(state.services, strict);
   if ("assetTypes" in state) result.assetTypes = normalizeAssetTypes(state.assetTypes, strict);
+  if ("reminders" in state) result.reminders = normalizeReminders(state.reminders, strict);
   if ("phoneNumbers" in state)
     result.phoneNumbers = normalizePhoneNumbers(state.phoneNumbers, strict);
   for (const key of [

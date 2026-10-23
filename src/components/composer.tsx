@@ -1,3 +1,4 @@
+import { vaultApi } from "@/lib/vault-api";
 import { X, LogIn, Pencil, ChartNoAxesCombined, ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -225,7 +226,7 @@ function ComposerBody({
         return;
       }
     }
-    if (standaloneAccount && !isDesktop()) {
+    if (standaloneAccount && !vaultApi()) {
       toast.error(t("账号密码需要桌面版的加密密钥库，网页版不会保存账号凭据。"));
       return;
     }
@@ -249,7 +250,7 @@ function ComposerBody({
     try {
       // Secrets go to the encrypted vault before the asset is written, so a
       // half-saved record never ends up pointing at a credential that is not there.
-      if (isDesktop()) {
+      if (vaultApi()) {
         const sshDraft = kind === "server" ? sshDraftForSave(form, serverMode) : null;
         const sshCredential = sshDraft ? credentialFromForm(sshDraft) : null;
         const accountDraft = kind === "server" ? serverAccountDraft(form) : form;
@@ -263,7 +264,7 @@ function ComposerBody({
           } else {
             try {
               if (!captureStillOpen() || !accountStillOpen()) return;
-              const vault = desktop()!.vault;
+              const vault = vaultApi()!;
               const previous = editingId ? await vault.get(accountId(id)) : null;
               if (!captureStillOpen() || !accountStillOpen()) return;
               const account = accountFromForm(accountDraft, previous);
@@ -536,7 +537,7 @@ function ComposerBody({
                 <Button
                   type="submit"
                   form="asset-composer-form"
-                  disabled={imageBusy || saving || (standaloneAccount && !isDesktop())}
+                  disabled={imageBusy || saving || (standaloneAccount && !vaultApi())}
                 >
                   {editingId ? t("保存") : t("添加")}
                 </Button>

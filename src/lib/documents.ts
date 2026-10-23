@@ -1,3 +1,4 @@
+import { isWeb, webApi } from "./web";
 import { migrateServerDocument } from "./document-migration.mjs";
 import { uploadImage } from "./image-bed";
 import { inspectRaster } from "../../electron/services/image-data.mjs";
@@ -31,6 +32,16 @@ export interface DocumentsBridge {
   save(doc: DocumentAsset & { createOnly?: boolean }): Promise<DocumentAsset>;
   remove(id: string): Promise<void>;
 }
+/** 自托管网页版：文档存在服务器的 documents/ 目录（与桌面版相同）。 */
+const webDocuments: DocumentsBridge = {
+  list: () => webApi<DocumentSummary[]>("documents"),
+  get: (id) => webApi<DocumentAsset>(`documents/${encodeURIComponent(id)}`),
+  save: (doc) =>
+    webApi<DocumentAsset>(`documents/${encodeURIComponent(doc.id)}`, { method: "PUT", body: doc }),
+  remove: async (id) => {
+    await webApi(`documents/${encodeURIComponent(id)}`, { method: "DELETE", body: {} });
+  },
+};
 const local: DocumentsBridge = {
   async list() {
     const keys = Object.keys(localStorage).filter((k) => k.startsWith("nanpad-doc:doc-"));
@@ -62,7 +73,7 @@ const local: DocumentsBridge = {
   },
 };
 function api() {
-  return desktop()?.documents ?? local;
+  return desktop()?.documents ?? (isWeb() ? webDocuments : local);
 }
 export function summary(doc: DocumentAsset): DocumentSummary {
   const texts: string[] = [];

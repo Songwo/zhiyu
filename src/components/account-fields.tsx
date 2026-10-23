@@ -1,3 +1,4 @@
+import { vaultApi } from "@/lib/vault-api";
 import { Eye, EyeOff, KeyRound, Trash2, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -76,7 +77,7 @@ export function AccountFields({
   form: Record<string, string>;
   set: (key: string, value: string) => void;
 }) {
-  const bridge = desktop();
+  const vault = vaultApi();
   const unlocked = useVault((s) => s.unlocked);
   const requireVault = useVault((s) => s.require);
   const [reveal, setReveal] = useState(false);
@@ -104,9 +105,9 @@ export function AccountFields({
   useEffect(() => {
     let alive = true;
     void (async () => {
-      if (!bridge || !assetId || !unlocked || loaded) return;
+      if (!vault || !assetId || !unlocked || loaded) return;
       try {
-        const rec = await bridge.vault.get(accountId(assetId));
+        const rec = await vault.get(accountId(assetId));
         if (!alive) return;
         setLoaded(true);
         if (!rec) return;
@@ -129,12 +130,12 @@ export function AccountFields({
     return () => {
       alive = false;
     };
-  }, [bridge, assetId, unlocked, loaded, standalone]);
+  }, [vault, assetId, unlocked, loaded, standalone]);
 
-  if (!bridge)
+  if (!vault)
     return standalone ? (
       <p className="rounded-xl bg-canvas p-4 text-meta text-muted sm:col-span-2">
-        {t("账号密码需要桌面版的加密密钥库，网页版不会保存账号凭据。")}
+        {t("浏览器预览没有加密密钥库，不会保存账号凭据；请使用桌面版或自托管网页版。")}
       </p>
     ) : null;
 
@@ -262,7 +263,7 @@ export function AccountFields({
                     className="text-crit"
                     onClick={async () => {
                       try {
-                        await bridge.vault.remove(accountId(assetId));
+                        await vault.remove(accountId(assetId));
                         setStored(false);
                         for (const key of ACCOUNT_KEYS) set(key, "");
                         toast(t("已删除保存的账号信息"));

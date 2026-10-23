@@ -85,3 +85,27 @@ jobs:
       # that typecheck alone misses; db:migrate exits early without
       # DATABASE_URL, so the step needs no secrets.
       - run: npm run build
+
+      # 自托管网页版：构建同一份界面代码，跑一遍首次设置、跨设备同步与退出登录。
+      - run: npm run web:build
+      - run: node scripts/web-selfhost-integration.mjs
+
+  web-docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: 构建网页版镜像
+        run: docker build -t zhiyu-web:ci .
+      - name: 启动镜像并检查登录页与接口
+        run: |
+          docker run -d --name zhiyu -p 8848:8848 zhiyu-web:ci
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8848/api/web/state > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8848/api/web/state | grep -q '"setup":true'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8848/)" = "302"
+          curl -sf http://127.0.0.1:8848/login | grep -q '知屿'
+          docker logs zhiyu 2>&1 | grep -q '设置口令'
+          docker rm -f zhiyu

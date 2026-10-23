@@ -368,6 +368,8 @@ export interface DesktopPreferences {
   serverMonitorMinutes: number;
   closeToTray: boolean;
   notifications: boolean;
+  /** 资产到期前多少天开始提醒。 */
+  reminderDays?: number;
   locale: "zh" | "en";
   notificationSupported?: boolean;
   trayAvailable?: boolean;

@@ -55,7 +55,11 @@ import { OAUTH_PROVIDERS, signIn as oauthSignIn } from "./services/oauth.mjs";
 import { readOAuthClientFile } from "./services/oauth-client-file.mjs";
 import { Vault, vaultPath } from "./services/vault.mjs";
 import { MetricsStore } from "./services/metrics.mjs";
-import { notificationCandidates, NotificationTracker } from "./services/notifications.mjs";
+import {
+  attentionLine,
+  notificationCandidates,
+  NotificationTracker,
+} from "./services/notifications.mjs";
 import { AgentService } from "./services/agent-service.mjs";
 import { ProfileService } from "./services/profile.mjs";
 import {
@@ -161,6 +165,7 @@ let restartingForRestore = false;
 let preferences = {
   closeToTray: true,
   notifications: true,
+  reminderDays: 21,
   locale: "zh",
   zoomPercent: 100,
   serverMonitorMinutes: 5,
@@ -253,18 +258,26 @@ function showWindow() {
 }
 
 function notifyAttention() {
-  if (!preferences.notifications || !Notification.isSupported()) return;
-  const items = tracker.take(notificationCandidates(currentSnapshot));
+  const wantSystem = preferences.notifications && Notification.isSupported();
+  const items = tracker.take(
+    notificationCandidates(currentSnapshot, Date.now(), { leadDays: preferences.reminderDays }),
+  );
   if (!items.length) return;
   const en = preferences.locale === "en";
+  // 推送渠道开启了「提醒也推送」时，把到期与备忘提醒发到手机；只发名称与天数。
+  const reminders = items.filter((item) => item.reason !== "offline");
+  if (reminders.length)
+    void mailPush
+      ?.remind(
+        ["知屿提醒", ...reminders.slice(0, 10).map((item) => attentionLine(item))].join("\n"),
+      )
+      .catch((error) => console.warn("reminder-push", error.message));
+  if (!wantSystem) return;
   const notification = new Notification({
     title: en ? "Zhiyu: assets need attention" : "知屿：资产需要留意",
     body: items
       .slice(0, 5)
-      .map(
-        (item) =>
-          `${item.name}: ${item.reason === "offline" ? (en ? "Connection failed" : "连接失败") : item.days <= 0 ? (en ? "Expired" : "已到期") : en ? `Expires in ${item.days} days` : `${item.days} 天后到期`}`,
-      )
+      .map((item) => attentionLine(item, en))
       .join("\n"),
   });
   notification.on("click", () => {
@@ -1195,6 +1208,15 @@ function registerIpc() {
       safe.serverMonitorMinutes = validateMonitorMinutes(patch.serverMonitorMinutes);
     if (typeof patch?.closeToTray === "boolean") safe.closeToTray = patch.closeToTray;
     if (typeof patch?.notifications === "boolean") safe.notifications = patch.notifications;
+    if (patch && Object.hasOwn(patch, "reminderDays")) {
+      if (
+        !Number.isInteger(patch.reminderDays) ||
+        patch.reminderDays < 1 ||
+        patch.reminderDays > 90
+      )
+        throw new Error("提前提醒天数需为 1 到 90。");
+      safe.reminderDays = patch.reminderDays;
+    }
     if (patch?.locale === "zh" || patch?.locale === "en") safe.locale = patch.locale;
     return savePreferences(safe);
   });
@@ -1657,6 +1679,12 @@ if (!app.requestSingleInstanceLock()) {
       if (["zh", "en"].includes(saved.locale)) preferences.locale = saved.locale;
       preferences.zoomPercent = readZoomPercent(saved.zoomPercent);
       preferences.serverMonitorMinutes = readMonitorMinutes(saved.serverMonitorMinutes);
+      if (
+        Number.isInteger(saved.reminderDays) &&
+        saved.reminderDays >= 1 &&
+        saved.reminderDays <= 90
+      )
+        preferences.reminderDays = saved.reminderDays;
     } catch (err) {
       if (err.code !== "ENOENT") console.error("preferences:load", err.message);
     }

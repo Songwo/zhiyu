@@ -1,0 +1,17 @@
+.git
+node_modules
+release
+dist
+dist-desktop
+dist-web
+.output
+.vinxi
+screenshots
+attachments
+zhiyu-data
+site
+docs
+browser-extension
+*.bat
+.claude
+.grok

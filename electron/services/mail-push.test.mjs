@@ -90,6 +90,7 @@ test("邮件推送默认关闭且公开配置不包含凭据", async (t) => {
     hasToken: false,
     mailboxIds: [],
     intervalMinutes: 15,
+    reminders: false,
   });
   const result = await rig.service.save({ ...rig.config, enabled: false });
   assert.equal(result.hasToken, true);
@@ -666,4 +667,35 @@ test("真实邮箱与推送服务：游标与待发消息一起持久化，发�
   await fixture.restart();
   assert.equal((await fixture.push.tick()).sent, false);
   assert.equal(fixture.deliveries.length, 1);
+});
+
+test("续费与备忘提醒：开启「提醒也推送」才发送，不需要勾选邮箱", async (t) => {
+  const rig = setup(t);
+  await rig.service.save({ ...rig.config, enabled: false, mailboxIds: [] });
+  assert.equal(await rig.service.remind("知屿提醒\n宽带续费: 3 天后"), false);
+  assert.equal(rig.requests.length, 0);
+  const saved = await rig.service.save({
+    ...rig.config,
+    enabled: false,
+    mailboxIds: [],
+    reminders: true,
+  });
+  assert.equal(saved.reminders, true);
+  assert.equal(await rig.service.remind("知屿提醒\n宽带续费: 3 天后"), true);
+  assert.equal(rig.requests.length, 1);
+  assert.match(rig.requests[0].body.text, /宽带续费: 3 天后/);
+  rig.vault.unlocked = false;
+  assert.equal(await rig.service.remind("x"), false);
+  rig.vault.unlocked = true;
+  await assert.rejects(
+    rig.service.save({
+      ...rig.config,
+      token: undefined,
+      enabled: false,
+      mailboxIds: [],
+      reminders: true,
+      clearToken: true,
+    }),
+    /推送提醒前/,
+  );
 });

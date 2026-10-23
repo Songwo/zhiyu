@@ -1,3 +1,4 @@
+import { vaultApi } from "@/lib/vault-api";
 import {
   ArrowLeft,
   Check,
@@ -442,7 +443,7 @@ function Monitoring() {
 }
 
 function VaultSection() {
-  const bridge = desktop();
+  const vault = vaultApi();
   const exists = useVault((s) => s.exists);
   const unlocked = useVault((s) => s.unlocked);
   const lock = useVault((s) => s.lock);
@@ -455,7 +456,7 @@ function VaultSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!bridge) {
+  if (!vault) {
     return (
       <Section title={t("密钥库")} hint={t("浏览器预览没有密钥库；桌面版才会加密保存凭据。")}>
         <p className="text-meta text-muted">—</p>
@@ -472,7 +473,7 @@ function VaultSection() {
     }
     setBusy(true);
     try {
-      const res = await bridge!.vault.changePassword(oldPw, newPw);
+      const res = await vault!.changePassword(oldPw, newPw);
       await refresh();
       setOldPw("");
       setNewPw("");

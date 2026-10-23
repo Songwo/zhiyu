@@ -1,3 +1,4 @@
+import { vaultApi } from "@/lib/vault-api";
 import { AssetDocuments } from "./asset-documents";
 const PhoneBindings = lazy(() =>
   import("./phone-workspace").then((module) => ({ default: module.PhoneBindings })),
@@ -107,8 +108,8 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   const deleteAccount = async () => {
     if (!currentAccount || deleting) return;
     const id = currentAccount.id;
-    const bridge = desktop();
-    if (!bridge) {
+    const vault = vaultApi();
+    if (!vault) {
       toast.error(t("请在桌面版中删除加密账号。"));
       return;
     }
@@ -119,7 +120,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
         id,
         requireUnlocked: () =>
           useVault.getState().require(t("删除账号及其加密凭据需要解锁密钥库。")),
-        removeCredential: (key: string) => bridge.vault.remove(key),
+        removeCredential: (key: string) => vault.remove(key),
         removeAsset: (assetId: string) => remove("secret", assetId),
       });
     } catch (error) {

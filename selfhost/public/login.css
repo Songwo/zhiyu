@@ -1,0 +1,109 @@
+:root {
+  --bg: #f3f2ee;
+  --card: #ffffff;
+  --ink: #1b2232;
+  --muted: #5b6478;
+  --line: #dad8d0;
+  --accent: #3b6fe0;
+  --crit: #b5482f;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161f;
+    --card: #1e2433;
+    --ink: #eef0f4;
+    --muted: #8c95a8;
+    --line: #2c3447;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  display: grid;
+  min-height: 100vh;
+  margin: 0;
+  padding: 16px;
+  place-items: center;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.card {
+  width: min(420px, 100%);
+  padding: 36px 32px 28px;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 12px 40px rgb(0 0 0 / 0.08);
+}
+.logo {
+  display: block;
+}
+h1 {
+  margin: 18px 0 4px;
+  font-size: 24px;
+}
+.sub {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+form {
+  display: grid;
+  gap: 14px;
+}
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+label span {
+  color: var(--muted);
+}
+small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+}
+input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+button {
+  height: 46px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.error {
+  margin: 0;
+  color: var(--crit);
+  font-size: 13px;
+}
+.foot {
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}

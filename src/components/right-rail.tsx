@@ -1,3 +1,4 @@
+import { isWeb } from "@/lib/web";
 import { phoneExpiry } from "../../electron/services/phone-numbers.mjs";
 import { hasServerObservation, serverNeedsAttention } from "@/lib/server-observation.mjs";
 import {
@@ -238,7 +239,9 @@ export function RightRail({ className }: { className?: string }) {
           <br />
           {isDesktop()
             ? t("资产存放在本机数据文件中，凭据单独加密保存。")
-            : t("数据保存在此浏览器中，可随时导出为 JSON。")}
+            : isWeb()
+              ? t("资料保存在你自己的服务器上，凭据在浏览器里加密后才上传。")
+              : t("数据保存在此浏览器中，可随时导出为 JSON。")}
         </p>
       </div>
     </aside>

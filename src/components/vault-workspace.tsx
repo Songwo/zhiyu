@@ -1,3 +1,5 @@
+import { isWeb } from "@/lib/web";
+import { vaultApi } from "@/lib/vault-api";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -96,7 +98,7 @@ export function VaultWorkspace() {
   }
   return (
     <section className="p-4" aria-label={t("密钥分组")}>
-      {isDesktop() && (
+      {vaultApi() && (
         <div
           className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card px-4 py-3"
           role="status"
@@ -113,7 +115,9 @@ export function VaultWorkspace() {
             <p className="mt-1 text-2xs text-muted">
               {t(
                 unlocked
-                  ? "本次运行内无需重复解锁；锁屏、休眠或退出后会重新锁定。"
+                  ? isWeb()
+                    ? "主密码只在这个标签页里用于解密；刷新或关闭页面后会重新锁定。"
+                    : "本次运行内无需重复解锁；锁屏、休眠或退出后会重新锁定。"
                   : "资料仍然保留。点击账号即可解锁并查看，无需前往设置。",
               )}
             </p>
@@ -157,10 +161,12 @@ export function VaultWorkspace() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setTransferOpen(true)}>
-            <ArrowDownUp className="size-4" />
-            {t("浏览器密码")}
-          </Button>
+          {!isWeb() && (
+            <Button variant="outline" size="sm" onClick={() => setTransferOpen(true)}>
+              <ArrowDownUp className="size-4" />
+              {t("浏览器密码")}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -314,7 +320,7 @@ export function VaultWorkspace() {
                   aria-label={t("查看账号与凭据 {0}", secret.name)}
                   onClick={(event) => {
                     openFromEvent(event, "secret", secret.id);
-                    if (isDesktop() && !useVault.getState().unlocked)
+                    if (vaultApi() && !useVault.getState().unlocked)
                       void requireVault(t("解锁后继续查看和编辑账号。")).catch((error) =>
                         toast.error(String(error)),
                       );
@@ -342,7 +348,7 @@ export function VaultWorkspace() {
                   aria-label={t("编辑账号与凭据 {0}", secret.name)}
                   onClick={async () => {
                     try {
-                      if (isDesktop() && !(await requireVault(t("解锁后继续查看和编辑账号。"))))
+                      if (vaultApi() && !(await requireVault(t("解锁后继续查看和编辑账号。"))))
                         return;
                       state.openComposer("secret", secret.id);
                     } catch (error) {

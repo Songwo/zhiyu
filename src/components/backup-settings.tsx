@@ -9,6 +9,7 @@ import {
   type RestoreOutcome,
 } from "@/lib/backup";
 import { desktop } from "@/lib/desktop";
+import { isWeb, webDownloadBackup, webRestoreBackup } from "@/lib/web";
 import { intlLocale, t } from "@/lib/i18n";
 import { useVault } from "@/lib/vault-state";
 import { Button } from "./ui/button";
@@ -48,7 +49,7 @@ export function BackupSettings() {
       .then(setInfo)
       .catch(() => {});
   }, [api]);
-  if (!api) return null;
+  if (!api) return isWeb() ? <WebBackup /> : null;
   return (
     <>
       <CreateBackup secureAvailable={info?.secureAvailable ?? false} />
@@ -581,5 +582,132 @@ function AutoBackup() {
         )}
       </div>
     </Block>
+  );
+}
+
+/** 网页版：下载与桌面版同格式的加密备份；或用桌面版备份替换服务器上的资料。 */
+function WebBackup() {
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState<"backup" | "restore" | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [restorePassword, setRestorePassword] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <>
+      <Block
+        title={t("加密备份")}
+        hint={t(
+          "把服务器上的资产、文档和密钥库打包成一个文件下载到这台电脑，用备份密码加密。格式与桌面版相同，可以在桌面版恢复。",
+        )}
+      >
+        <form
+          className="flex flex-wrap items-end gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setError(null);
+            setBusy("backup");
+            webDownloadBackup(password)
+              .then(() => {
+                setPassword("");
+                toast.success(t("已下载加密备份"));
+              })
+              .catch((err) => setError(message(err)))
+              .finally(() => setBusy(null));
+          }}
+        >
+          <Field label={t("备份密码")}>
+            <Input
+              type="password"
+              aria-label={t("备份密码")}
+              value={password}
+              autoComplete="new-password"
+              minLength={10}
+              maxLength={256}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Field>
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            disabled={busy !== null || password.length < 10}
+          >
+            {busy === "backup" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Archive className="size-3.5" />
+            )}
+            {t("下载加密备份")}
+          </Button>
+        </form>
+      </Block>
+      <Block
+        title={t("从备份恢复")}
+        hint={t(
+          "选择桌面版或网页版导出的 .zhiyu-backup 文件，服务器上的资产、文档和密钥库会整体替换成备份里的内容。",
+        )}
+      >
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!file) return;
+            setError(null);
+            setBusy("restore");
+            webRestoreBackup(file, restorePassword)
+              .then(() => {
+                toast.success(t("已恢复备份，正在重新载入"));
+                setTimeout(() => location.reload(), 600);
+              })
+              .catch((err) => setError(message(err)))
+              .finally(() => setBusy(null));
+          }}
+        >
+          <input
+            type="file"
+            accept=".zhiyu-backup"
+            aria-label={t("备份文件")}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="block text-meta"
+          />
+          <Field label={t("备份密码")}>
+            <Input
+              type="password"
+              aria-label={t("恢复用的备份密码")}
+              value={restorePassword}
+              autoComplete="off"
+              onChange={(e) => setRestorePassword(e.target.value)}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-meta">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(e) => setConfirmed(e.target.checked)}
+            />
+            {t("我知道这会替换服务器上的全部资料（原资料留在服务器的 restore-snapshots 目录）")}
+          </label>
+          <Button
+            type="submit"
+            variant="danger"
+            size="sm"
+            disabled={busy !== null || !file || !restorePassword || !confirmed}
+          >
+            {busy === "restore" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <RotateCcw className="size-3.5" />
+            )}
+            {t("恢复这个备份")}
+          </Button>
+        </form>
+      </Block>
+      {error && (
+        <p role="alert" className="text-meta text-crit">
+          {error}
+        </p>
+      )}
+    </>
   );
 }

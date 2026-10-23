@@ -6528,3 +6528,131 @@ p {
   background: color-mix(in oklab, var(--kind-ai) 13%, var(--color-card));
   box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--kind-ai) 60%, transparent);
 }
+
+/* ==========================================================================
+   备忘提醒：大号倒计时卡片
+   ========================================================================== */
+.reminder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+.reminder-card {
+  --tone: var(--color-muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 18px 18px 20px;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+.reminder-card[data-tone="due"] {
+  --tone: var(--color-warn);
+}
+.reminder-card[data-tone="over"] {
+  --tone: var(--color-crit);
+}
+.reminder-count {
+  display: grid;
+  min-width: 76px;
+  justify-items: center;
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--tone) 10%, var(--color-card));
+  color: var(--tone);
+}
+.reminder-count strong {
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.reminder-count span {
+  font-size: 12px;
+}
+.reminder-card h3 {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reminder-meta {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.reminder-note {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12.5px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.reminder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.reminder-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 16px;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.reminder-empty > svg {
+  width: 26px;
+  height: 26px;
+}
+.reminder-templates {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.reminder-templates button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-ink);
+  font-size: 13px;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.reminder-templates button:hover {
+  background: var(--color-selected);
+}
+.reminder-done {
+  margin-top: 12px;
+}
+.reminder-done ul {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.reminder-done li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  color: var(--color-muted);
+  font-size: 13px;
+  text-decoration: line-through;
+}
+.reminder-form {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+.upcoming-row[data-kind="reminder"] {
+  --event: var(--color-link);
+}

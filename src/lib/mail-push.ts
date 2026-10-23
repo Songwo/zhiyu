@@ -7,6 +7,8 @@ export interface MailPushConfig {
   hasToken: boolean;
   mailboxIds: string[];
   intervalMinutes: number;
+  /** 续费与备忘提醒也推送到这个渠道。 */
+  reminders?: boolean;
 }
 
 export interface MailPushInput extends Omit<MailPushConfig, "hasToken"> {

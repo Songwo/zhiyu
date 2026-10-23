@@ -7,6 +7,7 @@ const DEFAULTS = Object.freeze({
   destination: "",
   mailboxIds: [],
   intervalMinutes: 15,
+  reminders: false,
 });
 
 function publicConfig(record) {
@@ -18,6 +19,7 @@ function publicConfig(record) {
     hasToken: Boolean(config.token),
     mailboxIds: [...config.mailboxIds],
     intervalMinutes: config.intervalMinutes,
+    reminders: config.reminders === true,
   };
 }
 
@@ -110,6 +112,9 @@ export class MailPushService {
     ) {
       throw new Error("推送凭据格式不正确。");
     }
+    if (input.reminders !== undefined && typeof input.reminders !== "boolean") {
+      throw new Error("提醒推送开关不正确。");
+    }
     if (input.clearToken !== undefined && typeof input.clearToken !== "boolean") {
       throw new Error("清除凭据选项不正确。");
     }
@@ -142,6 +147,8 @@ export class MailPushService {
       ) {
         throw new Error("启用前请填写推送凭据、目标并选择邮箱。");
       }
+      if (input.reminders === true && (!token || (requiresDestination(provider) && !destination)))
+        throw new Error("推送提醒前请填写推送凭据和目标。");
       const reset =
         targetChanged ||
         enteredToken ||
@@ -155,6 +162,7 @@ export class MailPushService {
         token,
         mailboxIds,
         intervalMinutes,
+        reminders: input.reminders === true,
         observed: reset ? {} : (previous?.observed ?? {}),
         checkpoints: reset ? {} : (previous?.checkpoints ?? {}),
         pending: reset ? {} : (previous?.pending ?? {}),
@@ -189,6 +197,26 @@ export class MailPushService {
     } finally {
       if (this.#controller === controller) this.#controller = null;
       this.#testing = false;
+    }
+  }
+
+  /** 到期与备忘提醒：渠道已配置且开启「提醒也推送」时发送一条，只含名称与天数。 */
+  async remind(text) {
+    if (!this.#vault.unlocked || this.#saving || this.#testing) return false;
+    const record = await this.#vault.get(RECORD);
+    if (
+      !record?.reminders ||
+      !record.token ||
+      (requiresDestination(record.provider) && !record.destination)
+    )
+      return false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20_000);
+    try {
+      await this.#send(record, String(text).slice(0, 2000), controller.signal);
+      return true;
+    } finally {
+      clearTimeout(timer);
     }
   }
 

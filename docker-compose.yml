@@ -1,0 +1,18 @@
+# 知屿网页版（自托管）
+#   docker compose up -d --build
+#   docker compose logs zhiyu   # 首次启动在这里找「设置口令」
+services:
+  zhiyu:
+    build: .
+    image: zhiyu-web:latest
+    container_name: zhiyu
+    restart: unless-stopped
+    ports:
+      - "8848:8848"
+    environment:
+      # 放在 HTTPS 反向代理（Caddy / Nginx）后面时设为 "1"，登录 Cookie 只走 HTTPS。
+      ZHIYU_SECURE_COOKIE: "0"
+      # 反向代理会转发真实 IP 时设为 "1"，登录失败次数按真实 IP 计算。
+      ZHIYU_TRUST_PROXY: "0"
+    volumes:
+      - ./zhiyu-data:/data

@@ -1,3 +1,4 @@
+import { isWeb, webLogout } from "@/lib/web";
 import {
   FileText,
   Phone,
@@ -583,7 +584,12 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
           {item(t("键盘快捷键"), () => window.dispatchEvent(new Event(SHORTCUTS_EVENT)))}
           {vaultUnlocked && item(t("立即锁定密钥库"), () => void lockVault())}
           <div className="my-1 border-t border-line" />
-          {item(isDesktop() ? t("清空全部数据") : t("重置演示数据"), () => resetDemo(), "danger")}
+          {isWeb() && item(t("退出登录"), () => void webLogout())}
+          {item(
+            isDesktop() || isWeb() ? t("清空全部数据") : t("重置演示数据"),
+            () => resetDemo(),
+            "danger",
+          )}
         </div>
       )}
     </div>

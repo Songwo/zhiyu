@@ -1,3 +1,4 @@
+import { vaultApi } from "@/lib/vault-api";
 import { Copy, ExternalLink, Eye, EyeOff, KeyRound, Lock, UserRound } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -21,6 +22,12 @@ import { AccountTotp } from "./account-totp";
  */
 export function AccountPanel({ assetId, kind }: { assetId: string; kind: AssetKind }) {
   const bridge = desktop();
+  const vault = vaultApi();
+  // 网页版没有系统浏览器桥，直接在新标签页打开。
+  const openLink = (url: string) =>
+    bridge
+      ? bridge.openExternal(url)
+      : Promise.resolve(void window.open(url, "_blank", "noopener,noreferrer"));
   const unlocked = useVault((s) => s.unlocked);
   const requireVault = useVault((s) => s.require);
   const openComposer = useAppStore((s) => s.openComposer);
@@ -48,7 +55,7 @@ export function AccountPanel({ assetId, kind }: { assetId: string; kind: AssetKi
     setChecked(false);
     setLoadError(false);
     void (async () => {
-      if (!bridge || !unlocked || (kind === "secret" && identityProvider)) {
+      if (!vault || !unlocked || (kind === "secret" && identityProvider)) {
         if (alive) {
           setRecord(null);
           setChecked(false);
@@ -56,7 +63,7 @@ export function AccountPanel({ assetId, kind }: { assetId: string; kind: AssetKi
         return;
       }
       try {
-        const rec = await bridge.vault.get(accountId(assetId));
+        const rec = await vault.get(accountId(assetId));
         if (alive) {
           setRecord(rec as AccountCredential | null);
           setChecked(true);
@@ -71,9 +78,9 @@ export function AccountPanel({ assetId, kind }: { assetId: string; kind: AssetKi
     return () => {
       alive = false;
     };
-  }, [bridge, assetId, unlocked, composerOpen, loadAttempt, kind, identityProvider]);
+  }, [vault, assetId, unlocked, composerOpen, loadAttempt, kind, identityProvider]);
 
-  if (!bridge) return null;
+  if (!vault) return null;
   if (kind === "secret" && identityProvider === "linuxdo")
     return (
       <>
@@ -147,13 +154,11 @@ export function AccountPanel({ assetId, kind }: { assetId: string; kind: AssetKi
               <button
                 type="button"
                 className="truncate text-left text-meta text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink"
-                onClick={() =>
-                  bridge.openExternal(record.url!).catch(() => toast(t("无法打开链接")))
-                }
+                onClick={() => openLink(record.url!).catch(() => toast(t("无法打开链接")))}
               >
                 {record.url}
               </button>
-              <IconAction label={t("打开")} onClick={() => bridge.openExternal(record.url!)}>
+              <IconAction label={t("打开")} onClick={() => openLink(record.url!)}>
                 <ExternalLink className="size-3.5" />
               </IconAction>
             </Row>

@@ -98,6 +98,15 @@ export function MailPushSettings() {
           />
           {t("启用自动邮件推送")}
         </label>
+        <label className="flex min-h-10 items-center gap-3 text-meta">
+          <input
+            type="checkbox"
+            checked={config.reminders === true}
+            onChange={(event) => patch({ reminders: event.target.checked })}
+            className="size-4 accent-ink"
+          />
+          {t("续费与备忘提醒也推送到这个渠道")}
+        </label>
         <Field label={t("推送渠道")}>
           <Select
             aria-label={t("推送渠道")}
@@ -223,6 +232,7 @@ export function MailPushSettings() {
                   destination: config.destination,
                   mailboxIds: config.mailboxIds,
                   intervalMinutes: config.intervalMinutes,
+                  reminders: config.reminders === true,
                   token: token || undefined,
                   clearToken,
                 });

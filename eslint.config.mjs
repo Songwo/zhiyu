@@ -11,6 +11,8 @@ export default tseslint.config(
     ignores: [
       "dist/**",
       "dist-desktop/**",
+      "dist-web/**",
+      "zhiyu-data/**",
       "release/**",
       ".output/**",
       ".vercel/**",

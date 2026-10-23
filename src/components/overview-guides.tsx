@@ -13,6 +13,8 @@ import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PageSection } from "./ui/page";
 import { MarkRenewedButton } from "./mark-renewed";
+import { countdown, REPEAT_LABEL } from "@/lib/reminder-labels";
+import { daysUntil } from "../../electron/services/reminders.mjs";
 
 /** 首页「快速开始」：五步清单，按已有资料自动打勾；全部完成或收起后不再显示。 */
 export function QuickStart() {
@@ -134,12 +136,21 @@ export function UpcomingRenewals() {
     end.setDate(end.getDate() + 14);
     return renewalCalendar(snapshot, { from: dayKey(today), to: dayKey(end) });
   }, [snapshot]);
-  if (!hydrated || !entries.length) return null;
+  const reminders = useAppStore((s) => s.reminders);
+  const memos = useMemo(() => {
+    const now = new Date();
+    return reminders
+      .filter((r) => !r.done)
+      .map((r) => ({ r, days: daysUntil(r.dueAt, now) }))
+      .filter(({ days }) => days <= 14)
+      .sort((a, b) => a.days - b.days);
+  }, [reminders]);
+  if (!hydrated || (!entries.length && !memos.length)) return null;
   const state = useAppStore.getState();
   return (
     <PageSection
       title={t("近期续费")}
-      description={t("未来 14 天内到期或按周期续费的 {0} 项", entries.length)}
+      description={t("未来 14 天内到期或按周期续费的 {0} 项", entries.length + memos.length)}
       aria-label={t("近期续费")}
       action={
         <button type="button" className="section-link" onClick={() => state.setView("renewals")}>
@@ -149,7 +160,46 @@ export function UpcomingRenewals() {
       }
     >
       <div className="upcoming-list">
-        {entries.slice(0, 5).map((entry) => (
+        {memos.slice(0, 3).map(({ r, days }) => (
+          <div key={r.id} className="renewal-row">
+            <button
+              type="button"
+              className="upcoming-row"
+              data-kind="reminder"
+              onClick={() => state.setView("renewals")}
+            >
+              <span className="date-block" aria-label={r.dueAt}>
+                <span className="date-block-month">{r.dueAt.slice(5, 7)}</span>
+                <span className="date-block-day">{r.dueAt.slice(8, 10)}</span>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="upcoming-name">{r.title}</span>
+                <span className="upcoming-meta">
+                  <i aria-hidden="true" />
+                  {t("提醒")} · {t(REPEAT_LABEL[r.repeat])}
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "due-pill",
+                  days <= 3 ? "text-crit" : days <= 7 ? "text-warn" : "text-muted",
+                )}
+              >
+                {countdown(days)}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="renewed-action"
+              aria-label={t("完成 {0}", r.title)}
+              onClick={() => state.completeReminder(r.id)}
+            >
+              <Check aria-hidden="true" />
+              <span>{t("完成")}</span>
+            </button>
+          </div>
+        ))}
+        {entries.slice(0, Math.max(2, 5 - memos.length)).map((entry) => (
           <div key={entry.key} className="renewal-row">
             <button
               type="button"

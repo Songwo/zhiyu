@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { desktop } from "./desktop";
+import { vaultApi } from "./vault-api";
 
 interface VaultState {
   checked: boolean;
@@ -27,46 +27,47 @@ export const useVault = create<VaultState>((set, get) => ({
   prompt: null,
 
   refresh: async () => {
-    const bridge = desktop();
-    if (!bridge) {
+    const api = vaultApi();
+    if (!api) {
       set({ checked: true, exists: false, unlocked: false });
       return;
     }
-    const status = await bridge.vault.status();
+    const status = await api.status();
     set({ checked: true, exists: status.exists, unlocked: status.unlocked });
   },
 
   create: async (master) => {
-    await desktop()?.vault.create(master);
+    await vaultApi()?.create(master);
     set({ exists: true, unlocked: true });
     get().resolvePrompt(true);
   },
 
   unlock: async (master) => {
-    await desktop()?.vault.unlock(master);
+    await vaultApi()?.unlock(master);
     set({ exists: true, unlocked: true });
     get().resolvePrompt(true);
   },
 
   lock: async () => {
-    await desktop()?.vault.lock();
+    await vaultApi()?.lock();
     set({ unlocked: false });
   },
 
   require: async (reason) => {
-    const bridge = desktop();
-    if (!bridge) return false;
-    const status = await bridge.vault.status();
+    const api = vaultApi();
+    if (!api) return false;
+    const status = await api.status();
     set({ checked: true, exists: status.exists, unlocked: status.unlocked });
     if (status.unlocked) return true;
     // A second caller joins the dialog already on screen instead of stacking one.
-    if (pending) return new Promise<boolean>((resolve) => {
-      const previous = pending!;
-      pending = (ok) => {
-        previous(ok);
-        resolve(ok);
-      };
-    });
+    if (pending)
+      return new Promise<boolean>((resolve) => {
+        const previous = pending!;
+        pending = (ok) => {
+          previous(ok);
+          resolve(ok);
+        };
+      });
     set({ prompt: { reason } });
     return new Promise<boolean>((resolve) => {
       pending = resolve;

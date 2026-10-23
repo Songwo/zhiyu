@@ -14,6 +14,7 @@ const collections = [
   "certs",
   "services",
   "assetTypes",
+  "reminders",
   "phoneNumbers",
   "mailFolders",
   "secretFolders",

@@ -1,3 +1,4 @@
+import { isWeb } from "@/lib/web";
 import { hasServerMetrics, hasServerObservation } from "@/lib/server-observation.mjs";
 import { subscriptionCost } from "@/lib/subscription-cost";
 const DocumentsWorkspace = lazy(() =>
@@ -738,7 +739,20 @@ function TagsView() {
   );
 }
 
+/** 网页版不能直连主机，终端只在桌面版提供。 */
 function TerminalView() {
+  if (isWeb())
+    return (
+      <div className="mx-4 mt-4">
+        <Empty
+          text={t("网页版不提供 SSH 终端：浏览器不能直接连接主机。需要终端时请使用桌面版。")}
+        />
+      </div>
+    );
+  return <TerminalList />;
+}
+
+function TerminalList() {
   const list = useAppStore((s) => s.servers);
   const openSsh = useAppStore((s) => s.openSsh);
   const cpuMap = useLive((s) => s.cpu);

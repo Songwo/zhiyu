@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>登录 · 知屿 Zhiyu</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/login.css" />
+  </head>
+  <body>
+    <main class="card">
+      <img class="logo" src="/favicon.svg" alt="" width="56" height="56" />
+      <h1 id="title">登录知屿</h1>
+      <p class="sub" id="sub">你的数字资产工作台</p>
+      <form id="form" novalidate>
+        <label id="token-row" hidden>
+          <span>设置口令</span>
+          <input id="token" autocomplete="one-time-code" spellcheck="false" />
+          <small>首次启动时打印在服务器日志里，也保存在资料目录的 server/setup-token.txt</small>
+        </label>
+        <label>
+          <span>用户名</span>
+          <input id="username" autocomplete="username" spellcheck="false" required />
+        </label>
+        <label>
+          <span>登录密码</span>
+          <input id="password" type="password" autocomplete="current-password" required />
+        </label>
+        <label id="confirm-row" hidden>
+          <span>再次输入密码</span>
+          <input id="confirm" type="password" autocomplete="new-password" />
+        </label>
+        <p class="error" id="error" role="alert" hidden></p>
+        <button id="submit" type="submit">登录</button>
+      </form>
+      <p class="foot">登录密码只用于打开网页；密码类资料由密钥库主密码在浏览器里加密。</p>
+    </main>
+    <script src="/login.js" type="module"></script>
+  </body>
+</html>

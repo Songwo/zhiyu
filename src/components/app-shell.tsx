@@ -1,3 +1,5 @@
+import { isWeb } from "@/lib/web";
+import { startWebSync } from "@/lib/web-store";
 import { Bot, FileText, House, Phone, Server } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { Toaster, toast } from "sonner";
@@ -38,10 +40,12 @@ import { startServerMonitor } from "../../electron/services/server-monitor.mjs";
 import { useVault } from "@/lib/vault-state";
 import { useDocuments } from "@/lib/documents";
 import { t, subscribeLocale, getLocale } from "@/lib/i18n";
+import { useBrowserReminders } from "@/lib/browser-reminders";
 
 export function AppShell() {
   const locale = useSyncExternalStore(subscribeLocale, getLocale, () => "zh" as const);
   useEffect(() => startLocaleSync(), []);
+  useBrowserReminders();
   useEffect(() => startNavHistory(), []);
   useEffect(() => startDisplaySync((message) => toast(t("界面大小设置失败：{0}", message))), []);
   useEffect(() => {
@@ -150,11 +154,17 @@ export function AppShell() {
   useEffect(() => {
     void Promise.resolve(useAppStore.persist.rehydrate()).then(() => setHydrated(true));
   }, [setHydrated]);
+  // 网页版：回到页面时载入其他设备写入的新资料。
+  useEffect(
+    () =>
+      isWeb() ? startWebSync(async () => void (await useAppStore.persist.rehydrate())) : undefined,
+    [],
+  );
 
   // Web preview only: the numbers have nothing behind them, so they drift
   // instead of sitting frozen. The desktop build reads the real thing below.
   useEffect(() => {
-    if (isDesktop()) return;
+    if (isDesktop() || isWeb()) return;
     const tick = () => {
       const servers = useAppStore.getState().servers;
       for (const s of servers) {

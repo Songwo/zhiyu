@@ -56,6 +56,19 @@ export interface AssetTypeField {
   label: string;
   kind: AssetTypeFieldKind;
 }
+/** 备忘提醒：自己写的事项与日期，可重复，到期前 leadDays 天开始提醒。 */
+export interface Reminder {
+  id: string;
+  title: string;
+  note: string;
+  /** YYYY-MM-DD */
+  dueAt: string;
+  repeat: "none" | "week" | "month" | "year";
+  leadDays: number;
+  done?: boolean;
+  doneAt?: string;
+  asset?: { kind: AssetKind; id: string };
+}
 /** 用户自定义的资产类型：名称、图标和一组字段。 */
 export interface AssetType {
   id: string;
@@ -262,6 +275,7 @@ export interface PhoneNumber {
 export interface Snapshot {
   services?: ServiceAsset[];
   assetTypes?: AssetType[];
+  reminders?: Reminder[];
   phoneNumbers?: PhoneNumber[];
   mailFolders?: import("./mail-folders").MailFolder[];
   secretFolders?: import("./secret-folders").SecretFolder[];

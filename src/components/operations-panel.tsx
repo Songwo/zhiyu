@@ -428,6 +428,22 @@ export function DesktopSettings() {
               onChange={(e) => void save({ notifications: e.target.checked })}
             />
           </label>
+          <label className="flex items-center justify-between gap-3 text-meta">
+            <span>{t("到期前多少天开始提醒")}</span>
+            <select
+              aria-label={t("到期前多少天开始提醒")}
+              value={prefs.reminderDays ?? 21}
+              disabled={busy}
+              onChange={(e) => void save({ reminderDays: Number(e.target.value) })}
+              className="rounded-md border border-line bg-card px-2 py-1"
+            >
+              {[3, 7, 14, 21, 30, 60, 90].map((days) => (
+                <option key={days} value={days}>
+                  {t("{0} 天", days)}
+                </option>
+              ))}
+            </select>
+          </label>
           {prefs.trayAvailable === false && <p className="tool-error">{t("系统托盘不可用")}</p>}
           {prefs.notificationSupported === false && (
             <p className="tool-error">{t("系统通知不可用")}</p>
