@@ -7,10 +7,14 @@ import { CardTag } from "./tag-bar";
 import { StatusBadge } from "./ui/status-badge";
 import { AssetImage } from "./image-picker";
 import { SERVICE_LABELS } from "@/lib/services";
+import { fieldRows, safeHref, typeIcon, typeOf } from "@/lib/asset-types";
+import { useAppStore } from "@/lib/store";
 const ICONS = { worker: Zap, blog: Globe, mail: Mail, custom: Blocks };
 
 export function ServiceCard({ data, compact = true }: { data: ServiceAsset; compact?: boolean }) {
-  const Icon = ICONS[data.category];
+  const type = useAppStore((state) => typeOf(state.assetTypes, data));
+  const Icon = type ? typeIcon(type.icon) : ICONS[data.category];
+  const rows = fieldRows(type, data);
   return (
     <article
       className={cn(
@@ -49,7 +53,7 @@ export function ServiceCard({ data, compact = true }: { data: ServiceAsset; comp
             <StatusBadge status={data.status} />
           </div>
           <p className="mt-1 truncate text-meta text-muted">
-            {t(SERVICE_LABELS[data.category])}
+            {type ? type.name : t(SERVICE_LABELS[data.category])}
             {data.provider ? ` · ${data.provider}` : ""}
           </p>
         </div>
@@ -68,6 +72,27 @@ export function ServiceCard({ data, compact = true }: { data: ServiceAsset; comp
             {data.url}
           </a>
         ))}
+      {rows.length > 0 && (
+        <dl className="service-fields">
+          {rows.slice(0, compact ? 3 : rows.length).map((row) => {
+            const href = row.kind === "url" ? safeHref(row.value) : null;
+            return (
+              <div key={row.id}>
+                <dt>{row.label}</dt>
+                <dd>
+                  {href && !compact ? (
+                    <a href={href} target="_blank" rel="noreferrer" className="text-link">
+                      {row.value}
+                    </a>
+                  ) : (
+                    row.value
+                  )}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      )}
       {data.notes && (
         <p
           className={cn(

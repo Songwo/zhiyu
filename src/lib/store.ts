@@ -15,6 +15,7 @@ import type {
   Secret,
   Server,
   ServiceAsset,
+  AssetType,
   Snapshot,
   ViewId,
 } from "./types";
@@ -32,6 +33,7 @@ import {
 } from "../../electron/services/phone-numbers.mjs";
 import { normalizeUsageDraft } from "./usage-setup.mjs";
 import { calendarDay, normalizeBilling } from "../../electron/services/renewals.mjs";
+import { normalizeAssetType, normalizeAssetTypes } from "../../electron/services/asset-types.mjs";
 import { retainActivity } from "./activity-history.mjs";
 
 export interface UsageSetupDraft {
@@ -56,6 +58,10 @@ export interface ExpandState {
 export interface AppState extends Snapshot {
   services: ServiceAsset[];
   upsertService: (s: ServiceAsset) => void;
+  assetTypes: AssetType[];
+  upsertAssetType: (type: AssetType) => void;
+  /** 删除类型；已用这个类型的资产保留，回到「其他服务」。 */
+  removeAssetType: (id: string) => void;
   phoneNumbers: PhoneNumber[];
   phoneFilter: "all" | "attention" | "expired" | "active" | "unknown";
   phoneFocusId: string | null;
@@ -213,6 +219,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       ...initialSnapshot(),
       services: [],
+      assetTypes: [],
       phoneNumbers: [],
       mailFolders: normalizeMailFolders(undefined),
       secretFolders: normalizeSecretFolders(undefined),
@@ -384,6 +391,19 @@ export const useAppStore = create<AppState>()(
       upsertSecret: (s) => set({ secrets: upsert(get().secrets, s) }),
       upsertCert: (s) => set({ certs: upsert(get().certs, s) }),
       upsertService: (s) => set({ services: upsert(get().services, s) }),
+      upsertAssetType: (type) =>
+        set({
+          assetTypes: normalizeAssetTypes(upsert(get().assetTypes, normalizeAssetType(type))),
+        }),
+      removeAssetType: (id) =>
+        set({
+          assetTypes: get().assetTypes.filter((type) => type.id !== id),
+          services: get().services.map((service) => {
+            if (service.typeId !== id) return service;
+            const { typeId: _typeId, fields: _fields, ...rest } = service;
+            return rest;
+          }),
+        }),
 
       remove: (kind, id) => {
         const key = collectionKey(kind);
@@ -434,6 +454,7 @@ export const useAppStore = create<AppState>()(
         set({
           ...initialSnapshot(),
           services: [],
+          assetTypes: [],
           phoneNumbers: [],
           links: [],
           activity: initialActivity(),
@@ -445,6 +466,7 @@ export const useAppStore = create<AppState>()(
         set({
           links: normalizeLinks(snap.links, snap),
           phoneNumbers: normalizePhoneNumbers(snap.phoneNumbers),
+          assetTypes: normalizeAssetTypes(snap.assetTypes),
           servers: withServerExpiry(snap.servers ?? []),
           domains: withBilling(snap.domains ?? []),
           mailboxes: snap.mailboxes ?? [],
@@ -474,6 +496,7 @@ export const useAppStore = create<AppState>()(
           ...saved,
           activity: retainActivity(saved.activity ?? current.activity),
           phoneNumbers: normalizePhoneNumbers(saved.phoneNumbers, false),
+          assetTypes: normalizeAssetTypes(saved.assetTypes, false),
           servers: withServerExpiry(withTags(saved.servers)),
           domains: withBilling(withTags(saved.domains)),
           mailboxes: withTags(saved.mailboxes),
@@ -496,6 +519,7 @@ export const useAppStore = create<AppState>()(
       },
       partialize: (s) => ({
         phoneNumbers: s.phoneNumbers,
+        assetTypes: s.assetTypes,
         links: s.links,
         servers: s.servers,
         domains: s.domains,
@@ -543,7 +567,10 @@ function upsert<T extends { id: string }>(list: T[], item: T): T[] {
 
 function collectionKey(
   kind: AssetKind,
-): Exclude<keyof Snapshot, "links" | "mailFolders" | "secretFolders" | "phoneNumbers"> {
+): Exclude<
+  keyof Snapshot,
+  "links" | "mailFolders" | "secretFolders" | "phoneNumbers" | "assetTypes"
+> {
   switch (kind) {
     case "server":
       return "servers";
@@ -565,6 +592,7 @@ function collectionKey(
 export function snapshotOf(s: Snapshot): Snapshot {
   return {
     phoneNumbers: s.phoneNumbers ?? [],
+    assetTypes: s.assetTypes ?? [],
     links: s.links ?? [],
     servers: s.servers,
     domains: s.domains,

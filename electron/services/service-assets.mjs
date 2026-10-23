@@ -1,5 +1,6 @@
 import { normalizeIntegrationRef } from "./integration-ref.mjs";
 import { calendarDay, normalizeBilling } from "./renewals.mjs";
+import { normalizeFieldValues } from "./asset-types.mjs";
 const CATEGORIES = new Set(["worker", "blog", "mail", "custom"]);
 const STATUSES = new Set(["online", "warning", "offline"]);
 
@@ -46,6 +47,8 @@ export function normalizeService(value) {
   )
     throw new Error("服务标签无效。");
   const expiresAt = calendarDay(item.expiresAt);
+  const typeId = text("typeId", 200);
+  const fields = normalizeFieldValues(item.fields);
   const billing = normalizeBilling(item.billing);
   return {
     id,
@@ -61,6 +64,8 @@ export function normalizeService(value) {
     ...(item.integration == null ? {} : { integration: normalizeIntegrationRef(item.integration) }),
     ...(expiresAt ? { expiresAt } : {}),
     ...(billing ? { billing } : {}),
+    ...(typeId ? { typeId } : {}),
+    ...(fields ? { fields } : {}),
   };
 }
 

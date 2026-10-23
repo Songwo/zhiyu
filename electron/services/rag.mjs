@@ -157,6 +157,18 @@ export function assetDocuments(
               : asset[key],
         ]),
       );
+      if (kind === "service" && typeof asset.typeId === "string") {
+        // 自定义类型：带上类型名与字段（名称 + 用户填写的值），字段提示里已要求不填凭据。
+        const type = (snapshot.assetTypes ?? []).find((entry) => entry.id === asset.typeId);
+        if (type && typeof type.name === "string") {
+          fields.assetType = type.name.slice(0, 40);
+          for (const field of (type.fields ?? []).slice(0, 12)) {
+            const value = asset.fields?.[field.id];
+            if (typeof field.label === "string" && typeof value === "string" && value)
+              fields[`field ${field.label.slice(0, 40)}`] = value.slice(0, 500);
+          }
+        }
+      }
       if (kind === "mail") {
         const folder = mailFolders.find((entry) => entry.id === asset.folderId);
         fields.folderId = folder?.id ?? "";

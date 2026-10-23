@@ -12,7 +12,7 @@ const RenewalsWorkspace = lazy(() =>
 const UsageWorkspace = lazy(() =>
   import("./usage-workspace").then((m) => ({ default: m.UsageWorkspace })),
 );
-import { lazy, Suspense, useMemo, type ReactNode } from "react";
+import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Search, SquareTerminal, X, LayoutGrid, Table2, Network, Plus } from "lucide-react";
 const AssetWorkspace = lazy(() =>
@@ -20,6 +20,7 @@ const AssetWorkspace = lazy(() =>
 );
 import { IntegrationsEntry } from "./integrations/entry";
 import { ServiceCard } from "./service-card";
+import { AssetTypeManagerButton } from "./asset-type-manager";
 import { Overview } from "./overview";
 import { NAV } from "./sidebar";
 import { AssetOrganizer } from "./asset-organizer";
@@ -486,19 +487,48 @@ function ServersView() {
 
 function ServicesView() {
   const list = useAppStore((s) => s.services);
-  const items = useListFilter(list, (s) => [
+  const types = useAppStore((s) => s.assetTypes);
+  const [typeFilter, setTypeFilter] = useState("all");
+  // 删掉正在筛选的类型后回到全部。
+  const activeType = types.some((type) => type.id === typeFilter) ? typeFilter : "all";
+  const byType = useMemo(
+    () => (activeType === "all" ? list : list.filter((s) => s.typeId === activeType)),
+    [list, activeType],
+  );
+  const items = useListFilter(byType, (s) => [
     s.name,
     s.category,
     s.url,
     s.provider,
+    types.find((type) => type.id === s.typeId)?.name ?? "",
+    Object.values(s.fields ?? {}).join(" "),
     tagsOf(s).join(" "),
   ]);
   return (
-    <AssetList
-      items={items}
-      empty={t("没有匹配的服务。点击「添加服务」记录 Workers、博客或自建服务。")}
-      render={(s) => <ServiceCard key={s.id} data={s} />}
-    />
+    <>
+      <div className="service-type-bar mx-4 mt-4">
+        {types.length > 0 && (
+          <div className="service-type-chips" role="group" aria-label={t("按资产类型筛选")}>
+            {[{ id: "all", name: t("全部类型") }, ...types].map((type) => (
+              <button
+                key={type.id}
+                type="button"
+                aria-pressed={activeType === type.id}
+                onClick={() => setTypeFilter(type.id)}
+              >
+                {type.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <AssetTypeManagerButton />
+      </div>
+      <AssetList
+        items={items}
+        empty={t("没有匹配的服务。点击「添加服务」记录 Workers、博客或自建服务。")}
+        render={(s) => <ServiceCard key={s.id} data={s} />}
+      />
+    </>
   );
 }
 

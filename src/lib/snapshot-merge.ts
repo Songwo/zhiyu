@@ -13,6 +13,7 @@ const collections = [
   "secrets",
   "certs",
   "services",
+  "assetTypes",
   "phoneNumbers",
   "mailFolders",
   "secretFolders",

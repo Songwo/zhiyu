@@ -60,7 +60,7 @@ try {
   await editor.getByLabel("服务名称", { exact: true }).fill("合成边缘服务");
   await chooseOption(
     page,
-    editor.getByRole("combobox", { name: "服务类型" }),
+    editor.getByRole("combobox", { name: "资产类型" }),
     "Cloudflare Workers",
   );
   await editor.getByLabel("服务网址", { exact: true }).fill("https://fixture.workers.dev/");
@@ -97,7 +97,7 @@ try {
   await details.getByRole("button", { name: "编辑", exact: true }).click();
   editor = page.getByRole("dialog", { name: "服务资产", exact: true });
   await editor.getByLabel("服务名称", { exact: true }).fill("合成博客服务");
-  await chooseOption(page, editor.getByRole("combobox", { name: "服务类型" }), "个人博客");
+  await chooseOption(page, editor.getByRole("combobox", { name: "资产类型" }), "个人博客");
   await editor.getByRole("button", { name: "保存", exact: true }).click();
   await editor.waitFor({ state: "detached" });
   await page.getByRole("button", { name: "查看服务 合成博客服务", exact: true }).waitFor();

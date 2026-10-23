@@ -6328,3 +6328,175 @@ p {
 .calendar-agenda-list .renewal-row:has(.renewed-action) {
   padding-right: 2px;
 }
+
+/* ==========================================================================
+   自定义资产类型
+   ========================================================================== */
+.service-type-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.service-type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.service-type-chips button {
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-card);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-muted);
+  font-size: 13px;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.service-type-chips button:hover {
+  color: var(--color-ink);
+}
+.service-type-chips button[aria-pressed="true"] {
+  background: var(--color-ink);
+  box-shadow: none;
+  color: var(--color-card);
+}
+.service-fields {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-selected) 55%, var(--color-card));
+  font-size: 12.5px;
+}
+.service-fields > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.service-fields dt {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+.service-fields dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.asset-type-manager,
+.asset-type-form {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+.asset-type-empty {
+  padding: 24px 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.asset-type-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.asset-type-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+.asset-type-list li div {
+  display: grid;
+  gap: 2px;
+}
+.asset-type-list li strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asset-type-list li div > span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.asset-type-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+.asset-type-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.asset-type-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.asset-type-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.asset-type-icons {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+.asset-type-icons button {
+  display: grid;
+  height: 38px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--color-muted);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.asset-type-icons button:hover {
+  color: var(--color-ink);
+}
+.asset-type-icons button.is-selected {
+  background: var(--color-ink);
+  box-shadow: none;
+  color: var(--color-card);
+}
+.asset-type-icons svg {
+  width: 18px;
+  height: 18px;
+}
+.asset-type-fields {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.asset-type-fields li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px auto;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 520px) {
+  .asset-type-icons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

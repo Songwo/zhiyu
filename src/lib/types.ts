@@ -44,6 +44,24 @@ export interface ServiceAsset extends Taggable {
   /** 订阅或托管到期日 YYYY-MM-DD。 */
   expiresAt?: string;
   billing?: Billing;
+  /** 自定义资产类型的标识；没有时按内置的 category 显示。 */
+  typeId?: string;
+  /** 自定义字段的值，键是类型里的字段标识。 */
+  fields?: Record<string, string>;
+}
+
+export type AssetTypeFieldKind = "text" | "url" | "date" | "number";
+export interface AssetTypeField {
+  id: string;
+  label: string;
+  kind: AssetTypeFieldKind;
+}
+/** 用户自定义的资产类型：名称、图标和一组字段。 */
+export interface AssetType {
+  id: string;
+  name: string;
+  icon: string;
+  fields: AssetTypeField[];
 }
 
 /** How the desktop app authenticates to a host. The secret itself is in the vault. */
@@ -243,6 +261,7 @@ export interface PhoneNumber {
 
 export interface Snapshot {
   services?: ServiceAsset[];
+  assetTypes?: AssetType[];
   phoneNumbers?: PhoneNumber[];
   mailFolders?: import("./mail-folders").MailFolder[];
   secretFolders?: import("./secret-folders").SecretFolder[];

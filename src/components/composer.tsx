@@ -29,7 +29,8 @@ import type {
   Snapshot,
 } from "@/lib/types";
 import { normalizeService } from "../../electron/services/service-assets.mjs";
-import { SERVICE_LABELS } from "@/lib/services";
+import { ServiceTypeFields } from "./asset-type-fields";
+import { fieldKey, fieldsFromForm } from "@/lib/asset-type-form";
 import { uid } from "@/lib/utils";
 import { billingFormValues } from "@/lib/billing";
 import { billingFromForm } from "../../electron/services/renewals.mjs";
@@ -746,17 +747,7 @@ function kindFields(
     case "service":
       return [
         F("name", t("服务名称"), { required: true }),
-        <Field key="category" label={t("服务类型")}>
-          <Select
-            aria-label={t("服务类型")}
-            value={form.category || "custom"}
-            onValueChange={(value) => set("category", value)}
-            options={Object.entries(SERVICE_LABELS).map(([value, label]) => ({
-              value,
-              label: t(label),
-            }))}
-          />
-        </Field>,
+        <ServiceTypeFields key="_type" form={form} set={set} />,
         F("url", t("服务网址"), { span: true, placeholder: "https://example.com" }),
         F("provider", t("提供方")),
         <Field key="status" label={t("手动记录状态")}>
@@ -893,6 +884,13 @@ function defaults(kind: AssetKind, existing: unknown): Record<string, string> {
     if (kind === "server" && o.authKind) out._authKind = String(o.authKind);
     if (kind === "ai" && o.monthlyUsdKnown === false) out.monthlyUsd = "";
     delete out.billing;
+    if (kind === "service") {
+      delete out.fields;
+      for (const [id, value] of Object.entries(
+        (o.fields as Record<string, string> | undefined) ?? {},
+      ))
+        out[fieldKey(id)] = value;
+    }
     if (kind === "server" || kind === "domain" || kind === "service")
       Object.assign(out, billingFormValues(o.billing as Billing | undefined));
     return out;
@@ -1109,7 +1107,9 @@ function persist(
           id,
           integration: (existing as ServiceAsset | null)?.integration,
           name: form.name,
-          category: form.category,
+          category: form.typeId ? "custom" : form.category,
+          typeId: form.typeId || undefined,
+          fields: fieldsFromForm(form, form.typeId),
           url: form.url,
           provider: form.provider,
           status: form.status,
