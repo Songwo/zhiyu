@@ -6500,3 +6500,31 @@ p {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* 新建资产窗口里的「自定义资产」分区 */
+.custom-type-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+}
+.custom-type-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.custom-type-section > p {
+  margin: 4px 0 12px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.create-type-option.custom-type-new {
+  background: color-mix(in oklab, var(--kind-ai) 7%, var(--color-card));
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--kind-ai) 40%, transparent);
+}
+.create-type-option.custom-type-new svg {
+  color: var(--kind-ai);
+}
+.create-type-option.custom-type-new:hover {
+  background: color-mix(in oklab, var(--kind-ai) 13%, var(--color-card));
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--kind-ai) 60%, transparent);
+}

@@ -164,6 +164,16 @@ function Palette({ shown, onClose }: { shown: boolean; onClose: () => void }) {
           },
         },
         {
+          id: "action:custom-type",
+          search: t("自定义资产 自定义类型 字段 NAS 新建类型"),
+          icon: Sparkles,
+          label: t("新建自定义资产类型"),
+          run: () => {
+            onClose();
+            useAppStore.getState().setCreatePickerOpen(true);
+          },
+        },
+        {
           id: "action:calendar",
           search: t("续费日历 到期 续费 费用"),
           icon: CalendarDays,

@@ -34,9 +34,12 @@ export function AssetTypeManagerButton() {
 export function AssetTypeManager({
   onClose,
   startNew = false,
+  onSaved,
 }: {
   onClose: () => void;
   startNew?: boolean;
+  /** 保存成功后调用，参数是实际保存的类型。 */
+  onSaved?: (type: AssetType) => void;
 }) {
   const types = useAppStore((s) => s.assetTypes);
   const services = useAppStore((s) => s.services);
@@ -56,11 +59,13 @@ export function AssetTypeManager({
           onCancel={() => (startNew ? onClose() : setDraft(null))}
           onSave={() => {
             try {
-              useAppStore.getState().upsertAssetType({
+              const saved = {
                 ...draft,
                 fields: draft.fields.filter((field) => field.label.trim()),
-              });
+              };
+              useAppStore.getState().upsertAssetType(saved);
               toast.success(t("已保存类型「{0}」", draft.name.trim()));
+              onSaved?.(saved);
               if (startNew) onClose();
               else setDraft(null);
             } catch (error) {
