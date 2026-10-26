@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld("sinan", {
     remove: (id) => unwrap(ipcRenderer.invoke("integrations:remove", id)),
     inventory: (id, force = false) => unwrap(ipcRenderer.invoke("integrations:inventory", id, force)),
     bind: (input) => unwrap(ipcRenderer.invoke("integrations:bind", input)),
+    importZones: (input) => unwrap(ipcRenderer.invoke("integrations:importZones", input)),
+    syncZones: (id) => unwrap(ipcRenderer.invoke("integrations:syncZones", id)),
     unbind: (input) => unwrap(ipcRenderer.invoke("integrations:unbind", input)),
     dnsList: (id, zoneId, force = false) => unwrap(ipcRenderer.invoke("integrations:dnsList", id, zoneId, force)),
     dnsPreview: (input) => unwrap(ipcRenderer.invoke("integrations:dnsPreview", input)),

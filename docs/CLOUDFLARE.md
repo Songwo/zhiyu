@@ -14,8 +14,19 @@
 | Workers 清单 | Workers Scripts   |
 | Pages 清单   | Cloudflare Pages  |
 | Tunnel 清单  | Cloudflare Tunnel |
+| 域名到期日   | 账户 · 域名注册（Registrar）· 读取，可选 |
 
 新增、修改、删除 DNS 另外需要对应 Zone 的 DNS 编辑权限。不要使用 Global API Key，也不要将 Token 放进资源地址、文档、截图或 Git 配置。
+
+## 在域名页快速连接
+
+桌面版「域名」页顶部有「连接 Cloudflare」入口：粘贴 API Token 后，知屿先验证并读取账户下的全部域名；Token 无效或没有任何读取权限时不会保留这个连接。随后可以在列表里勾选要导入的域名：
+
+- 每个 Cloudflare 域名对应一个本机域名资产，重复导入只更新、不新增，备注、标签、费用等本机资料不会被覆盖。
+- 导入时写入 Cloudflare 的 NS，DNS 服务商记为 Cloudflare。
+- 域名在 Cloudflare 注册时，用 Registrar 注册信息（`GET /accounts/{account_id}/registrar/registrations`，游标分页）填入到期日与自动续费，并据此计算状态。没有 Registrar 权限或域名不在 Cloudflare 注册时静默跳过，不产生警告；这类域名导入后用页面右上角「刷新」通过 WHOIS 补全到期日，列表里也会提示。
+- 「同步」按钮只更新已导入的域名（NS、到期日、自动续费），不会新增资产。
+- 已导入的 Cloudflare 域名在表格操作列有「管理 DNS」按钮，可直接查看、新增、修改和删除记录（流程见下文 DNS 支持）。
 
 ## 资源与状态
 

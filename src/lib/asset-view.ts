@@ -1,5 +1,6 @@
 import { hasServerMetrics, hasServerObservation } from "./server-observation.mjs";
-import type { AssetKind, Snapshot, Status, ViewId } from "./types.ts";
+import type { AssetKind, Billing, Snapshot, Status, ViewId } from "./types.ts";
+import type { IntegrationRef } from "./integrations.ts";
 import { refKey, type AssetRef } from "./operations.ts";
 
 export interface AssetRow extends AssetRef {
@@ -12,6 +13,26 @@ export interface AssetRow extends AssetRef {
   cpu?: number;
   memory?: number;
   monthlyUsd?: number;
+  /** 以下字段只在对应类型的表格里使用，每类资产各取所需。 */
+  disk?: number;
+  os?: string;
+  region?: string;
+  billing?: Billing;
+  registrar?: string;
+  dns?: string;
+  autoRenew?: boolean;
+  integration?: IntegrationRef;
+  provider?: string;
+  plan?: string;
+  usageText?: string;
+  issuer?: string;
+  mailKind?: "mailbox" | "alias" | "forward";
+  mailUsedPct?: number;
+  secretKind?: string;
+  lastRotated?: string;
+  serviceCategory?: string;
+  serviceTypeName?: string;
+  url?: string;
   search: string;
 }
 
@@ -57,29 +78,63 @@ export function assetRows(s: Snapshot): AssetRow[] {
         pending: !hasServerObservation(x),
         cpu: hasServerMetrics(x) ? x.cpu : undefined,
         memory: hasServerMetrics(x) ? x.memory : undefined,
+        disk: hasServerMetrics(x) ? x.disk : undefined,
+        os: x.os,
+        region: x.region,
+        expires: x.expiresAt,
+        billing: x.billing,
+        integration: x.integration,
         search:
           `${x.name} ${x.host} ${x.username} ${x.label} ${x.os} ${x.region} ${x.tags.join(" ")}`.toLocaleLowerCase(),
       }),
     ),
     ...s.domains.map((x) =>
-      row("domain", x, x.name, `${x.registrar} · ${x.dns}`, { expires: x.expiresAt }),
+      row("domain", x, x.name, `${x.registrar} · ${x.dns}`, {
+        expires: x.expiresAt || undefined,
+        registrar: x.registrar,
+        dns: x.dns,
+        autoRenew: x.autoRenew,
+        billing: x.billing,
+        integration: x.integration,
+      }),
     ),
     ...s.certs.map((x) =>
       row("cert", x, x.cn, x.issuer, {
         expires: x.expiresAt,
+        issuer: x.issuer,
         search: `${x.cn} ${x.issuer} ${x.sans.join(" ")} ${x.tags.join(" ")}`.toLocaleLowerCase(),
       }),
     ),
-    ...s.mailboxes.map((x) => row("mail", x, x.address, x.forwardTo || x.domain)),
+    ...s.mailboxes.map((x) =>
+      row("mail", x, x.address, x.forwardTo || x.domain, {
+        mailKind: x.kind,
+        mailUsedPct: x.quotaMb > 0 ? Math.min(100, (x.usedMb / x.quotaMb) * 100) : undefined,
+      }),
+    ),
     ...s.aiAssets.map((x) =>
       row("ai", x, x.name, `${x.provider} · ${x.plan}`, {
         expires: x.oauthAccountId ? (x.subscriptionExpiresAt ?? undefined) : x.renewsAt,
         monthlyUsd: x.monthlyUsdKnown === false ? undefined : x.monthlyUsd,
+        provider: x.provider,
+        plan: x.plan,
+        usageText: x.usageSummary || (x.usagePct > 0 ? `${Math.round(x.usagePct)}%` : undefined),
       }),
     ),
-    ...s.secrets.map((x) => row("secret", x, x.name, x.kind)),
+    ...s.secrets.map((x) =>
+      row("secret", x, x.name, x.kind, { secretKind: x.kind, lastRotated: x.lastRotated }),
+    ),
     ...(s.services ?? []).map((x) =>
-      row("service", x, x.name, `${x.provider} · ${x.url || x.category}`),
+      row("service", x, x.name, `${x.provider} · ${x.url || x.category}`, {
+        expires: x.expiresAt,
+        billing: x.billing,
+        provider: x.provider,
+        serviceCategory: x.category,
+        serviceTypeName: x.typeId
+          ? s.assetTypes?.find((type) => type.id === x.typeId)?.name
+          : undefined,
+        url: x.url,
+        integration: x.integration,
+      }),
     ),
   ];
 }

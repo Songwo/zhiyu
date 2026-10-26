@@ -325,3 +325,79 @@ test("服务检查历史按范围缓存，拒绝非法状态且不保留未知�
   status = "unknown";
   await assert.rejects(service.probeCheckHistory(c.id, "check-1", "24h"), /格式无效/);
 });
+
+test("批量导入域名：新增资产带上 NS、到期日与自动续费，重复导入只更新不新增", async (t) => {
+  const { service, state, api } = await setup(t);
+  const c = await service.save({ provider: "cloudflare", name: "cloud", token: secret });
+  const zone = (name, id, extra = {}) => ({
+    key: `zone::${id}`,
+    type: "zone",
+    remoteId: id,
+    name,
+    url: `https://${name}/`,
+    status: "active",
+    zone: { nameServers: ["a.ns.cloudflare.com"], paused: false, ...extra },
+  });
+  const resources = [
+    zone("registered.test", "z1", {
+      registrar: "Cloudflare",
+      expiresAt: "2099-03-08T00:00:00.000Z",
+      autoRenew: true,
+    }),
+    zone("elsewhere.test", "z2"),
+  ];
+  api.inventory = async () => ({ resources, warnings: [], fetchedAt: "2026-10-26T00:00:00Z" });
+  await assert.rejects(service.importZones({ connectionId: c.id, resourceKeys: [] }), /选择/);
+  const first = await service.importZones({
+    connectionId: c.id,
+    resourceKeys: resources.map((r) => r.key),
+  });
+  assert.deepEqual([first.created, first.updated], [2, 0]);
+  const registered = state.snapshot.domains.find((d) => d.name === "registered.test");
+  assert.equal(registered.registrar, "Cloudflare");
+  assert.equal(registered.expiresAt, "2099-03-08");
+  assert.equal(registered.autoRenew, true);
+  assert.equal(registered.status, "online");
+  assert.deepEqual(registered.nameservers, ["a.ns.cloudflare.com"]);
+  assert.equal(registered.dns, "Cloudflare");
+  const elsewhere = state.snapshot.domains.find((d) => d.name === "elsewhere.test");
+  assert.equal(elsewhere.expiresAt, "");
+  assert.equal(elsewhere.status, "warning");
+
+  // 用户改过的备注和标签，以及 WHOIS 查到的到期日，不会被没有注册信息的同步覆盖。
+  state.snapshot.domains = state.snapshot.domains.map((d) =>
+    d.name === "elsewhere.test" ? { ...d, notes: "mine", tags: ["x"], expiresAt: "2098-01-01" } : d,
+  );
+  resources[0].zone.expiresAt = "2100-01-01T00:00:00.000Z";
+  resources[1].zone.nameServers = ["b.ns.cloudflare.com"];
+  const sync = await service.syncZones(c.id);
+  assert.equal(sync.updated, 2);
+  assert.equal(state.snapshot.domains.length, 2);
+  const synced = state.snapshot.domains.find((d) => d.name === "elsewhere.test");
+  assert.equal(synced.notes, "mine");
+  assert.deepEqual(synced.tags, ["x"]);
+  assert.equal(synced.expiresAt, "2098-01-01");
+  assert.deepEqual(synced.nameservers, ["b.ns.cloudflare.com"]);
+  assert.equal(
+    state.snapshot.domains.find((d) => d.name === "registered.test").expiresAt,
+    "2100-01-01",
+  );
+
+  const again = await service.importZones({ connectionId: c.id, resourceKeys: [resources[0].key] });
+  assert.deepEqual([again.created, again.updated], [0, 1]);
+  assert.equal(state.snapshot.domains.length, 2);
+});
+test("导入域名只支持 Cloudflare 连接", async (t) => {
+  const { service } = await setup(t);
+  const probe = await service.save({
+    provider: "probe",
+    name: "probe",
+    endpoint: "https://probe.example.test",
+    token: secret,
+  });
+  await assert.rejects(
+    service.importZones({ connectionId: probe.id, resourceKeys: ["x"] }),
+    /类型/,
+  );
+  await assert.rejects(service.syncZones(probe.id), /类型/);
+});

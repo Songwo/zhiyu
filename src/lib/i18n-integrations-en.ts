@@ -134,4 +134,49 @@ export const INTEGRATIONS_EN: Record<string, string> = {
   已激活: "Active",
   未激活: "Inactive",
   降级: "Degraded",
+  费用: "Cost",
+  "管理 {0} 的 DNS": "Manage DNS for {0}",
+  "系统 / 地区": "OS / Region",
+  "DNS 服务商": "DNS provider",
+  续费方式: "Renewal",
+  自动续费: "Auto-renew",
+  手动续费: "Manual renewal",
+  证书域名: "Certificate domain",
+  颁发者: "Issuer",
+  "额度 / 用量": "Quota / usage",
+  容量已用: "Storage used",
+  "已同步 {0} 个域名": "Synced {0} domains",
+  域名信息已是最新: "Domain info is already up to date",
+  "连接 Cloudflare": "Connect Cloudflare",
+  "填入 API Token，自动读取账户下的全部域名与到期时间，并可在这里直接修改 DNS 记录。":
+    "Paste an API token to read every domain in your account with expiry dates, and edit DNS records right here.",
+  "已连接 Cloudflare。查看账户下的域名、到期时间，并管理 DNS。":
+    "Cloudflare is connected. Review your domains and expiry dates, and manage DNS.",
+  预览与导入域名: "Preview & import domains",
+  同步: "Sync",
+  "先在 Cloudflare 创建一个 API Token": "First create an API token in Cloudflare",
+  "区域 · 区域 · 读取：必需，用来列出账户下的全部域名。":
+    "Zone · Zone · Read: required, lists every domain in the account.",
+  "区域 · DNS · 编辑：需要在知屿里修改 DNS 时授予；只看可只给读取。":
+    "Zone · DNS · Edit: grant it to change DNS in Zhiyu; read-only is enough for viewing.",
+  "账户 · 域名注册（Registrar）· 读取：可选，用来读取在 Cloudflare 注册的域名到期日。":
+    "Account · Registrar · Read: optional, reads expiry dates of domains registered at Cloudflare.",
+  "资源范围请限定到你的账户和域名。不要使用 Global API Key。":
+    "Limit the token to your account and domains. Do not use the Global API Key.",
+  "打开 Cloudflare 创建 Token": "Open Cloudflare to create a token",
+  "正在验证…": "Verifying…",
+  连接并读取域名: "Connect and read domains",
+  "已导入 {0} 个、更新 {1} 个域名": "Imported {0}, updated {1} domains",
+  "Cloudflare 域名 · {0}": "Cloudflare domains · {0}",
+  "共 {0} 个域名，已导入 {1} 个，{2} 个带有到期日":
+    "{0} domains, {1} imported, {2} with an expiry date",
+  取消全选: "Select none",
+  "导入所选 ({0})": "Import selected ({0})",
+  搜索域名: "Search domains",
+  "选择 {0}": "Select {0}",
+  "非 Cloudflare 注册，导入后通过 WHOIS 补全到期日":
+    "Not registered at Cloudflare; the expiry date is filled from WHOIS after import",
+  没有匹配的域名: "No matching domains",
+  "这个 Token 下没有可读取的域名。请确认已授予“区域 · 区域 · 读取”。":
+    "No readable domains for this token. Make sure it has “Zone · Zone · Read”.",
 };

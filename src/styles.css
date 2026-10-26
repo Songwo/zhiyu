@@ -1487,27 +1487,36 @@ p {
 .asset-table tbody tr:hover td:first-child {
   background: var(--color-line);
 }
-.asset-table th:nth-child(2) {
-  width: 78px;
-}
-.asset-table th:nth-child(3) {
-  width: 90px;
-}
-.asset-table th:nth-child(4) {
-  width: 132px;
-}
-.asset-table th:nth-child(5),
-.asset-table th:nth-child(6) {
-  width: 76px;
-}
-.asset-table th:nth-child(7) {
-  width: 94px;
-}
-.asset-table th:nth-child(8) {
-  width: 140px;
+/* 操作列吸附在右侧：列数随资产类型变化，窄窗口下也始终点得到。 */
+.asset-table th:last-child,
+.asset-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--color-card);
 }
 .asset-table th:last-child {
-  width: 94px;
+  background: var(--color-canvas);
+}
+.asset-table tbody tr:hover td:last-child {
+  background: var(--color-line);
+}
+.table-stack {
+  display: grid;
+  gap: 2px;
+}
+.table-stack > small {
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+}
+.table-stack > .table-stack-warn {
+  color: var(--color-danger, #c0392b);
+}
+.table-ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .asset-name {
   display: block;

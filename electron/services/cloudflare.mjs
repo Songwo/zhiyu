@@ -205,6 +205,29 @@ function resource(type, value, accountId) {
     status = ["initializing", "pending", "active", "moved", "deactivated"].includes(value.status)
       ? value.status
       : "unknown";
+    const nameServers = Array.isArray(value.name_servers)
+      ? value.name_servers
+          .filter((item) => typeof item === "string")
+          .map((item) => text(item, 253).toLowerCase())
+          .filter(Boolean)
+          .slice(0, 8)
+      : [];
+    return {
+      key: `${type}:${accountId || ""}:${remoteId}`,
+      type,
+      remoteId,
+      ...(accountId ? { accountId } : {}),
+      name,
+      url,
+      status,
+      zone: {
+        nameServers,
+        ...(typeof value.created_on === "string" && Number.isFinite(Date.parse(value.created_on))
+          ? { createdOn: new Date(value.created_on).toISOString() }
+          : {}),
+        paused: value.paused === true,
+      },
+    };
   } else if (type === "pages" && typeof value.subdomain === "string") {
     const host = hostname(value.subdomain);
     if (host.endsWith(".pages.dev")) url = `https://${host}/`;
@@ -428,6 +451,45 @@ export class CloudflareClient {
     throw invalid("Cloudflare 分页超过读取上限，请缩小 Token 的资源范围");
   }
 
+  /** 只有在 Cloudflare 注册的域名才有注册信息；游标分页，最多 100 页。 */
+  async registrations(accountId) {
+    const base = `/accounts/${identifier(accountId, "账户")}/registrar/registrations?per_page=50`;
+    const rows = [];
+    let cursor = "";
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const data = await this.#request(
+        cursor ? `${base}&cursor=${encodeURIComponent(cursor)}` : base,
+      );
+      if (!Array.isArray(data.result)) throw invalid();
+      for (const row of data.result) {
+        if (!object(row) || typeof row.domain_name !== "string") continue;
+        let domain;
+        try {
+          domain = hostname(row.domain_name);
+        } catch {
+          continue;
+        }
+        const expires =
+          typeof row.expires_at === "string" && Number.isFinite(Date.parse(row.expires_at))
+            ? new Date(row.expires_at).toISOString()
+            : "";
+        rows.push({
+          domain,
+          expiresAt: expires,
+          autoRenew: typeof row.auto_renew === "boolean" ? row.auto_renew : undefined,
+          status: text(row.status, 40),
+        });
+      }
+      if (rows.length > MAX_ROWS)
+        throw invalid("Cloudflare 资源超过读取上限，请缩小 Token 的资源范围");
+      const next = data.result_info?.cursor;
+      if (typeof next !== "string" || !next) return rows;
+      if (next === cursor) throw invalid("Cloudflare 返回了异常分页，请刷新后重试");
+      cursor = next;
+    }
+    throw invalid("Cloudflare 分页超过读取上限，请缩小 Token 的资源范围");
+  }
+
   async inventory() {
     this.#cancelled();
     const resources = [];
@@ -486,6 +548,33 @@ export class CloudflareClient {
         ),
       ]);
       for (const list of results) if (list) resources.push(...list);
+      // 注册信息是附加数据：没有 Registrar 权限或域名不在此注册时静默跳过。
+      try {
+        const own = new Map(
+          resources
+            .filter((row) => row.type === "zone" && row.accountId === accountId)
+            .map((row) => [row.name, row]),
+        );
+        if (own.size) {
+          for (const reg of await this.registrations(accountId)) {
+            const zone = own.get(reg.domain);
+            if (!zone) continue;
+            zone.zone.registrar = "Cloudflare";
+            if (reg.expiresAt) zone.zone.expiresAt = reg.expiresAt;
+            if (reg.autoRenew !== undefined) zone.zone.autoRenew = reg.autoRenew;
+            if (reg.status) zone.zone.registrationStatus = reg.status;
+          }
+        }
+      } catch (error) {
+        if (error.code === "cancelled" || this.#signal?.aborted) {
+          this.#cancelled();
+          throw error;
+        }
+        if (!["permission", "auth", "not-found"].includes(error.code))
+          warnings.push(
+            `域名注册信息：${error instanceof CloudflareError ? error.message : "返回的数据格式不正确"}`,
+          );
+      }
       if (resources.length > MAX_ROWS)
         throw invalid("Cloudflare 资源超过读取上限，请缩小 Token 的资源范围");
     }

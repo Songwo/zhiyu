@@ -48,10 +48,36 @@ test("Cloudflare 逐页获取账户、域名和 Pages，不分页查询 Workers�
             name: page === 1 ? "example.test" : "second.test",
             status: "active",
             account: { id: ACCOUNT },
+            name_servers: ["Ada.NS.Cloudflare.com", "bob.ns.cloudflare.com"],
+            created_on: "2025-01-02T03:04:05Z",
+            paused: false,
           },
         ],
         { page, total_pages: 2 },
       );
+    if (url.pathname.endsWith("/registrar/registrations"))
+      return url.searchParams.get("cursor")
+        ? reply(
+            [{ domain_name: "second.test", expires_at: null, status: "registration_pending" }],
+            {
+              count: 1,
+              cursor: "",
+              per_page: 50,
+            },
+          )
+        : reply(
+            [
+              {
+                domain_name: "Example.test",
+                expires_at: "2027-03-08T00:00:00Z",
+                auto_renew: true,
+                status: "active",
+                locked: true,
+                credentials: TOKEN,
+              },
+            ],
+            { count: 1, cursor: "next-page", per_page: 50 },
+          );
     if (url.pathname.endsWith("/workers/scripts"))
       return reply([{ id: "hello", bindings: [{ value: TOKEN }] }]);
     if (url.pathname.endsWith("/pages/projects"))
@@ -87,6 +113,15 @@ test("Cloudflare 逐页获取账户、域名和 Pages，不分页查询 Workers�
   assert.deepEqual(result.warnings, []);
   assert.ok(!Number.isNaN(Date.parse(result.fetchedAt)));
   assert.equal(result.resources.find((r) => r.type === "worker").status, "unknown");
+  const zone = result.resources.find((r) => r.name === "example.test").zone;
+  assert.deepEqual(zone.nameServers, ["ada.ns.cloudflare.com", "bob.ns.cloudflare.com"]);
+  assert.equal(zone.createdOn, "2025-01-02T03:04:05.000Z");
+  assert.equal(zone.registrar, "Cloudflare");
+  assert.equal(zone.expiresAt, "2027-03-08T00:00:00.000Z");
+  assert.equal(zone.autoRenew, true);
+  const pending = result.resources.find((r) => r.name === "second.test").zone;
+  assert.equal(pending.registrar, "Cloudflare");
+  assert.equal(pending.expiresAt, undefined);
   assert.equal(result.resources.find((r) => r.type === "pages").url, "https://site-1.pages.dev/");
   assert.equal(calls.filter((c) => c.url.pathname.endsWith("/workers/scripts")).length, 1);
   assert.equal(calls.find((c) => c.url.pathname.endsWith("/workers/scripts")).url.search, "");
@@ -391,4 +426,26 @@ test("无 Content-Length 的超大响应也拒绝，服务商错误字段和网�
   ).instance.dnsList(ZONE);
   assert.ok(!JSON.stringify(result).includes(TOKEN));
   assert.throws(() => normalizeDnsInput(dns({ name: 42 })), /域名格式/);
+});
+
+test("没有 Registrar 权限或域名不在 Cloudflare 注册时静默跳过，其他错误才提示", async () => {
+  const run = (registrar) =>
+    client((url) => {
+      if (url.pathname.endsWith("/accounts")) return reply([{ id: ACCOUNT }]);
+      if (url.pathname.endsWith("/zones"))
+        return reply([
+          { id: ZONE, name: "example.test", status: "active", account: { id: ACCOUNT } },
+        ]);
+      if (url.pathname.endsWith("/registrar/registrations")) return registrar();
+      return reply([]);
+    }).instance.inventory();
+  for (const status of [401, 403, 404]) {
+    const result = await run(() => failure(status));
+    assert.deepEqual(result.warnings, [], `HTTP ${status}`);
+    assert.equal(result.resources.find((r) => r.type === "zone").zone.expiresAt, undefined);
+  }
+  const broken = await run(() => failure(500));
+  assert.equal(broken.warnings.length, 1);
+  assert.ok(broken.warnings[0].startsWith("域名注册信息："));
+  assert.equal(broken.resources.find((r) => r.type === "zone").name, "example.test");
 });

@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { CloudflareClient, normalizeDnsInput } from "./cloudflare.mjs";
-import { bindResource, unbindResource } from "./integration-assets.mjs";
+import { bindResource, syncBoundZones, unbindResource } from "./integration-assets.mjs";
 import {
   probeEndpoint,
   probeRequest,
@@ -21,6 +21,8 @@ const methods = [
   "remove",
   "inventory",
   "bind",
+  "importZones",
+  "syncZones",
   "unbind",
   "dnsList",
   "dnsPreview",
@@ -311,6 +313,58 @@ export class Integrations {
         return result.snapshot;
       });
       return asset;
+    });
+  }
+  /** 批量导入（或更新）所选域名；每个 Cloudflare 域名对应一个本机域名资产。 */
+  async importZones(input) {
+    const access = await this.#access(input?.connectionId, "cloudflare");
+    const keys = input.resourceKeys;
+    if (
+      !Array.isArray(keys) ||
+      keys.length === 0 ||
+      keys.length > 1000 ||
+      keys.some((key) => typeof key !== "string")
+    )
+      throw new Error("请选择要导入的域名。");
+    const inventory = await this.inventory(access.connection.id, true);
+    const wanted = new Set(keys);
+    const zones = inventory.resources.filter((r) => r.type === "zone" && wanted.has(r.key));
+    if (!zones.length) throw new Error("所选域名已不存在，请刷新后重试。");
+    return this.#enqueue(async () => {
+      access.assert();
+      let created = 0;
+      let updated = 0;
+      const assets = [];
+      await this.#mutate((snapshot) => {
+        access.assert();
+        let next = snapshot;
+        for (const zone of zones) {
+          const before = (next.domains ?? []).length;
+          const result = bindResource(next, access.connection, zone);
+          if (result.snapshot.domains.length > before) created += 1;
+          else updated += 1;
+          assets.push(result.asset);
+          next = result.snapshot;
+        }
+        return next;
+      });
+      return { created, updated, assets };
+    });
+  }
+  /** 把已导入的域名与 Cloudflare 的最新 NS、到期日对齐；不会新增资产。 */
+  async syncZones(connectionId) {
+    const access = await this.#access(connectionId, "cloudflare");
+    const inventory = await this.inventory(access.connection.id, true);
+    return this.#enqueue(async () => {
+      access.assert();
+      let updated = 0;
+      await this.#mutate((snapshot) => {
+        access.assert();
+        const result = syncBoundZones(snapshot, access.connection, inventory.resources);
+        updated = result.updated;
+        return result.snapshot;
+      });
+      return { updated };
     });
   }
   unbind(input) {

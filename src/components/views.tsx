@@ -20,6 +20,7 @@ const AssetWorkspace = lazy(() =>
   import("./asset-workspace").then((module) => ({ default: module.AssetWorkspace })),
 );
 import { IntegrationsEntry } from "./integrations/entry";
+import { DomainsCloudflareEntry } from "./integrations/domain-cloudflare";
 import { ServiceCard } from "./service-card";
 import { AssetTypeManagerButton } from "./asset-type-manager";
 import { Overview } from "./overview";
@@ -73,6 +74,7 @@ export function MainView() {
         }
       >
         {view === "services" && <IntegrationsEntry />}
+        {view === "domains" && <DomainsCloudflareEntry />}
         <ViewBody />
       </Suspense>
     </div>

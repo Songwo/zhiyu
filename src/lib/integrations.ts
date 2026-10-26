@@ -77,6 +77,16 @@ export interface ProbeCheckResult {
   latencyMs: number | null;
   message: string;
 }
+/** Cloudflare 域名（Zone）的附加信息；到期日只在域名于 Cloudflare 注册时才有。 */
+export interface ZoneInfo {
+  nameServers: string[];
+  createdOn?: string;
+  paused: boolean;
+  registrar?: string;
+  expiresAt?: string;
+  autoRenew?: boolean;
+  registrationStatus?: string;
+}
 export interface IntegrationResource {
   key: string;
   type: IntegrationResourceType;
@@ -87,6 +97,7 @@ export interface IntegrationResource {
   status: string;
   host?: ProbeHost;
   check?: ProbeCheck;
+  zone?: ZoneInfo;
 }
 export interface IntegrationInventory {
   resources: IntegrationResource[];
@@ -127,6 +138,11 @@ export interface IntegrationsBridge {
     resourceKey: string;
     assetId?: string;
   }): Promise<{ kind: "domain" | "service" | "server"; id: string }>;
+  importZones(input: {
+    connectionId: string;
+    resourceKeys: string[];
+  }): Promise<{ created: number; updated: number; assets: { kind: "domain"; id: string }[] }>;
+  syncZones(connectionId: string): Promise<{ updated: number }>;
   unbind(input: { kind: "domain" | "service" | "server"; id: string }): Promise<void>;
   dnsList(connectionId: string, zoneId: string, force?: boolean): Promise<DnsRecord[]>;
   dnsPreview(input: {

@@ -15,6 +15,50 @@ export function sameIntegration(a, b) {
   );
 }
 
+function expiryStatus(expiresAt, now = Date.now()) {
+  const time = Date.parse(expiresAt);
+  if (!Number.isFinite(time)) return "warning";
+  const days = Math.ceil((time - now) / 86_400_000);
+  return days <= 7 ? "offline" : days <= 21 ? "warning" : "online";
+}
+
+/**
+ * 以 Cloudflare 为准的域名字段：NS、DNS 服务商，以及在 Cloudflare 注册时的到期日与自动续费。
+ * 备注、标签、费用等用户填写的资料不动；Cloudflare 没提供到期日时保留已有值。
+ */
+export function syncZoneFields(domain, resource, now = Date.now()) {
+  const zone = resource.zone;
+  if (!zone) return domain;
+  const next = { ...domain, dns: "Cloudflare" };
+  if (zone.nameServers?.length) next.nameservers = zone.nameServers;
+  if (zone.createdOn && !next.createdAt) next.createdAt = zone.createdOn;
+  if (zone.registrar) next.registrar = zone.registrar;
+  if (zone.expiresAt) next.expiresAt = zone.expiresAt.slice(0, 10);
+  if (zone.autoRenew !== undefined) next.autoRenew = zone.autoRenew;
+  next.status = next.expiresAt ? expiryStatus(next.expiresAt, now) : "warning";
+  return next;
+}
+
+/** 把已绑定到此连接的域名资产与最新的远端信息对齐，返回更新数量。 */
+export function syncBoundZones(snapshot, connection, resources, now = Date.now()) {
+  let updated = 0;
+  const domains = (snapshot.domains ?? []).map((domain) => {
+    const ref = domain.integration;
+    if (!ref || ref.provider !== "cloudflare" || ref.connectionId !== connection.id) return domain;
+    const resource = resources.find(
+      (row) =>
+        row.type === "zone" &&
+        row.remoteId === ref.remoteId &&
+        (row.accountId ?? "") === (ref.accountId ?? ""),
+    );
+    if (!resource) return domain;
+    const next = syncZoneFields(domain, resource, now);
+    if (JSON.stringify(next) !== JSON.stringify(domain)) updated += 1;
+    return next;
+  });
+  return { snapshot: { ...snapshot, domains }, updated };
+}
+
 /** 用户确认的来源绑定；重复导入只补引用，保留用户已编辑的公开资料。 */
 export function bindResource(snapshot, connection, resource, assetId) {
   const integration = normalizeIntegrationRef({
@@ -78,6 +122,7 @@ export function bindResource(snapshot, connection, resource, assetId) {
       provider: connection.provider === "cloudflare" ? "Cloudflare" : "知屿探针",
       status: "warning",
     });
+  if (kind === "domain") item = syncZoneFields(item, resource);
   return {
     snapshot: {
       ...snapshot,
