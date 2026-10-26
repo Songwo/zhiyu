@@ -401,3 +401,83 @@ test("导入域名只支持 Cloudflare 连接", async (t) => {
   );
   await assert.rejects(service.syncZones(probe.id), /类型/);
 });
+
+test("导入域名时并入已有资产：同名本机域名、换连接的同一域名都不会重复创建", async (t) => {
+  const { service, state, api } = await setup(t);
+  const first = await service.save({ provider: "cloudflare", name: "一号", token: secret });
+  const zone = {
+    key: "zone:acc:z1",
+    type: "zone",
+    remoteId: "z1",
+    accountId: "acc",
+    name: "Example.test",
+    url: "https://example.test/",
+    status: "active",
+    zone: { nameServers: ["a.ns.cloudflare.com"], paused: false },
+  };
+  api.inventory = async () => ({
+    resources: [zone],
+    warnings: [],
+    fetchedAt: "2026-10-26T00:00:00Z",
+  });
+  state.snapshot.domains = [
+    {
+      id: "manual",
+      name: "example.test",
+      registrar: "手填",
+      expiresAt: "2027-05-05",
+      dns: "",
+      nameservers: [],
+      autoRenew: false,
+      status: "online",
+      tags: ["自己的标签"],
+      notes: "手写备注",
+    },
+  ];
+  const imported = await service.importZones({ connectionId: first.id, resourceKeys: [zone.key] });
+  assert.deepEqual([imported.created, imported.updated], [0, 1]);
+  assert.equal(state.snapshot.domains.length, 1);
+  const merged = state.snapshot.domains[0];
+  assert.equal(merged.id, "manual");
+  assert.equal(merged.notes, "手写备注");
+  assert.deepEqual(merged.tags, ["自己的标签"]);
+  assert.equal(merged.integration.connectionId, first.id);
+  assert.equal(merged.expiresAt, "2027-05-05");
+
+  // 换了一个 Token（新连接）再导入同一个域名：改绑到新连接，不新增。
+  const second = await service.save({ provider: "cloudflare", name: "二号", token: secret + "2" });
+  const moved = await service.importZones({ connectionId: second.id, resourceKeys: [zone.key] });
+  assert.deepEqual([moved.created, moved.updated], [0, 1]);
+  assert.equal(state.snapshot.domains.length, 1);
+  assert.equal(state.snapshot.domains[0].integration.connectionId, second.id);
+});
+test("移除连接后资产保留，但不再指向已删除的连接", async (t) => {
+  const { service, state } = await setup(t);
+  const c = await service.save({ provider: "cloudflare", name: "cloud", token: secret });
+  state.snapshot.domains = [
+    {
+      id: "d1",
+      name: "a.test",
+      integration: {
+        provider: "cloudflare",
+        connectionId: c.id,
+        resourceType: "zone",
+        remoteId: "z1",
+      },
+    },
+    {
+      id: "d2",
+      name: "b.test",
+      integration: {
+        provider: "cloudflare",
+        connectionId: "other",
+        resourceType: "zone",
+        remoteId: "z2",
+      },
+    },
+  ];
+  await service.remove(c.id);
+  assert.equal(state.snapshot.domains.length, 2);
+  assert.equal(state.snapshot.domains[0].integration, undefined);
+  assert.equal(state.snapshot.domains[1].integration.connectionId, "other");
+});

@@ -179,4 +179,12 @@ export const INTEGRATIONS_EN: Record<string, string> = {
   没有匹配的域名: "No matching domains",
   "这个 Token 下没有可读取的域名。请确认已授予“区域 · 区域 · 读取”。":
     "No readable domains for this token. Make sure it has “Zone · Zone · Read”.",
+  "编辑连接 {0}": "Edit connection {0}",
+  "移除连接 {0}": "Remove connection {0}",
+  "将移除本机保存的连接凭据。已导入的域名资产保留，但不再从 Cloudflare 同步；远端资源不会删除。":
+    "This removes the credentials saved on this device. Imported domains are kept but no longer sync from Cloudflare; nothing is deleted remotely.",
+  "这个 Token 能读到的域名已在连接「{0}」中。要更换 Token，请在那个连接上点编辑。":
+    "The domains this token can read are already in connection “{0}”. To replace the token, edit that connection.",
+  "换新 Token 时会先验证能否读取域名，通过后才替换；已导入的域名不受影响。":
+    "A new token is verified before it replaces the old one; imported domains are not affected.",
 };

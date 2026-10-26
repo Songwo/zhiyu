@@ -1,17 +1,31 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Cloud, ExternalLink, Network, Plus, RefreshCw, Search } from "lucide-react";
+import {
+  Cloud,
+  ExternalLink,
+  Network,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { refreshDomain } from "@/lib/probes";
 import { useAppStore } from "@/lib/store";
 import { daysUntil, formatDate } from "@/lib/utils";
-import type { IntegrationConnection, IntegrationResource } from "@/lib/integrations";
+import type {
+  IntegrationConnection,
+  IntegrationResource,
+  IntegrationsBridge,
+} from "@/lib/integrations";
 import { Button } from "../ui/button";
 import { EditorDialog } from "../ui/editor-dialog";
 import { Field, Input } from "../ui/input";
 import { DnsManager } from "./dns-manager";
 import { FetchStatus } from "./common";
+import { ConfirmAction } from "./probe-panels";
 import { errorText, useInventory } from "./data";
 import "./integrations.css";
 
@@ -25,6 +39,33 @@ const ZONE_STATUS: Record<string, string> = {
   unknown: "未知",
 };
 
+/** 进入域名页时自动同步一次，之后至少隔 10 分钟，避免每次切页都请求 Cloudflare。 */
+const AUTO_SYNC_INTERVAL = 10 * 60 * 1000;
+const lastAutoSync = new Map<string, number>();
+
+/** 新 Token 能读到的域名如果已经在另一个连接里，说明是重复连接。 */
+async function overlappingConnection(
+  bridge: IntegrationsBridge,
+  saved: IntegrationConnection,
+  others: IntegrationConnection[],
+) {
+  const zoneIds = (id: string) =>
+    bridge
+      .inventory(id)
+      .then((inventory) =>
+        inventory.resources.filter((row) => row.type === "zone").map((row) => row.remoteId),
+      );
+  const mine = new Set(await zoneIds(saved.id));
+  for (const other of others) {
+    try {
+      if ((await zoneIds(other.id)).some((id) => mine.has(id))) return other;
+    } catch {
+      /* 另一个连接暂时读不到时，不影响这次连接 */
+    }
+  }
+  return null;
+}
+
 /** 域名页顶部：连接 Cloudflare 后读取账户下的全部域名，导入后可看到期时间并改 DNS。 */
 export function DomainsCloudflareEntry() {
   const bridge = desktop()?.integrations;
@@ -33,6 +74,8 @@ export function DomainsCloudflareEntry() {
   const [connecting, setConnecting] = useState(false);
   const [viewing, setViewing] = useState<IntegrationConnection | null>(null);
   const [syncing, setSyncing] = useState("");
+  const [editing, setEditing] = useState<IntegrationConnection | null>(null);
+  const [removing, setRemoving] = useState<IntegrationConnection | null>(null);
   useEffect(() => {
     if (!bridge) return;
     let cancelled = false;
@@ -48,11 +91,20 @@ export function DomainsCloudflareEntry() {
       cancelled = true;
     };
   }, [bridge, revision]);
+  useEffect(() => {
+    if (!bridge || !connections) return;
+    for (const connection of connections) {
+      if (Date.now() - (lastAutoSync.get(connection.id) ?? 0) < AUTO_SYNC_INTERVAL) continue;
+      lastAutoSync.set(connection.id, Date.now());
+      void bridge.syncZones(connection.id).catch(() => undefined);
+    }
+  }, [bridge, connections]);
   if (!bridge || !connections) return null;
   const sync = async (connection: IntegrationConnection) => {
     setSyncing(connection.id);
     try {
       const { updated } = await bridge.syncZones(connection.id);
+      lastAutoSync.set(connection.id, Date.now());
       toast(updated ? t("已同步 {0} 个域名", updated) : t("域名信息已是最新"));
     } catch (reason) {
       toast.error(errorText(reason));
@@ -101,6 +153,24 @@ export function DomainsCloudflareEntry() {
                 <RefreshCw className={syncing === connection.id ? "animate-spin" : ""} />
                 {t("同步")}
               </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title={t("编辑连接")}
+                aria-label={t("编辑连接 {0}", connection.name)}
+                onClick={() => setEditing(connection)}
+              >
+                <Pencil />
+              </Button>
+              <Button
+                variant="danger-ghost"
+                size="icon-sm"
+                title={t("移除连接")}
+                aria-label={t("移除连接 {0}", connection.name)}
+                onClick={() => setRemoving(connection)}
+              >
+                <Trash2 />
+              </Button>
               {index === connections.length - 1 && (
                 <Button variant="ghost" size="sm" onClick={() => setConnecting(true)}>
                   <Plus />
@@ -113,11 +183,37 @@ export function DomainsCloudflareEntry() {
       )}
       {connecting && (
         <CloudflareConnectDialog
+          existing={connections}
           onClose={() => setConnecting(false)}
           onConnected={(connection) => {
             setConnecting(false);
             setRevision((n) => n + 1);
             setViewing(connection);
+          }}
+        />
+      )}
+      {editing && (
+        <CloudflareEditDialog
+          connection={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            setRevision((n) => n + 1);
+          }}
+        />
+      )}
+      {removing && (
+        <ConfirmAction
+          title={t("移除连接")}
+          description={t(
+            "将移除本机保存的连接凭据。已导入的域名资产保留，但不再从 Cloudflare 同步；远端资源不会删除。",
+          )}
+          action={() => bridge.remove(removing.id)}
+          onClose={() => setRemoving(null)}
+          onDone={() => {
+            lastAutoSync.delete(removing.id);
+            setRemoving(null);
+            setRevision((n) => n + 1);
           }}
         />
       )}
@@ -135,13 +231,17 @@ export function DomainsCloudflareEntry() {
 }
 
 function CloudflareConnectDialog({
+  existing,
   onClose,
   onConnected,
 }: {
+  existing: IntegrationConnection[];
   onClose: () => void;
   onConnected: (connection: IntegrationConnection) => void;
 }) {
-  const [name, setName] = useState("Cloudflare");
+  const [name, setName] = useState(
+    existing.length ? `Cloudflare ${existing.length + 1}` : "Cloudflare",
+  );
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -162,6 +262,16 @@ function CloudflareConnectDialog({
         // Token 无效或没有任何读取权限时不保留这个连接。
         await bridge.remove(saved.id).catch(() => undefined);
         throw reason;
+      }
+      const duplicate = await overlappingConnection(bridge, saved, existing);
+      if (duplicate) {
+        await bridge.remove(saved.id).catch(() => undefined);
+        throw new Error(
+          t(
+            "这个 Token 能读到的域名已在连接「{0}」中。要更换 Token，请在那个连接上点编辑。",
+            duplicate.name,
+          ),
+        );
       }
       setToken("");
       onConnected(saved);
@@ -238,6 +348,102 @@ function CloudflareConnectDialog({
           </Button>
           <Button type="submit" disabled={busy}>
             {busy ? t("正在验证…") : t("连接并读取域名")}
+          </Button>
+        </div>
+      </form>
+    </EditorDialog>
+  );
+}
+
+function CloudflareEditDialog({
+  connection,
+  onClose,
+  onSaved,
+}: {
+  connection: IntegrationConnection;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(connection.name);
+  const [token, setToken] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const bridge = desktop()!.integrations;
+    const entered = token.trim();
+    setBusy(true);
+    setError("");
+    try {
+      if (entered) {
+        // 先用临时连接验证新 Token，通过后才替换，避免换成无效 Token 后丢掉原来可用的。
+        const probe = await bridge.save({
+          provider: "cloudflare",
+          name: name.trim(),
+          token: entered,
+        });
+        try {
+          await bridge.inventory(probe.id, true);
+        } finally {
+          await bridge.remove(probe.id).catch(() => undefined);
+        }
+      }
+      await bridge.save({
+        id: connection.id,
+        provider: "cloudflare",
+        name: name.trim(),
+        ...(entered ? { token: entered } : {}),
+      });
+      setToken("");
+      onSaved();
+    } catch (reason) {
+      setError(errorText(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <EditorDialog
+      title={t("编辑连接")}
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
+      <form className="integration-form" onSubmit={submit}>
+        <Field label={t("连接名称")}>
+          <Input
+            aria-label={t("连接名称")}
+            required
+            maxLength={160}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
+        <Field label="Cloudflare API Token">
+          <Input
+            aria-label="Cloudflare API Token"
+            type="password"
+            autoComplete="new-password"
+            spellCheck={false}
+            value={token}
+            placeholder={t("留空保留当前 Token")}
+            onChange={(event) => setToken(event.target.value)}
+          />
+        </Field>
+        <p className="text-2xs leading-relaxed text-muted">
+          {t("换新 Token 时会先验证能否读取域名，通过后才替换；已导入的域名不受影响。")}
+        </p>
+        {error && (
+          <p className="tool-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
+            {t("取消")}
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy ? t("正在验证…") : t("保存连接")}
           </Button>
         </div>
       </form>

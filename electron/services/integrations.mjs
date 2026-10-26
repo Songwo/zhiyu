@@ -3,7 +3,12 @@ import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { CloudflareClient, normalizeDnsInput } from "./cloudflare.mjs";
-import { bindResource, syncBoundZones, unbindResource } from "./integration-assets.mjs";
+import {
+  bindResource,
+  syncBoundZones,
+  unbindConnection,
+  unbindResource,
+} from "./integration-assets.mjs";
 import {
   probeEndpoint,
   probeRequest,
@@ -181,6 +186,8 @@ export class Integrations {
       if (!connections.some((c) => c.id === id)) throw new Error("连接已不存在。");
       await this.#write(connections.filter((c) => c.id !== id));
       this.#invalidate(id);
+      // 资产保留，但不再指向已删除的连接，否则详情页会一直提示“未找到已绑定资源”。
+      await this.#mutate((snapshot) => unbindConnection(snapshot, id).snapshot);
     });
   }
   async #access(id, provider) {

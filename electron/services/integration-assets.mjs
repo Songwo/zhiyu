@@ -73,11 +73,30 @@ export function bindResource(snapshot, connection, resource, assetId) {
   const collection = ASSET_COLLECTIONS[kind];
   const items = snapshot[collection] ?? [];
   const duplicate = items.find((a) => sameIntegration(a.integration, integration));
-  const selected = assetId ? items.find((a) => a.id === assetId) : duplicate;
+  // 没有指定目标时，域名优先并入已有资产，避免换 Token 或手动录入过的域名被导入成两份：
+  // 同一个 Cloudflare 域名换了连接，或同名且尚未绑定的本机域名。
+  const implicit =
+    kind === "domain" && !assetId && !duplicate
+      ? (items.find(
+          (a) =>
+            a.integration?.provider === integration.provider &&
+            a.integration.resourceType === integration.resourceType &&
+            a.integration.remoteId === integration.remoteId &&
+            (a.integration.accountId ?? "") === (integration.accountId ?? ""),
+        ) ??
+        items.find(
+          (a) => !a.integration && a.name?.trim().toLowerCase() === resource.name.toLowerCase(),
+        ))
+      : undefined;
+  const selected = assetId ? items.find((a) => a.id === assetId) : (duplicate ?? implicit);
   if (assetId && !selected) throw new Error("选择的本地资产已不存在。");
   if (duplicate && selected && duplicate.id !== selected.id)
     throw new Error("这个远端资源已绑定其他资产，请先解除原绑定。");
-  if (selected?.integration && !sameIntegration(selected.integration, integration))
+  if (
+    selected?.integration &&
+    selected !== implicit &&
+    !sameIntegration(selected.integration, integration)
+  )
     throw new Error("资产已有其他接入来源，请先解除原绑定。");
   const id =
     selected?.id ??
@@ -130,6 +149,23 @@ export function bindResource(snapshot, connection, resource, assetId) {
     },
     asset: { kind, id },
   };
+}
+
+/** 移除连接后，清掉资产上指向它的绑定；资产本身保留。 */
+export function unbindConnection(snapshot, connectionId) {
+  let changed = 0;
+  const next = { ...snapshot };
+  for (const collection of Object.values(ASSET_COLLECTIONS)) {
+    if (!Array.isArray(snapshot[collection])) continue;
+    next[collection] = snapshot[collection].map((a) => {
+      if (a.integration?.connectionId !== connectionId) return a;
+      changed += 1;
+      const copy = { ...a };
+      delete copy.integration;
+      return copy;
+    });
+  }
+  return { snapshot: next, changed };
 }
 
 export function unbindResource(snapshot, { kind, id }) {

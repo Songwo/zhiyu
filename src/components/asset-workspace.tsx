@@ -47,19 +47,27 @@ export function AssetWorkspace() {
   useEffect(() => {
     if (layout === "graph") void useDocuments.getState().load();
   }, [layout]);
+  // 行数据只算一次；关系图用的资源、关联和图节点只在图视图里才计算，表格视图不为它们付出代价。
+  const base = useMemo(() => assetRows(s), [s]);
   const rows = useMemo(
-    () => filterAssetRows(assetRows(s), s.view, s.query, s.filter === "attention", s.tagFilter),
-    [s],
+    () => filterAssetRows(base, s.view, s.query, s.filter === "attention", s.tagFilter),
+    [base, s.view, s.query, s.filter, s.tagFilter],
   );
-  const resources = useMemo(() => resourceRows(assetRows(s), documents, s), [s, documents]);
+  const graph = layout === "graph";
+  const resources = useMemo(
+    () => (graph ? resourceRows(base, documents, s) : []),
+    [graph, base, documents, s],
+  );
   const relations = useMemo(
-    () => confirmedRelations(resources, s.links, documents),
-    [resources, s.links, documents],
+    () => (graph ? confirmedRelations(resources, s.links, documents) : []),
+    [graph, resources, s.links, documents],
   );
-  const graphRows =
-    s.view === "relations" || all
+  const graphRows = useMemo(() => {
+    if (!graph) return [];
+    return s.view === "relations" || all
       ? resources.filter((row) => !s.query || row.search.includes(s.query.toLocaleLowerCase()))
       : relatedResources(resources, relations, rows);
+  }, [graph, s.view, s.query, all, resources, relations, rows]);
   return (
     <div className="asset-workspace">
       <div className="workspace-summary flex flex-wrap items-center justify-between gap-2">
