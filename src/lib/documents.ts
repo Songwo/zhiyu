@@ -1,4 +1,5 @@
 import { isWeb, webApi } from "./web";
+import { randomId } from "./random-id";
 import { migrateServerDocument } from "./document-migration.mjs";
 import { uploadImage } from "./image-bed";
 import { inspectRaster } from "../../electron/services/image-data.mjs";
@@ -224,7 +225,7 @@ export const useDocuments = create<State>((set, get) => ({
     if (existing && get().status[existing] !== "saved") await get().flush(existing);
     const now = new Date().toISOString();
     const doc = await api().save({
-      id: "doc-" + crypto.randomUUID(),
+      id: "doc-" + randomId(),
       title: initial?.title ?? "未命名文档",
       content: initial?.content ?? { type: "doc", content: [{ type: "paragraph" }] },
       ...(initial?.markdown !== undefined ? { markdown: initial.markdown } : {}),

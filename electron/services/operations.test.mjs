@@ -61,6 +61,17 @@ test("通知覆盖到期且不把高负载当成断线", () => {
   assert.equal(items[0].id, "down");
   assert.equal(items[1].days, 1);
 });
+test("关闭自动采集的主机不再提示断线", () => {
+  const items = notificationCandidates(
+    {
+      servers: [
+        { id: "proxy", name: "proxy", status: "offline", probeError: "timeout", collect: false },
+      ],
+    },
+    Date.parse("2026-09-07"),
+  );
+  assert.deepEqual(items, []);
+});
 test("同一通知每天至多一次，恢复后再次故障可以提醒", () => {
   const tracker = new NotificationTracker();
   const items = [{ key: "host", id: "host" }];

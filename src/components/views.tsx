@@ -777,7 +777,9 @@ function TerminalList() {
               <button
                 key={s.id}
                 type="button"
-                disabled={s.sshConfigured !== false && s.status === "offline"}
+                disabled={
+                  s.sshConfigured !== false && s.collect !== false && s.status === "offline"
+                }
                 onClick={() =>
                   s.sshConfigured === false
                     ? useAppStore.getState().openComposer("server", s.id)
@@ -804,9 +806,11 @@ function TerminalList() {
                 <span className="text-2xs tabular-nums text-subtle">
                   {s.sshConfigured === false
                     ? t("配置 SSH")
-                    : hasServerMetrics(s)
-                      ? `CPU ${cpu}%`
-                      : t("未采集")}
+                    : s.collect === false
+                      ? t("不采集")
+                      : hasServerMetrics(s)
+                        ? `CPU ${cpu}%`
+                        : t("未采集")}
                 </span>
                 <SquareTerminal className="size-4 text-muted" />
               </button>

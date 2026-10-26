@@ -21,6 +21,7 @@ import { AgentSettings } from "./agent-settings";
 import { StorageSettings } from "./storage-settings";
 import { BackupSettings } from "./backup-settings";
 import { MailPushSettings } from "./mail-push-settings";
+import { WebPushSettings } from "./web-push-settings";
 import { ExtensionSettings } from "./extension-settings";
 import { AppUpdatePanel } from "./app-update-panel";
 import { ProfileForm } from "./onboarding";
@@ -28,6 +29,7 @@ import { PrimaryIdentityPanel } from "./primary-identity-panel";
 import { Field, Input, Select } from "./ui/input";
 import { RELEASES } from "@/lib/changelog";
 import { desktop, type AppInfo } from "@/lib/desktop";
+import { isWeb } from "@/lib/web";
 import { usePresence } from "@/lib/motion";
 import { useSettings, ZOOM_PERCENTS, type ZoomPercent, type ThemeChoice } from "@/lib/settings";
 import { snapshotOf, useAppStore } from "@/lib/store";
@@ -216,7 +218,7 @@ function SettingsBody({ header }: { header?: ReactNode }) {
                 className={cn("settings-tab", tab === entry.id && "settings-tab-on")}
                 onClick={() => setTab(entry.id)}
               >
-                {t(entry.label)}
+                {t(isWeb() && entry.id === "mail-push" ? "提醒推送" : entry.label)}
               </button>
             ))}
           </div>
@@ -250,7 +252,7 @@ function SettingsBody({ header }: { header?: ReactNode }) {
             </>
           )}
           {tab === "agent" && <AgentSettings />}
-          {tab === "mail-push" && <MailPushSettings />}
+          {tab === "mail-push" && (isWeb() ? <WebPushSettings /> : <MailPushSettings />)}
           {tab === "extension" && <ExtensionSettings />}
           {tab === "storage" && <StorageSettings />}
           {tab === "about" && <About />}

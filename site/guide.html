@@ -186,9 +186,10 @@
         <section id="web" class="guide-section">
           <h2>网页版（自托管）</h2>
           <ol class="guide-steps">
-            <li>在自己的服务器上运行 <code>docker compose up -d --build</code>，用 <code>docker compose logs zhiyu</code> 找到「设置口令」。</li>
+            <li>在服务器上下载仓库里的 <code>docker-compose.yml</code>，运行 <code>docker compose up -d</code>（镜像 <code>ghcr.io/songwo/zhiyu-web</code>，支持 amd64 / arm64），用 <code>docker compose logs zhiyu</code> 找到「设置口令」。</li>
             <li>浏览器打开 <code>http://服务器:8848</code>，用设置口令创建登录账号；之后在家和公司都用这个账号登录同一份资料。</li>
             <li>密钥库在浏览器里用主密码解密，服务器只保存密文；放到公网前请放在 HTTPS 反向代理后面。</li>
+            <li>「设置 → 提醒推送」可以让服务器按时把续费与备忘提醒推送到 Telegram、微信或企业微信，浏览器关着也能收到。</li>
             <li>「设置 → 数据」可以下载加密备份到桌面版恢复，也能把桌面版备份恢复到网页版。SSH 终端、主机监控、本机用量和 AI 助手只在桌面版提供。</li>
           </ol>
           <p class="guide-tip">完整步骤、环境变量和 HTTPS 示例见仓库里的 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/WEB.md">docs/WEB.md</a>。</p>
@@ -259,7 +260,7 @@
           <ul class="guide-list">
             <li>头像菜单里的「系统设置」以页面打开；右上角的设置按钮和 <kbd>Ctrl</kbd> <kbd>,</kbd> 打开同样内容的弹窗。</li>
             <li>「外观」可切换浅色 / 深色 / 跟随系统、语言，以及 100%–150% 界面大小。</li>
-            <li>「监控采集」设置主机指标的采样周期；「邮件推送」可把新邮件数量推送到 Telegram、Server酱、企业微信或 WxPusher。</li>
+            <li>「监控采集」设置主机指标的采样周期；本机连不上的主机，可以关掉它卡片右下角的「采集」开关，不再连接也不再告警；「邮件推送」可把新邮件数量推送到 Telegram、Server酱、企业微信或 WxPusher。</li>
             <li>「存储」查看缓存占用并清理；「关于知屿」检查更新。</li>
           </ul>
         </section>

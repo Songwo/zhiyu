@@ -2856,4 +2856,37 @@ export const EN: Record<string, string> = {
   资产总览: "Overview",
   "{0} 字": "{0} words",
   "约 {0} 分钟读完": "{0} min read",
+  已暂停采集: "Paused",
+  "已暂停采集，显示的是上次的数据": "Collection paused — showing the last reading",
+  "已关闭自动采集：不会连接这台主机，也不会提示离线。":
+    "Auto collection is off: this host won't be contacted or reported offline.",
+  不采集: "Not collected",
+  "自动采集 {0}": "Auto collect {0}",
+  "自动采集已打开：按设定周期连接这台主机。连不上时可以关掉。":
+    "Auto collection is on: this host is checked on schedule. Turn it off if it can't be reached.",
+  "自动采集已关闭：不连接、不告警。点击重新打开。":
+    "Auto collection is off: no connection, no alerts. Click to turn it back on.",
+  "关闭了 {0} 的自动采集": "Turned off auto collection for {0}",
+  "打开了 {0} 的自动采集": "Turned on auto collection for {0}",
+  "已关闭「{0}」的自动采集，不会再连接或提示离线":
+    "Auto collection off for “{0}” — it won't be contacted or reported offline",
+  "已打开「{0}」的自动采集，下个采集周期会连接":
+    "Auto collection on for “{0}” — it will be checked next cycle",
+  采集: "Collect",
+  已关闭自动采集: "Auto collection off",
+  提醒推送: "Reminder push",
+  "服务器每小时检查一次续费与备忘提醒，浏览器关着也会推送到手机；同一件事每天最多一次，只发名称和剩余天数。推送凭据保存在你的服务器上（server/push.json），不会回传到浏览器。":
+    "Your server checks renewals and reminders every hour and pushes them to your phone even when no browser is open — at most once a day per item, with only the name and days left. The push credential is stored on your server (server/push.json) and never sent back to the browser.",
+  开启服务器提醒推送: "Enable server reminder push",
+  "已保存在服务器，留空保留": "Saved on the server; leave blank to keep",
+  资产到期前多少天开始提醒: "Start reminding this many days before expiry",
+  "提醒推送配置已保存。": "Reminder push settings saved.",
+  "提醒推送操作失败。": "Reminder push action failed.",
+  "打开页面时会弹浏览器通知；在「设置 → 提醒推送」里配置后，服务器会按时推送到微信或 Telegram，浏览器关着也能收到。":
+    "You'll get a browser notification while the page is open; set up Settings → Reminder push and your server will also push to WeChat or Telegram on time, even with no browser open.",
+  "本机连不上这台主机（例如需要代理）？关掉右下角的「采集」，不再连接也不再告警。":
+    "Can't reach this host from here (e.g. it needs a proxy)? Turn off “Collect” at the bottom right to stop connecting and alerting.",
+  这个页面出错了: "This page ran into a problem",
+  "其他页面不受影响，可以从侧栏切换。如果反复出现，请把下面的错误信息发到 GitHub Issues。":
+    "Other pages still work — switch from the sidebar. If it keeps happening, please post the error below to GitHub Issues.",
 };

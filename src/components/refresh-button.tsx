@@ -1,5 +1,5 @@
 import { useAppStore } from "@/lib/store";
-import { canProbeServer } from "@/lib/server-observation.mjs";
+import { canProbeServer, isCollectionPaused } from "@/lib/server-observation.mjs";
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -63,16 +63,21 @@ export function RefreshOneButton({ kind, id }: { kind: ProbeKind; id: string }) 
     (s) =>
       kind !== "server" || s.servers.find((server) => server.id === id)?.sshConfigured !== false,
   );
+  const paused = useAppStore(
+    (s) =>
+      kind === "server" && isCollectionPaused(s.servers.find((server) => server.id === id) ?? {}),
+  );
   const requireVault = useVault((s) => s.require);
   if (!isDesktop()) return null;
+  const label = paused ? "已关闭自动采集" : configured ? "重新采集" : "配置 SSH";
 
   return (
     <Button
       variant="ghost"
       size="icon-sm"
-      disabled={busy}
-      aria-label={t(configured ? "重新采集" : "配置 SSH")}
-      title={t(configured ? "重新采集" : "配置 SSH")}
+      disabled={busy || paused}
+      aria-label={t(label)}
+      title={t(label)}
       onClick={async () => {
         if (!configured) {
           useAppStore.getState().openComposer("server", id);

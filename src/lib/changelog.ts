@@ -13,6 +13,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.14.0",
+    date: "2026-10-26",
+    title: "采集开关、网页版提醒推送与 Docker 镜像",
+    changes: [
+      "每台服务器卡片右下角新增「采集」开关：本机连不上的主机（例如需要代理、只在内网）可以关掉，之后不再连接、不再算作异常，也不会弹离线通知；上次的数据保留并淡显，随时可以重新打开。",
+      "网页版新增「设置 → 提醒推送」：由服务器每小时检查续费与备忘提醒，推送到 Telegram、Server酱 / 微信、企业微信或 WxPusher，浏览器关着也能收到；同一件事每天最多一次。",
+      "网页版提供正式版 Docker 镜像 ghcr.io/songwo/zhiyu-web（amd64 / arm64），下载 docker-compose.yml 后 docker compose up -d 即可，不用克隆源码；修复挂载的资料目录属于 root 时容器无法写入。",
+      "修复网页版通过 http:// 局域网地址打开时，新建文档报错「crypto.randomUUID is not a function」、进入自建节点白屏（#4）；密钥库在 http:// 下也能正常加解密。",
+      "某个页面出错时只显示这一页的错误信息，侧栏和其他页面照常可用，不再整个窗口白屏。",
+    ],
+  },
+  {
     version: "1.13.0",
     date: "2026-10-23",
     title: "备忘提醒与自托管网页版",

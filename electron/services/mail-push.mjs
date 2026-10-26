@@ -1,6 +1,12 @@
+import {
+  PUSH_PROVIDERS as PROVIDERS,
+  buildPushRequest,
+  deliverPush,
+  requiresDestination,
+  validateToken,
+} from "./push-channels.mjs";
+
 const RECORD = "notification:mail-push";
-const PROVIDERS = new Set(["telegram", "serverchan", "wecom", "wxpusher"]);
-const requiresDestination = (provider) => provider === "telegram" || provider === "wxpusher";
 const DEFAULTS = Object.freeze({
   enabled: false,
   provider: "telegram",
@@ -21,18 +27,6 @@ function publicConfig(record) {
     intervalMinutes: config.intervalMinutes,
     reminders: config.reminders === true,
   };
-}
-
-function validateToken(provider, token) {
-  const valid =
-    provider === "telegram"
-      ? /^\d{5,20}:[A-Za-z0-9_-]{20,200}$/.test(token)
-      : provider === "serverchan"
-        ? /^SCT[A-Za-z0-9_-]{10,250}$/.test(token)
-        : provider === "wxpusher"
-          ? /^AT_[A-Za-z0-9_-]{10,250}$/.test(token)
-          : /^[A-Za-z0-9-]{10,200}$/.test(token);
-  if (!valid) throw new Error("推送凭据格式不正确，请填写对应渠道的 Token 或密钥。");
 }
 
 function boundedCount(value) {
@@ -213,7 +207,12 @@ export class MailPushService {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
     try {
-      await this.#send(record, String(text).slice(0, 2000), controller.signal);
+      await this.#send(
+        record,
+        String(text).slice(0, 2000),
+        controller.signal,
+        "知屿 Zhiyu 续费提醒",
+      );
       return true;
     } finally {
       clearTimeout(timer);
@@ -316,60 +315,12 @@ export class MailPushService {
     }
   }
 
-  async #send(record, text, signal) {
+  async #send(record, text, signal, title = "知屿 Zhiyu 邮件提醒") {
     this.#requireUnlocked();
     signal.throwIfAborted();
-    validateToken(record.provider, record.token);
-    let url;
-    let body;
-    if (record.provider === "telegram") {
-      url = `https://api.telegram.org/bot${record.token}/sendMessage`;
-      body = { chat_id: record.destination, text, disable_web_page_preview: true };
-    } else if (record.provider === "serverchan") {
-      url = `https://sctapi.ftqq.com/${record.token}.send`;
-      body = { title: "知屿 Zhiyu 邮件提醒", desp: text };
-    } else if (record.provider === "wecom") {
-      url = `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${encodeURIComponent(record.token)}`;
-      body = { msgtype: "text", text: { content: text } };
-    } else if (record.provider === "wxpusher") {
-      if (!/^UID_[A-Za-z0-9_-]{5,96}$/.test(record.destination))
-        throw new Error("WxPusher 接收用户需填写以 UID_ 开头的用户 UID。");
-      url = "https://wxpusher.zjiecode.com/api/send/message";
-      body = {
-        appToken: record.token,
-        content: text,
-        summary: "知屿 Zhiyu 邮件提醒",
-        contentType: 1,
-        uids: [record.destination],
-      };
-    } else {
-      throw new Error("请选择支持的推送渠道。");
-    }
+    const request = buildPushRequest(record, text, title);
     try {
-      const response = await this.#fetch(url, {
-        method: "POST",
-        redirect: "error",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
-      });
-      if (!response.ok) throw new Error("request_failed");
-      const result = await response.json();
-      const accepted =
-        record.provider === "telegram"
-          ? result?.ok === true
-          : record.provider === "wecom"
-            ? result?.errcode === 0
-            : record.provider === "wxpusher"
-              ? result?.code === 1000 &&
-                Array.isArray(result.data) &&
-                result.data.some(
-                  (entry) => entry?.uid === record.destination && entry.code === 1000,
-                ) &&
-                result.data.every((entry) => entry?.code === 1000)
-              : result?.code === 0 &&
-                (!result.data || result.data.errno === undefined || result.data.errno === 0);
-      if (!accepted) throw new Error("provider_rejected");
+      await deliverPush(record, request, { signal, fetchImpl: this.#fetch });
     } catch {
       throw new Error(
         signal.aborted ? "邮件推送已停止。" : "推送失败，请检查渠道凭据、目标和网络后重试。",

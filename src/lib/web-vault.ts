@@ -5,6 +5,7 @@
  * 单独 AES-256-GCM），所以桌面版备份恢复到网页版后，用同一个主密码就能解锁。
  * 解锁后的密钥只在这个标签页的内存里，刷新或关闭页面即锁定。
  */
+import { gcm } from "@noble/ciphers/aes.js";
 import { scryptAsync } from "@noble/hashes/scrypt.js";
 import type { AccountCredential, SshCredential } from "./desktop.ts";
 import { webApi, WebConflictError } from "./web.ts";
@@ -26,7 +27,9 @@ const CHECK = "sinan-vault";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-let key: CryptoKey | null = null;
+/** WebCrypto 只在 HTTPS / localhost 下提供；经 http://局域网地址 打开时用纯 JS 的 AES-GCM，密文格式相同。 */
+type VaultKey = CryptoKey | Uint8Array<ArrayBuffer>;
+let key: VaultKey | null = null;
 let keyContext = "";
 let doc: VaultDoc | null = null;
 let revision: string | null = null;
@@ -61,27 +64,32 @@ async function deriveKey(master: string, salt: string, kdf: Kdf) {
     dkLen: 32,
     maxmem: 300 * 1024 * 1024,
   });
+  if (!globalThis.crypto?.subtle) return new Uint8Array(raw);
   const k = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
   raw.fill(0);
   return k;
 }
-async function seal(k: CryptoKey, plaintext: Uint8Array<ArrayBuffer>): Promise<Sealed> {
+async function seal(k: VaultKey, plaintext: Uint8Array<ArrayBuffer>): Promise<Sealed> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const out = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv, tagLength: 128 }, k, plaintext),
-  );
+  const out =
+    k instanceof Uint8Array
+      ? gcm(k, iv).encrypt(plaintext)
+      : new Uint8Array(
+          await crypto.subtle.encrypt({ name: "AES-GCM", iv, tagLength: 128 }, k, plaintext),
+        );
   return {
     iv: toB64(iv),
     tag: toB64(out.slice(out.length - 16)),
     data: toB64(out.slice(0, out.length - 16)),
   };
 }
-async function open(k: CryptoKey, rec: Sealed): Promise<Uint8Array<ArrayBuffer>> {
+async function open(k: VaultKey, rec: Sealed): Promise<Uint8Array<ArrayBuffer>> {
   const data = fromB64(rec.data),
     tag = fromB64(rec.tag);
   const joined = new Uint8Array(data.length + tag.length);
   joined.set(data);
   joined.set(tag, data.length);
+  if (k instanceof Uint8Array) return new Uint8Array(gcm(k, fromB64(rec.iv)).decrypt(joined));
   return new Uint8Array(
     await crypto.subtle.decrypt(
       { name: "AES-GCM", iv: fromB64(rec.iv), tagLength: 128 },
@@ -90,7 +98,7 @@ async function open(k: CryptoKey, rec: Sealed): Promise<Uint8Array<ArrayBuffer>>
     ),
   );
 }
-async function verified(k: CryptoKey, d: VaultDoc) {
+async function verified(k: VaultKey, d: VaultDoc) {
   try {
     return decoder.decode(await open(k, d.check)) === CHECK;
   } catch {
@@ -128,7 +136,7 @@ function requireKey() {
   return key;
 }
 /** 读-改-写；别的设备刚写过时重新读取再试一次。 */
-async function mutate(change: (current: VaultDoc, k: CryptoKey) => Promise<VaultDoc>) {
+async function mutate(change: (current: VaultDoc, k: VaultKey) => Promise<VaultDoc>) {
   for (let attempt = 0; ; attempt++) {
     if (!loaded || attempt > 0) await load();
     if (!doc) throw new Error("密钥库尚未创建");
@@ -140,6 +148,7 @@ async function mutate(change: (current: VaultDoc, k: CryptoKey) => Promise<Vault
   }
 }
 function lock() {
+  if (key instanceof Uint8Array) key.fill(0);
   key = null;
   keyContext = "";
   return { ok: true as const };

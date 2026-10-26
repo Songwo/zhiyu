@@ -3833,6 +3833,47 @@ p {
 }
 
 /* 资产卡片上的功能标记：中性灰底 + 细线图标，不再用彩色胶囊和表情符号。 */
+/* 主机卡片的「自动采集」开关 */
+.collect-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 2px 0 4px;
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.collect-switch:hover {
+  color: var(--color-ink);
+}
+.collect-switch-track {
+  position: relative;
+  width: 26px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--color-line-strong);
+  transition: background 0.15s ease;
+}
+.collect-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s ease;
+}
+.collect-switch[aria-checked="true"] .collect-switch-track {
+  background: var(--color-ok);
+}
+.collect-switch[aria-checked="true"] .collect-switch-thumb {
+  transform: translateX(11px);
+}
+
 .asset-feature-chip {
   display: inline-flex;
   align-items: center;

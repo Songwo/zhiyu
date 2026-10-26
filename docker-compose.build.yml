@@ -1,0 +1,6 @@
+# 从源码构建镜像，替代 ghcr.io 上的正式版镜像：
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  zhiyu:
+    build: .
+    image: zhiyu-web:local

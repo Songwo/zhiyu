@@ -57,6 +57,7 @@ import { useAppStore } from "@/lib/store";
 import { mergeSnapshotChange } from "@/lib/snapshot-merge";
 import type { AssetKind } from "@/lib/types";
 import { copyText } from "@/lib/utils";
+import { randomId } from "@/lib/random-id";
 import { useVault } from "@/lib/vault-state";
 import { t } from "@/lib/i18n";
 
@@ -225,7 +226,7 @@ export function AgentView() {
       append("you", [{ type: "text", text: question }], conversationId);
     if (!retry) setDraft("");
     setError("");
-    const id = crypto.randomUUID();
+    const id = randomId();
     runRef.current = id;
     let output = "";
     const sources: Source[] = [],

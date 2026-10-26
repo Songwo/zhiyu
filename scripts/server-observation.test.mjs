@@ -2,11 +2,31 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   canProbeServer,
+  isCollectionPaused,
   hasServerObservation,
   hasServerMetrics,
   serverNeedsAttention,
 } from "../src/lib/server-observation.mjs";
 
+test("关闭自动采集后不探测、不告警，重新打开恢复原状态", () => {
+  const server = {
+    status: "offline",
+    lastSeen: "2026-09-29",
+    probedAt: "2026-09-30",
+    probeError: "connection timed out",
+    collect: false,
+  };
+  assert.equal(isCollectionPaused(server), true);
+  assert.equal(canProbeServer(server), false);
+  assert.equal(hasServerObservation(server), false);
+  assert.equal(serverNeedsAttention(server), false);
+  assert.equal(hasServerMetrics(server), true);
+  const resumed = { ...server, collect: undefined };
+  assert.equal(canProbeServer(resumed), true);
+  assert.equal(serverNeedsAttention(resumed), true);
+  assert.equal(canProbeServer({ sshConfigured: false }), false);
+  assert.equal(canProbeServer({ collect: true }), true);
+});
 test("仅记录主机没有监控数据，也不会产生故障告警", () => {
   const server = { status: "warning", lastSeen: "" };
   assert.equal(hasServerObservation(server), false);

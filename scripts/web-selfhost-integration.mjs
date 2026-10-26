@@ -12,6 +12,7 @@ const web = await createWebServer({
   root,
   staticDir: resolve("dist-web"),
   log: { log() {}, error() {} },
+  schedulePush: false,
 });
 await new Promise((r) => web.server.listen(0, "127.0.0.1", r));
 const base = `http://127.0.0.1:${web.server.address().port}`;
@@ -83,6 +84,20 @@ try {
   // 网页版没有 SSH 终端，密钥库可用
   await b.goto(`${base}/`);
   await b.locator('[data-app-ready="true"]').waitFor();
+
+  // 设置 → 提醒推送：服务器保存渠道，浏览器只看到「已保存」
+  await b.keyboard.press("Control+,");
+  const settings = b.getByRole("dialog", { name: "设置", exact: true });
+  await settings.getByRole("button", { name: "提醒推送", exact: true }).click();
+  await settings.getByLabel("开启服务器提醒推送").check();
+  await settings.getByRole("textbox", { name: "Chat ID" }).fill("42");
+  await settings.getByLabel("推送凭据").fill(`123456789:${"A".repeat(35)}`);
+  await settings.getByRole("button", { name: "保存", exact: true }).click();
+  await settings.getByText("提醒推送配置已保存。").waitFor();
+  await b.screenshot({ path: "screenshots/web-push.png" });
+  const pushConfig = await (await b.request.get(`${base}/api/web/push`)).json();
+  result.pushSaved = pushConfig.enabled && pushConfig.hasToken && !("token" in pushConfig);
+  await b.keyboard.press("Escape");
   await b.getByRole("button", { name: "更多操作" }).click();
   await b.getByText("退出登录").click();
   await b.waitForURL(/\/login$/);
@@ -99,6 +114,7 @@ assert.equal(result.noDemo, true);
 assert.match(result.wrongPassword, /用户名或密码不正确/);
 assert.equal(result.syncedToOffice, true);
 assert.equal(result.loggedOut, true);
+assert.equal(result.pushSaved, true);
 assert.equal(result.homeSeesCompletion, true);
 assert.equal(result.afterLogoutApi, 401);
 assert.deepEqual(errors, []);

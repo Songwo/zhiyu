@@ -14,7 +14,7 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
   const out = [];
   for (const s of snapshot.servers ?? []) {
     if (s.demo) continue;
-    if (s.status === "offline" && s.probeError)
+    if (s.status === "offline" && s.probeError && s.collect !== false)
       out.push({
         key: `server:${s.id}`,
         kind: "server",

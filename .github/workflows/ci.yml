@@ -99,7 +99,8 @@ jobs:
         run: docker build -t zhiyu-web:ci .
       - name: 启动镜像并检查登录页与接口
         run: |
-          docker run -d --name zhiyu -p 8848:8848 zhiyu-web:ci
+          # 挂载一个由 Docker 自动创建（属于 root）的资料目录，确认容器能写入。
+          docker run -d --name zhiyu -p 8848:8848 -v "$PWD/zhiyu-ci-data:/data" zhiyu-web:ci
           for _ in $(seq 1 30); do
             curl -sf http://127.0.0.1:8848/api/web/state > /dev/null && break
             sleep 1
@@ -108,4 +109,7 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8848/)" = "302"
           curl -sf http://127.0.0.1:8848/login | grep -q '知屿'
           docker logs zhiyu 2>&1 | grep -q '设置口令'
+          sudo test -f zhiyu-ci-data/server/setup-token.txt
+          # 服务进程（PID 1）已降权为 node 用户
+          test "$(docker exec zhiyu stat -c %U /proc/1)" = "node"
           docker rm -f zhiyu

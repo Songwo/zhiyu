@@ -1,5 +1,6 @@
 import type { ProxyNode, ProxyProtocol, Server } from "./types";
-const uid = (prefix: string) => prefix + "-" + crypto.randomUUID();
+import { randomId } from "./random-id.ts";
+const uid = (prefix: string) => prefix + "-" + randomId();
 
 /**
  * Parses proxy connection strings (VLESS, VMess, Trojan, Shadowsocks, Hysteria2)

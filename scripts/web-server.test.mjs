@@ -8,11 +8,11 @@ import { createBackup } from "../electron/services/backup.mjs";
 
 const quiet = { log() {}, error() {} };
 
-async function rig(t) {
+async function rig(t, options = {}) {
   const root = await mkdtemp(join(tmpdir(), "zhiyu-web-"));
   const staticDir = await mkdtemp(join(tmpdir(), "zhiyu-web-static-"));
   await writeFile(join(staticDir, "index.html"), "<!doctype html><title>知屿</title>");
-  const web = await createWebServer({ root, staticDir, log: quiet });
+  const web = await createWebServer({ root, staticDir, log: quiet, ...options });
   await new Promise((r) => web.server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${web.server.address().port}`;
   t.after(async () => {
@@ -318,4 +318,77 @@ test("改登录密码：旧会话全部失效，只保留当前这一个", async
   assert.equal((await call("/api/web/session")).status, 401);
   setCookie(second);
   assert.equal((await call("/api/web/session")).status, 200);
+});
+
+test("提醒推送：服务器端保存渠道（不回传凭据），按天去重推送续费与备忘提醒", async (t) => {
+  const sent = [];
+  const fetchImpl = async (url, init) => {
+    sent.push({ url, body: JSON.parse(init.body) });
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  };
+  const { web, root, call } = await rig(t, { fetchImpl, schedulePush: false });
+  assert.equal((await call("/api/web/push")).status, 401);
+  await call("/api/web/setup", { method: "POST", body: { ...account, token: web.setupToken } });
+  const empty = await (await call("/api/web/push")).json();
+  assert.deepEqual(empty, {
+    enabled: false,
+    provider: "telegram",
+    destination: "",
+    hasToken: false,
+    leadDays: 21,
+  });
+  const token = "123456789:" + "A".repeat(35);
+  const bad = await call("/api/web/push", {
+    method: "PUT",
+    body: { enabled: true, provider: "telegram", destination: "", token, leadDays: 7 },
+  });
+  assert.equal(bad.status, 400);
+  assert.match((await bad.json()).error, /接收目标/);
+  const saved = await (
+    await call("/api/web/push", {
+      method: "PUT",
+      body: { enabled: true, provider: "telegram", destination: "42", token, leadDays: 7 },
+    })
+  ).json();
+  assert.equal(saved.hasToken, true);
+  assert.equal(JSON.stringify(saved).includes(token), false);
+  const kept = await (
+    await call("/api/web/push", {
+      method: "PUT",
+      body: { enabled: true, provider: "telegram", destination: "42", leadDays: 7 },
+    })
+  ).json();
+  assert.equal(kept.hasToken, true);
+
+  assert.equal((await call("/api/web/push/test", { method: "POST", body: {} })).status, 200);
+  assert.match(sent.at(-1).url, /api\.telegram\.org\/bot123456789:/);
+  assert.match(sent.at(-1).body.text, /测试/);
+
+  const now = Date.parse("2026-10-20T09:00:00Z");
+  const day = (offset) => new Date(now + offset * 86_400_000).toISOString().slice(0, 10);
+  await writeFile(
+    join(root, "workspace", "assets.json"),
+    JSON.stringify({
+      state: {
+        domains: [
+          { id: "d1", name: "example.com", expiresAt: day(5) },
+          { id: "d2", name: "later.com", expiresAt: day(40) },
+        ],
+        servers: [{ id: "s", name: "down", status: "offline", probeError: "timeout" }],
+        reminders: [{ id: "r", title: "宽带续费", dueAt: day(2), repeat: "none", leadDays: 3 }],
+      },
+      version: 0,
+    }),
+  );
+  sent.length = 0;
+  assert.deepEqual(await web.push.tick(now), { sent: 2 });
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].body.text, /example\.com: 5 天后到期/);
+  assert.match(sent[0].body.text, /宽带续费/);
+  assert.doesNotMatch(sent[0].body.text, /later\.com|down/);
+  assert.deepEqual(await web.push.tick(now + 3_600_000), { sent: 0 });
+  assert.equal(sent.length, 1);
+  assert.equal((await web.push.tick(now + 86_400_000)).sent, 2);
+  const stored = await readFile(join(root, "server", "push.json"), "utf8");
+  assert.match(stored, /123456789:/);
 });

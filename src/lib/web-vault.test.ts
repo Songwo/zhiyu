@@ -76,3 +76,65 @@ test("网页版密钥库与桌面版同一文件格式，双向可读", async (t
   await webVault.remove("account:cf");
   assert.deepEqual(await webVault.list(), ["account:gh"]);
 });
+
+test("经 http:// 局域网地址访问（没有 WebCrypto）时密钥库仍可用，与桌面版互通", async (t) => {
+  const { createWebServer } = await import(SERVER);
+  const { Vault } = await import(DESKTOP_VAULT);
+  const root = await mkdtemp(join(tmpdir(), "zhiyu-web-vault-http-"));
+  const web = await createWebServer({
+    root,
+    staticDir: root,
+    log: { log() {}, error() {} },
+    schedulePush: false,
+  });
+  await new Promise<void>((r) => web.server.listen(0, "127.0.0.1", () => r()));
+  const base = `http://127.0.0.1:${(web.server.address() as { port: number }).port}`;
+  const realFetch = globalThis.fetch;
+  const realCrypto = globalThis.crypto;
+  // 浏览器在非安全上下文里只保留 getRandomValues
+  Object.defineProperty(globalThis, "crypto", {
+    value: { getRandomValues: realCrypto.getRandomValues.bind(realCrypto) },
+    configurable: true,
+  });
+  t.after(async () => {
+    Object.defineProperty(globalThis, "crypto", { value: realCrypto, configurable: true });
+    globalThis.fetch = realFetch;
+    await webVault.lock();
+    web.server.close();
+    await rm(root, { recursive: true, force: true });
+  });
+  const setup = await realFetch(`${base}/api/web/setup`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-zhiyu": "1" },
+    body: JSON.stringify({
+      token: web.setupToken,
+      username: "song",
+      password: "home-and-office-2026",
+    }),
+  });
+  const cookie = setup.headers.get("set-cookie")!.split(";")[0];
+  globalThis.fetch = ((input: string, init: RequestInit = {}) =>
+    realFetch(base + input, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), cookie },
+    })) as typeof fetch;
+
+  assert.equal(globalThis.crypto.subtle, undefined);
+  await webVault.create(MASTER);
+  await webVault.set("account:lan", {
+    username: "home",
+    password: "typed-over-http",
+    updatedAt: new Date().toISOString(),
+  });
+  await webVault.lock();
+  await assert.rejects(webVault.unlock("wrong master password"), /主密码不正确/);
+  await webVault.unlock(MASTER);
+  assert.equal((await webVault.get("account:lan"))?.password, "typed-over-http");
+
+  const desktop = new Vault(join(root, "workspace", "vault.enc"));
+  await desktop.unlock(MASTER);
+  assert.equal((await desktop.get("account:lan")).password, "typed-over-http");
+  await desktop.set("account:desk", { username: "ops", password: "from-desktop" });
+  await webVault.unlock(MASTER);
+  assert.equal((await webVault.get("account:desk"))?.password, "from-desktop");
+});

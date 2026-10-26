@@ -1,44 +1,25 @@
 {
   "manifest_version": 3,
   "name": "知屿 Zhiyu - 账号与文档助手",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "同站多账号建议与选择填写、登录账号一键加密保存、可见网页文档保存到本机知屿。自动提示可关闭；仅在你确认后保存或填写。",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage",
-    "tabs"
-  ],
-  "host_permissions": [
-    "http://127.0.0.1/*"
-  ],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["http://127.0.0.1/*"],
   "background": {
     "service_worker": "background.mjs",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "js": [
-        "companion-fields.js",
-        "companion.mjs",
-        "submit-capture.mjs"
-      ],
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["companion-fields.js", "companion.mjs", "submit-capture.mjs"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "icon.png"
-      ],
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ]
+      "resources": ["icon.png"],
+      "matches": ["http://*/*", "https://*/*"]
     }
   ],
   "action": {

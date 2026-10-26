@@ -135,3 +135,58 @@ jobs:
           $blockmap = "$installer.blockmap"
           if (!(Test-Path $metadata) -or !(Test-Path $blockmap)) { throw 'Update metadata missing' }
           gh release create "v$version" $installer $portable $extension $metadata $blockmap "$directory/SHA256SUMS.txt" --verify-tag --title "知屿 Zhiyu $version" --notes-file "docs/releases/v$version.md"
+
+  # 网页版镜像：Windows 正式版全部检查通过后，推送到 ghcr.io/<owner>/zhiyu-web:<版本> 与 latest。
+  web-image:
+    needs: windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ZHIYU_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - name: 校验版本标签
+        run: |
+          version=$(node -p "require('./package.json').version")
+          test "v$version" = "$ZHIYU_RELEASE_TAG"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/zhiyu-web" >> "$GITHUB_ENV"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: 构建并检查镜像
+        run: |
+          docker buildx build --load -t zhiyu-web:check .
+          docker run -d --name zhiyu -p 8848:8848 -v "$PWD/zhiyu-ci-data:/data" zhiyu-web:check
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8848/api/web/state > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8848/api/web/state | grep -q "\"version\":\"$VERSION\""
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8848/)" = "302"
+          docker logs zhiyu 2>&1 | grep -q '设置口令'
+          sudo test -f zhiyu-ci-data/server/setup-token.txt
+          docker rm -f zhiyu
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: 推送多架构镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ env.VERSION }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.title=知屿 Zhiyu 网页版
+            org.opencontainers.image.licenses=MIT

@@ -1,4 +1,8 @@
-import { hasServerMetrics, hasServerObservation } from "@/lib/server-observation.mjs";
+import {
+  hasServerMetrics,
+  hasServerObservation,
+  isCollectionPaused,
+} from "@/lib/server-observation.mjs";
 import type { MouseEvent } from "react";
 import {
   CircleAlert,
@@ -18,6 +22,7 @@ import { CardTag } from "./tag-bar";
 import { AssetImage } from "./image-picker";
 import { TimeAgo } from "./ui/time-ago";
 import { isDesktop } from "@/lib/desktop";
+import { isWeb } from "@/lib/web";
 import { useLive } from "@/lib/live";
 import { useProbeState } from "@/lib/probes";
 import { tagsOf } from "@/lib/tags";
@@ -53,6 +58,7 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
   const cpu = liveCpu ?? data.cpu;
   const mem = liveMem ?? data.memory;
   const status = data.status;
+  const paused = isCollectionPaused(data);
   const observed = hasServerObservation(data);
   const measured = hasServerMetrics(data);
 
@@ -77,7 +83,12 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h3 className="truncate font-semibold tracking-tight text-ink">{data.name}</h3>
-            <StatusBadge status={status} sonar={status === "online"} pending={!observed} />
+            <StatusBadge
+              status={status}
+              sonar={status === "online"}
+              pending={!observed}
+              pendingLabel={paused ? t("已暂停采集") : undefined}
+            />
           </div>
           <p className="mt-0.5 truncate text-meta text-muted">
             {data.label} · {data.os}
@@ -120,14 +131,19 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
       )}
 
       {measured ? (
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div
+          className={cn("mt-4 grid grid-cols-3 gap-3", paused && "opacity-50")}
+          title={paused ? t("已暂停采集，显示的是上次的数据") : undefined}
+        >
           <Metric label="CPU" value={cpu} />
           <Metric label={t("内存")} value={mem} />
           <Metric label={t("磁盘")} value={data.disk} />
         </div>
       ) : (
         <p className="mt-4 rounded-lg bg-surface p-3 text-meta text-muted">
-          {t("暂无监控数据，配置 SSH 后可手动采集。")}
+          {paused
+            ? t("已关闭自动采集：不会连接这台主机，也不会提示离线。")
+            : t("暂无监控数据，配置 SSH 后可手动采集。")}
         </p>
       )}
 
@@ -140,13 +156,19 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
             <>
               {t("运行 {0}", data.uptime)} · <TimeAgo iso={data.lastSeen} />
             </>
-          ) : (
+          ) : paused ? null : (
             t("未采集")
           )}
         </span>
+        <CollectSwitch server={data} />
       </div>
 
-      <ProbeNote id={data.id} error={data.probeError} at={data.probedAt} />
+      {!paused && <ProbeNote id={data.id} error={data.probeError} at={data.probedAt} />}
+      {!paused && data.probeError && !isWeb() && data.sshConfigured !== false && (
+        <p className="mt-1 text-2xs text-subtle">
+          {t("本机连不上这台主机（例如需要代理）？关掉右下角的「采集」，不再连接也不再告警。")}
+        </p>
+      )}
 
       {!compact && (
         <div className="mt-5 space-y-4 border-t border-line pt-4">
@@ -187,6 +209,47 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
         </div>
       )}
     </article>
+  );
+}
+
+/** 每台主机的「自动采集」开关：本机连不上（没有代理、内网机器）时关掉，不再探测也不再告警。 */
+function CollectSwitch({ server }: { server: ServerT }) {
+  if (isWeb() || server.sshConfigured === false) return null;
+  const on = !isCollectionPaused(server);
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={t("自动采集 {0}", server.name)}
+      title={
+        on
+          ? t("自动采集已打开：按设定周期连接这台主机。连不上时可以关掉。")
+          : t("自动采集已关闭：不连接、不告警。点击重新打开。")
+      }
+      className="collect-switch"
+      onClick={(e) => {
+        e.stopPropagation();
+        const state = useAppStore.getState();
+        const current = state.servers.find((s) => s.id === server.id) ?? server;
+        state.upsertServer({ ...current, collect: on ? false : undefined });
+        state.log(
+          on ? t("关闭了 {0} 的自动采集", server.name) : t("打开了 {0} 的自动采集", server.name),
+          "server",
+        );
+        toast(
+          on
+            ? t("已关闭「{0}」的自动采集，不会再连接或提示离线", server.name)
+            : t("已打开「{0}」的自动采集，下个采集周期会连接", server.name),
+        );
+      }}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      <span className="collect-switch-track" aria-hidden="true">
+        <span className="collect-switch-thumb" />
+      </span>
+      <span>{t("采集")}</span>
+    </button>
   );
 }
 

@@ -35,15 +35,27 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  // 页面代码也跑在网页版里；经 http:// 局域网地址打开时没有 crypto.randomUUID，统一用 randomId()。
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/**/*.test.ts"],
+    rules: {
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "crypto",
+          property: "randomUUID",
+          message: "网页版经 http:// 打开时不可用，请改用 @/lib/random-id 的 randomId()。",
+        },
+      ],
     },
   },
   // Electron preload scripts must be CommonJS: `contextBridge` runs before the

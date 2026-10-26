@@ -1,3 +1,4 @@
+import { ViewErrorBoundary } from "./view-error-boundary";
 import { isWeb } from "@/lib/web";
 import { startWebSync } from "@/lib/web-store";
 import { Bot, FileText, House, Phone, Server } from "lucide-react";
@@ -168,7 +169,7 @@ export function AppShell() {
     const tick = () => {
       const servers = useAppStore.getState().servers;
       for (const s of servers) {
-        if (s.status === "offline" || s.sshConfigured === false) continue;
+        if (s.status === "offline" || s.sshConfigured === false || s.collect === false) continue;
         const prevC = useLive.getState().cpu[s.id] ?? s.cpu;
         const prevM = useLive.getState().memory[s.id] ?? s.memory;
         const cpu = clamp(prevC + (Math.random() - 0.48) * 5, 3, 98);
@@ -274,7 +275,9 @@ export function AppShell() {
                 {/* 详情打开时列表只隐藏不卸载，返回时筛选、展开状态都还在。 */}
                 <div className="workspace-view" hidden={detailOpen}>
                   <TopTabs />
-                  <MainView />
+                  <ViewErrorBoundary key={view}>
+                    <MainView />
+                  </ViewErrorBoundary>
                 </div>
               </main>
               {!detailOpen && !wideWorkspace && <RightRail className="hidden 2xl:block" />}

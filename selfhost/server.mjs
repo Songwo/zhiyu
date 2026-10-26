@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { normalizeSnapshotImages } from "../electron/services/image-data.mjs";
 import { DocumentsStore } from "../electron/services/documents.mjs";
+import { ReminderPushError, WebReminderPush } from "./reminder-push.mjs";
 import {
   BACKUP_LIMITS,
   applyPendingRestore,
@@ -127,6 +128,8 @@ export async function createWebServer({
   trustProxy = process.env.ZHIYU_TRUST_PROXY === "1",
   setupToken = process.env.ZHIYU_SETUP_TOKEN,
   log = console,
+  fetchImpl = fetch,
+  schedulePush = true,
 } = {}) {
   const workspace = join(root, "workspace");
   const serverDir = join(root, "server");
@@ -143,6 +146,19 @@ export async function createWebServer({
     vault: join(workspace, "vault.enc"),
   };
   let documents = new DocumentsStore(join(workspace, "documents"));
+  // 浏览器关着时也按时推送续费与备忘提醒；凭据只存在 server 目录。
+  const push = new WebReminderPush({
+    dir: serverDir,
+    fetchImpl,
+    log,
+    readSnapshot: async () => {
+      const data = await readJson(files.store);
+      return data?.state && typeof data.state === "object" ? data.state : data;
+    },
+  });
+  const pushError = (error) => {
+    throw error instanceof ReminderPushError ? new HttpError(400, error.message) : error;
+  };
   let account = await readJson(files.account);
   const sessions = new Map(Object.entries((await readJson(files.sessions)) ?? {}));
   const failures = new Map();
@@ -346,6 +362,12 @@ export async function createWebServer({
     "GET /api/web/session": async (req, res, session) =>
       send(res, 200, { username: session.username, version: VERSION }),
 
+    "GET /api/web/push": async (req, res) => send(res, 200, await push.config()),
+    "PUT /api/web/push": async (req, res) =>
+      send(res, 200, await push.save(await json(req)).catch(pushError)),
+    "POST /api/web/push/test": async (req, res) =>
+      send(res, 200, await push.test().catch(pushError)),
+
     "POST /api/web/password": async (req, res, session) => {
       const input = await json(req);
       const hash = await hashPassword(
@@ -527,9 +549,11 @@ export async function createWebServer({
       send(res, status, { error: status === 500 ? "服务器出错了，请查看日志" : error.message });
     });
   });
+  if (schedulePush) server.on("close", push.start());
   return {
     server,
     root,
+    push,
     get setupToken() {
       return setupToken;
     },

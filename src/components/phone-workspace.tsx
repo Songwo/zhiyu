@@ -20,6 +20,7 @@ import { BillingFields } from "./billing-fields";
 import { phonePage, visiblePhoneNumbers, type PhoneFilter } from "@/lib/phone-view.mjs";
 import { useAppStore } from "@/lib/store";
 import type { PhoneNumber } from "@/lib/types";
+import { randomId } from "@/lib/random-id";
 import { t } from "@/lib/i18n";
 import { Button } from "./ui/button";
 import { Field, Input, Select, Textarea } from "./ui/input";
@@ -449,7 +450,7 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
           currency: billingCurrency,
           cycle: billingCycle,
         }),
-        id: record?.id ?? crypto.randomUUID(),
+        id: record?.id ?? randomId(),
         createdAt: record?.createdAt ?? now,
         updatedAt: now,
       });

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { randomId } from "@/lib/random-id";
 import { t } from "@/lib/i18n";
 import { type UsageSource } from "@/lib/usage";
 import { Plus, Copy, Trash2, RefreshCw, Pencil, Activity } from "lucide-react";
@@ -50,7 +51,7 @@ export function ServerNodesPanel({ server }: { server: Server }) {
   const [uri, setUri] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const empty = (): ProxyNode => ({
-    id: "nod-" + crypto.randomUUID(),
+    id: "nod-" + randomId(),
     name: "",
     protocol: "vless",
     host: server.host ?? "",
@@ -85,7 +86,7 @@ export function ServerNodesPanel({ server }: { server: Server }) {
       const nodes = lines.map((line, index) => {
         const parsed = parseProxyUri(line);
         if (!parsed) throw new Error(`第 ${index + 1} 行无法识别`);
-        const node = { ...parsed, id: "nod-" + crypto.randomUUID() } as ProxyNode;
+        const node = { ...parsed, id: "nod-" + randomId() } as ProxyNode;
         validateProxyNode(node);
         return node;
       });

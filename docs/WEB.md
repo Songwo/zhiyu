@@ -9,12 +9,23 @@
 
 ## 用 Docker 部署（推荐）
 
+正式版镜像为 `ghcr.io/songwo/zhiyu-web`（amd64 / arm64），不用克隆源码：
+
 ```bash
-git clone https://github.com/Songwo/zhiyu.git
-cd zhiyu
-docker compose up -d --build
+mkdir zhiyu && cd zhiyu
+curl -fsSLO https://raw.githubusercontent.com/Songwo/zhiyu/main/docker-compose.yml
+docker compose up -d
 docker compose logs zhiyu    # 找「设置口令」
 ```
+
+不用 compose 也可以：
+
+```bash
+docker run -d --name zhiyu --restart unless-stopped -p 8848:8848 \
+  -v "$PWD/zhiyu-data:/data" ghcr.io/songwo/zhiyu-web:latest
+```
+
+升级：`docker compose pull && docker compose up -d`。想从源码构建镜像：克隆仓库后运行 `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`。
 
 浏览器打开 `http://服务器地址:8848`，第一次会进入「创建网页版账号」：填写日志里的**设置口令**、用户名和登录密码（至少 10 位）。设置口令只能用一次，用来防止别人抢先注册你的实例。
 
@@ -23,8 +34,10 @@ docker compose logs zhiyu    # 找「设置口令」
 ```text
 zhiyu-data/
   workspace/   资料（与桌面版资料目录一致，备份与恢复的范围）
-  server/      网页登录账号与会话
+  server/      网页登录账号与会话、提醒推送配置
 ```
+
+容器以 root 启动后会把资料目录交给容器内的 node 用户，再降权运行服务。
 
 ## 不用 Docker
 
@@ -54,6 +67,8 @@ zhiyu.example.com {
 
 也可以只在家庭内网或 Tailscale / WireGuard 里访问，不暴露到公网。
 
+用 `http://局域网地址` 直接访问也可以使用全部功能：浏览器在非 HTTPS 页面里不提供 WebCrypto，此时密钥库改用纯 JavaScript 的 AES-256-GCM 加解密，文件格式不变。但 http 下登录密码以明文传输，跨网络访问请使用 HTTPS 或 VPN。
+
 ## 环境变量
 
 | 变量                  | 默认                                  | 说明                                      |
@@ -69,7 +84,13 @@ zhiyu.example.com {
 
 和桌面版共用同一套界面：资产总览、关联、标签、文档、费用与续费日历、备忘提醒、自定义资产类型、密钥库都可以用；打开页面时会按设定提前天数弹浏览器通知（需要允许通知）。
 
-需要直连主机或本机能力的功能只在桌面版提供：SSH 终端与文件、主机探测与监控、本机用量采集、邮箱 IMAP 检查与推送、AI 助手、浏览器插件配对、系统托盘和系统通知。
+## 提醒推送到手机
+
+「设置 → 提醒推送」选择 Telegram、Server酱 / 微信、企业微信群机器人或 WxPusher，填写凭据和接收目标后开启。服务器启动一分钟后检查一次，之后每小时检查一次续费与备忘提醒，按「资产到期前多少天开始提醒」推送；同一件事每天最多一次，只发名称和剩余天数。可以先点「发送测试消息」确认渠道。
+
+推送凭据保存在 `zhiyu-data/server/push.json`，只有服务器能读，不会返回给浏览器，也不在备份范围内（换服务器后重新填写）。服务器需要能访问对应渠道的接口（例如 `api.telegram.org`）。
+
+需要直连主机或本机能力的功能只在桌面版提供：SSH 终端与文件、主机探测与监控、本机用量采集、邮箱 IMAP 检查与新邮件推送、AI 助手、浏览器插件配对、系统托盘和系统通知。
 
 ## 备份、恢复与换电脑
 

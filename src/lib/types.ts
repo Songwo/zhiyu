@@ -127,6 +127,8 @@ export interface BoundSecretItem {
 export interface Server extends ProbeMeta, Taggable {
   integration?: import("./integrations").IntegrationRef;
   sshConfigured?: boolean;
+  /** false：关闭自动采集，不探测也不告警（本机连不上这台主机时）。 */
+  collect?: boolean;
   id: string;
   name: string;
   label: string;

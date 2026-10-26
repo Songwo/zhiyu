@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { daysUntil, localDay, shiftDay } from "../../electron/services/reminders.mjs";
 import { newId } from "@/lib/asset-types";
 import { isDesktop } from "@/lib/desktop";
+import { isWeb } from "@/lib/web";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import type { Reminder } from "@/lib/types";
@@ -247,9 +248,13 @@ export function ReminderEditor({ reminder, onClose }: { reminder: Reminder; onCl
           />
         </Field>
         <p className="text-2xs text-subtle">
-          {t(
-            "桌面版会弹系统通知，也可以在「设置 → 邮件推送」里推送到微信或 Telegram；网页版在打开时提醒。",
-          )}
+          {isWeb()
+            ? t(
+                "打开页面时会弹浏览器通知；在「设置 → 提醒推送」里配置后，服务器会按时推送到微信或 Telegram，浏览器关着也能收到。",
+              )
+            : t(
+                "桌面版会弹系统通知，也可以在「设置 → 邮件推送」里推送到微信或 Telegram；网页版在打开时提醒。",
+              )}
         </p>
         <div className={cn("flex gap-2", exists ? "justify-between" : "justify-end")}>
           {exists && (

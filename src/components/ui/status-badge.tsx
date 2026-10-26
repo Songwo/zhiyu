@@ -7,11 +7,13 @@ export function StatusBadge({
   status,
   sonar = true,
   pending = false,
+  pendingLabel,
   className,
 }: {
   status: Status;
   sonar?: boolean;
   pending?: boolean;
+  pendingLabel?: string;
   className?: string;
 }) {
   if (pending)
@@ -21,10 +23,10 @@ export function StatusBadge({
           "chip inline-flex items-center gap-1.5 border border-line bg-surface text-muted",
           className,
         )}
-        data-status="pending"
+        data-status={pendingLabel ? "paused" : "pending"}
       >
         <span className="size-1.5 rounded-full bg-muted" />
-        <span>{t("未采集")}</span>
+        <span>{pendingLabel ?? t("未采集")}</span>
       </span>
     );
   return (
