@@ -37,7 +37,7 @@ export function mainProcessPackages(root) {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
     const pattern =
-      /(?:^|[;\s])(?:import|export)\s+(?!type)(?:[^'"]*?\sfrom\s*)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)|require\(\s*["']([^"']+)["']\s*\)/g;
+      /(?:^|[;\s])(?:import|export)\s+(?!type\b)(?:[^'"]*?\sfrom\s*)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)|require\(\s*["']([^"']+)["']\s*\)/g;
     for (const match of code.matchAll(pattern)) {
       const spec = match[1] ?? match[2] ?? match[3];
       if (spec.startsWith(".")) {
