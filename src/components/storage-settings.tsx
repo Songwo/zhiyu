@@ -1,7 +1,8 @@
+import { hostBridge } from "@/lib/web-bridge";
+import { isWeb } from "@/lib/web";
 import { useEffect, useState } from "react";
 import { Database, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { clearImageGrants, imageGrantCount } from "@/lib/mail-image-grants";
 import { Button } from "./ui/button";
@@ -20,7 +21,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function StorageSettings() {
-  const api = desktop()?.storage;
+  const api = hostBridge()?.storage;
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [grants, setGrants] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -63,9 +64,13 @@ export function StorageSettings() {
         <h3 className="text-lg font-semibold">{t("存储")}</h3>
       </div>
       <p className="text-meta text-muted">
-        {t(
-          "缓存只影响速度，不影响数据：清理后首次访问会稍慢。资产、密钥库和凭据文件不属于缓存，不会被清理。",
-        )}
+        {isWeb()
+          ? t(
+              "以下是服务器资料目录里各文件的大小。网页版没有本机缓存，界面资源由浏览器自己缓存，清除浏览器的站点数据即可。",
+            )
+          : t(
+              "缓存只影响速度，不影响数据：清理后首次访问会稍慢。资产、密钥库和凭据文件不属于缓存，不会被清理。",
+            )}
       </p>
       {!stats ? (
         <p role="status" className="flex items-center gap-2 text-meta">
@@ -89,37 +94,46 @@ export function StorageSettings() {
               </div>
             </dl>
           </div>
-          <div className="border-t border-line pt-4">
-            <h4 className="mb-2 font-semibold">{t("会话缓存（内存）")}</h4>
-            <p className="mb-3 text-meta text-muted">
-              {t(
-                "邮件会话缓存：{0} 个文件夹列表 · {1} 页邮件列表 · {2} 封已解析邮件（约 {3}）",
-                stats.mail.folders,
-                stats.mail.pages,
-                stats.mail.messages,
-                formatBytes(stats.mail.bytes),
-              )}
-            </p>
-            <Button variant="outline" size="sm" disabled={busy} onClick={() => void clear("mail")}>
-              <Trash2 className="size-4" />
-              {t("清空邮件会话缓存")}
-            </Button>
-          </div>
-          <div className="border-t border-line pt-4">
-            <h4 className="mb-2 font-semibold">{t("网页缓存（界面资源）")}</h4>
-            <p className="mb-3 text-meta text-muted">
-              {t("当前占用 {0}", formatBytes(stats.cache.total))}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => void clear("chromium")}
-            >
-              <Trash2 className="size-4" />
-              {t("清理网页缓存")}
-            </Button>
-          </div>
+          {!isWeb() && (
+            <>
+              <div className="border-t border-line pt-4">
+                <h4 className="mb-2 font-semibold">{t("会话缓存（内存）")}</h4>
+                <p className="mb-3 text-meta text-muted">
+                  {t(
+                    "邮件会话缓存：{0} 个文件夹列表 · {1} 页邮件列表 · {2} 封已解析邮件（约 {3}）",
+                    stats.mail.folders,
+                    stats.mail.pages,
+                    stats.mail.messages,
+                    formatBytes(stats.mail.bytes),
+                  )}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void clear("mail")}
+                >
+                  <Trash2 className="size-4" />
+                  {t("清空邮件会话缓存")}
+                </Button>
+              </div>
+              <div className="border-t border-line pt-4">
+                <h4 className="mb-2 font-semibold">{t("网页缓存（界面资源）")}</h4>
+                <p className="mb-3 text-meta text-muted">
+                  {t("当前占用 {0}", formatBytes(stats.cache.total))}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void clear("chromium")}
+                >
+                  <Trash2 className="size-4" />
+                  {t("清理网页缓存")}
+                </Button>
+              </div>
+            </>
+          )}
           <div className="border-t border-line pt-4">
             <h4 className="mb-2 font-semibold">{t("图片授权记忆")}</h4>
             <p className="mb-3 text-meta text-muted">

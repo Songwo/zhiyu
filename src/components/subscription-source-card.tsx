@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowDownUp, ChevronDown, Network, Pencil, RefreshCw, Search, Trash2 } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { createSubscriptionDetailsCache } from "@/lib/usage-connect.mjs";
 import { subscriptionTrafficSummary } from "@/lib/usage-insights.mjs";
@@ -51,7 +51,7 @@ export function SubscriptionSourceCard({
   const regionId = useId();
   const detailCache = useRef(
     createSubscriptionDetailsCache(async (id) => {
-      const api = desktop()?.usage;
+      const api = hostBridge()?.usage;
       if (!api?.subscriptionDetails) throw new Error(t("当前桌面端不支持节点详情，请更新后重试。"));
       return api.subscriptionDetails(id);
     }),

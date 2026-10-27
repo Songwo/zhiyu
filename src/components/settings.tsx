@@ -25,6 +25,8 @@ import { WebPushSettings } from "./web-push-settings";
 import { ExtensionSettings } from "./extension-settings";
 import { AppUpdatePanel } from "./app-update-panel";
 import { ProfileForm } from "./onboarding";
+import { WebAccountSettings } from "./web-account-settings";
+import { hostBridge, openExternal } from "@/lib/web-bridge";
 import { PrimaryIdentityPanel } from "./primary-identity-panel";
 import { Field, Input, Select } from "./ui/input";
 import { RELEASES } from "@/lib/changelog";
@@ -235,7 +237,10 @@ function SettingsBody({ header }: { header?: ReactNode }) {
                 <ProfileForm />
               </div>
             ) : (
-              <p>{t("仅桌面版可用")}</p>
+              <div className="space-y-6">
+                <ProfileForm />
+                {isWeb() && <WebAccountSettings />}
+              </div>
             ))}
           {tab === "appearance" && <Appearance />}
           {tab === "monitoring" && <Monitoring />}
@@ -578,8 +583,11 @@ function DataSection() {
   const [info, setInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
-    if (bridge) void bridge.info().then(setInfo);
-  }, [bridge]);
+    void hostBridge()
+      ?.info()
+      .then(setInfo)
+      .catch(() => {});
+  }, []);
 
   return (
     <Section title={t("数据")} hint={t("资产记录是明文 JSON，凭据在同目录下单独加密保存。")}>
@@ -587,20 +595,27 @@ function DataSection() {
         <CalendarExport />
       </Row>
       {info && (
-        <Row label={t("数据目录")} hint={info.userData}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              bridge
-                ?.openDataDir()
-                .catch((err) => toast(err instanceof Error ? err.message : t("无法打开目录")))
-            }
-          >
-            <FolderOpen className="size-3.5" />
+        <Row
+          label={t(info.web ? "服务器资料目录" : "数据目录")}
+          hint={
+            info.web ? t("{0}（Docker 部署时是挂载的 ./zhiyu-data）", info.userData) : info.userData
+          }
+        >
+          {bridge && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                bridge
+                  ?.openDataDir()
+                  .catch((err) => toast(err instanceof Error ? err.message : t("无法打开目录")))
+              }
+            >
+              <FolderOpen className="size-3.5" />
 
-            {t("打开")}
-          </Button>
+              {t("打开")}
+            </Button>
+          )}
         </Row>
       )}
       <Row
@@ -658,8 +673,11 @@ function About() {
   const [info, setInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
-    if (bridge) void bridge.info().then(setInfo);
-  }, [bridge]);
+    void hostBridge()
+      ?.info()
+      .then(setInfo)
+      .catch(() => {});
+  }, []);
 
   return (
     <Section title={t("关于")} hint={t("知屿 —— 个人数字资产指挥台。")}>
@@ -668,7 +686,15 @@ function About() {
       </Row>
       <Row label={t("运行模式")}>
         <span className="text-meta">
-          {!info ? "—" : info.portable ? t("便携版") : info.packaged ? t("安装版") : t("开发版")}
+          {!info
+            ? "—"
+            : info.web
+              ? t("自托管网页版")
+              : info.portable
+                ? t("便携版")
+                : info.packaged
+                  ? t("安装版")
+                  : t("开发版")}
         </span>
       </Row>
       <AppUpdatePanel />
@@ -694,14 +720,18 @@ function About() {
       </Row>
       <Row label={t("运行环境")}>
         <span className="font-mono text-2xs text-muted">
-          {info ? `Electron ${info.electron} · Node ${info.node} · ${info.arch}` : "—"}
+          {!info
+            ? "—"
+            : info.web
+              ? `Node ${info.node} · ${info.platform} ${info.arch}`
+              : `Electron ${info.electron} · Node ${info.node} · ${info.arch}`}
         </span>
       </Row>
       <Row label={t("项目主页")}>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => void bridge?.openExternal("https://github.com/Songwo/zhiyu")}
+          onClick={() => void openExternal("https://github.com/Songwo/zhiyu")}
         >
           <ExternalLink className="size-3.5" />
           GitHub

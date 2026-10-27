@@ -1,3 +1,4 @@
+import { hostBridge, openExternal } from "@/lib/web-bridge";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Cloud,
@@ -10,7 +11,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { refreshDomain } from "@/lib/probes";
 import { useAppStore } from "@/lib/store";
@@ -68,7 +68,7 @@ async function overlappingConnection(
 
 /** 域名页顶部：连接 Cloudflare 后读取账户下的全部域名，导入后可看到期时间并改 DNS。 */
 export function DomainsCloudflareEntry() {
-  const bridge = desktop()?.integrations;
+  const bridge = hostBridge()?.integrations;
   const [connections, setConnections] = useState<IntegrationConnection[] | null>(null);
   const [revision, setRevision] = useState(0);
   const [connecting, setConnecting] = useState(false);
@@ -247,7 +247,7 @@ function CloudflareConnectDialog({
   const [error, setError] = useState("");
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const bridge = desktop()!.integrations;
+    const bridge = hostBridge()!.integrations;
     setBusy(true);
     setError("");
     try {
@@ -307,7 +307,7 @@ function CloudflareConnectDialog({
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => void desktop()?.openExternal(TOKEN_PAGE)}
+            onClick={() => void openExternal(TOKEN_PAGE)}
           >
             <ExternalLink />
             {t("打开 Cloudflare 创建 Token")}
@@ -370,7 +370,7 @@ function CloudflareEditDialog({
   const [error, setError] = useState("");
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const bridge = desktop()!.integrations;
+    const bridge = hostBridge()!.integrations;
     const entered = token.trim();
     setBusy(true);
     setError("");
@@ -504,7 +504,7 @@ function CloudflareZonesDialog({
     setBusy(true);
     setError("");
     try {
-      const result = await desktop()!.integrations.importZones({
+      const result = await hostBridge()!.integrations.importZones({
         connectionId: connection.id,
         resourceKeys: [...picked],
       });

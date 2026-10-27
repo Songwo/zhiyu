@@ -3,9 +3,69 @@ import { Download, RefreshCw, RotateCw, ExternalLink } from "lucide-react";
 import { desktop, type UpdateCheck } from "@/lib/desktop";
 import { useDocuments } from "@/lib/documents";
 import { t } from "@/lib/i18n";
+import { isWeb } from "@/lib/web";
+import { openExternal, webInvoke } from "@/lib/web-bridge";
 import { Button } from "./ui/button";
 
 export function AppUpdatePanel() {
+  return isWeb() ? <WebUpdatePanel /> : <DesktopUpdatePanel />;
+}
+
+/** 网页版由镜像升级：服务器检查 GitHub 上的最新版本，升级命令在 VPS 上执行。 */
+function WebUpdatePanel() {
+  const [status, setStatus] = useState<UpdateCheck | null>(null);
+  const [busy, setBusy] = useState(false);
+  const check = async () => {
+    setBusy(true);
+    try {
+      setStatus(await webInvoke<UpdateCheck>("app:check-update"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  useEffect(() => {
+    void check();
+  }, []);
+  const message =
+    status?.state === "current"
+      ? t("已是最新版本（{0}）", status.current)
+      : status?.state === "outdated"
+        ? t("有新版本 {0} 可用", status.latest ?? "")
+        : (status?.reason ?? t("正在检查更新…"));
+  return (
+    <section
+      className="mx-5 my-4 rounded-lg border border-line bg-canvas p-4"
+      aria-label={t("软件更新")}
+    >
+      <h4 className="font-semibold text-body">{t("软件更新")}</h4>
+      <p className="mt-2 text-meta leading-relaxed text-muted" role="status" aria-live="polite">
+        {t(message)}
+      </p>
+      <p className="mt-3 text-meta leading-relaxed text-muted">
+        {t("在 VPS 的知屿目录里运行以下命令升级，资料目录不受影响：")}
+      </p>
+      <pre className="mt-2 overflow-x-auto rounded-md bg-card px-3 py-2 font-mono text-2xs text-ink">
+        docker compose pull && docker compose up -d
+      </pre>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => void check()}>
+          <RefreshCw className={busy ? "motion-safe:animate-spin" : ""} />
+          {t("检查更新")}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => void openExternal("https://github.com/Songwo/zhiyu/releases/latest")}
+        >
+          <ExternalLink />
+          {t("发布页")}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function DesktopUpdatePanel() {
   const api = desktop();
   const [status, setStatus] = useState<UpdateCheck | null>(null);
   const [busy, setBusy] = useState(false);

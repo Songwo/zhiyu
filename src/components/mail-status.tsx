@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { Check, Loader2, MailCheck, RefreshCw, Save, Settings2, Inbox } from "lucide-react";
 import { useEffect, useState } from "react";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import type { Mailbox } from "@/lib/types";
@@ -10,7 +10,7 @@ import { MailReader } from "./mail-reader";
 import { useVault } from "@/lib/vault-state";
 
 export function MailStatus({ mailbox }: { mailbox: Mailbox }) {
-  const bridge = desktop();
+  const bridge = hostBridge();
   const [editing, setEditing] = useState(!mailbox.imap);
   const [host, setHost] = useState(mailbox.imap?.host ?? "");
   const [port, setPort] = useState(String(mailbox.imap?.port ?? 993));

@@ -1,3 +1,4 @@
+import { openExternal } from "@/lib/web-bridge";
 import { createElement, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -91,10 +92,10 @@ function MailLink({ href, children }: { href?: string; children: ReactNode }) {
       target="_blank"
       rel="noopener noreferrer"
       onClick={(event) => {
-        const bridge = desktop();
-        if (!bridge) return;
+        // 网页版交给浏览器按 target=_blank 打开；桌面版交给系统浏览器。
+        if (!desktop()) return;
         event.preventDefault();
-        void bridge.openExternal(url).catch((error: Error) => toast.error(error.message));
+        void openExternal(url).catch((error: Error) => toast.error(error.message));
       }}
     >
       {children}

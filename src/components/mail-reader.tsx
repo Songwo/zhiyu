@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -23,7 +24,6 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { desktop } from "@/lib/desktop";
 import { useAppStore } from "@/lib/store";
 import { useVault } from "@/lib/vault-state";
 import { intlLocale, t } from "@/lib/i18n";
@@ -124,7 +124,7 @@ export function MailReader({ mailboxId, close }: { mailboxId: string; close: () 
   const mailbox = useAppStore((state) => state.mailboxes.find((item) => item.id === mailboxId));
   const unlocked = useVault((state) => state.unlocked);
   // 锁库后卸载整个阅读区，清除正文、收件人和附件的内存状态。
-  if (!mailbox || !unlocked || !desktop()) return null;
+  if (!mailbox || !unlocked || !hostBridge()) return null;
   return <ReaderBody key={mailboxId} mailbox={mailbox} close={close} />;
 }
 
@@ -140,7 +140,7 @@ function ReaderBody({ mailbox, close }: { mailbox: Mailbox; close: () => void })
   const senderImage = (address: string) =>
     mailbox.senderAvatars?.find((item) => item.address === address.toLowerCase())?.imageDataUrl ??
     accounts.find((item) => item.address.toLowerCase() === address.toLowerCase())?.imageDataUrl;
-  const bridge = desktop()!;
+  const bridge = hostBridge()!;
   const api = bridge.mailClient;
   const [folders, setFolders] = useState<MailFolderRemote[]>([]);
   const [folder, setFolder] = useState("INBOX");
@@ -969,7 +969,7 @@ function MailConnectionSettings({ mailbox, done }: { mailbox: Mailbox; done: () 
         setBusy(true);
         setError("");
         try {
-          const bridge = desktop()!;
+          const bridge = hostBridge()!;
           const imap = await bridge.mailboxes.validate({
             host: imapHost,
             port: Number(imapPort),
@@ -995,7 +995,7 @@ function MailConnectionSettings({ mailbox, done }: { mailbox: Mailbox; done: () 
         onClick={async () => {
           setError("");
           try {
-            const provider = await desktop()!.mail.guess(mailbox.address);
+            const provider = await hostBridge()!.mail.guess(mailbox.address);
             if (!provider) throw new Error(t("未识别服务商，请手动填写"));
             setImapHost(provider.imap.host);
             setImapPort(String(provider.imap.port));

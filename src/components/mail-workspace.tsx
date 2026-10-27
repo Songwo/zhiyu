@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -23,7 +24,6 @@ import {
   type MailFolder,
 } from "@/lib/mail-folders";
 import { matchesTags } from "@/lib/tags";
-import { desktop } from "@/lib/desktop";
 import { Button } from "./ui/button";
 import { Field, Input, Select } from "./ui/input";
 import { openFromEvent } from "./asset-card";
@@ -74,7 +74,7 @@ export function MailWorkspace() {
     }
   }
   async function openReader(id: string) {
-    if (!desktop()) {
+    if (!hostBridge()) {
       toast.error(t("邮件收发需要桌面端"));
       return;
     }

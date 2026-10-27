@@ -1,5 +1,5 @@
+import { hostBridge } from "./web-bridge";
 import { create } from "zustand";
-import { desktop } from "./desktop";
 
 export interface Profile {
   name: string;
@@ -19,7 +19,7 @@ export const useProfile = create<{
     try {
       set({
         error: "",
-        profile: (await desktop()?.profile.get()) ?? {
+        profile: (await hostBridge()?.profile.get()) ?? {
           name: "知屿",
           ready: true,
           vaultExists: false,

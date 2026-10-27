@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useRef, useState } from "react";
 import type { Terminal } from "@xterm/xterm";
-import { desktop } from "@/lib/desktop";
 import { useVault } from "@/lib/vault-state";
 import type { Server } from "@/lib/types";
 import { t } from "@/lib/i18n";
@@ -52,7 +52,7 @@ export function LiveShell({
   const requireVault = useVault((s) => s.require);
 
   useEffect(() => {
-    const bridge = desktop();
+    const bridge = hostBridge();
     const mount = host.current;
     if (!bridge || !mount) return;
 
@@ -91,7 +91,9 @@ export function LiveShell({
       term.loadAddon(fit);
       term.open(mount);
       fit.fit();
-      term.writeln(t("\u001b[2m正在连接 {0}@{1}:{2} …\u001b[0m", server.username, server.host, server.port));
+      term.writeln(
+        t("\u001b[2m正在连接 {0}@{1}:{2} …\u001b[0m", server.username, server.host, server.port),
+      );
 
       // Opening a session needs the stored credential, which needs the vault.
       if (!(await requireVault(t("连接 {0} 需要读取已保存的 SSH 凭据。", server.name)))) {

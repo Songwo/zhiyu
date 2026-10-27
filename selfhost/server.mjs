@@ -7,7 +7,10 @@
  *
  * 目录：
  *   <ZHIYU_DATA>/workspace  资料（与桌面版资料目录一致，备份与恢复的范围）
- *   <ZHIYU_DATA>/server     网页登录账号与会话（不进入备份，恢复时不受影响）
+ *   <ZHIYU_DATA>/server     网页登录账号与会话、服务器密钥（不进入备份，恢复时不受影响）
+ *
+ * 桌面版主进程里能在服务器上做的事（SSH、主机探测、Cloudflare、AI 助手……）见 bridge.mjs，
+ * 服务所在主机自己的 CPU / 内存 / 磁盘 / 网络见 host-stats.mjs。
  */
 import { createServer } from "node:http";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
@@ -18,6 +21,9 @@ import { promisify } from "node:util";
 import { normalizeSnapshotImages } from "../electron/services/image-data.mjs";
 import { DocumentsStore } from "../electron/services/documents.mjs";
 import { ReminderPushError, WebReminderPush } from "./reminder-push.mjs";
+import { BridgeError, createWebBridge } from "./bridge.mjs";
+import { HostStats } from "./host-stats.mjs";
+import { createServerSecureStorage } from "./secure-storage.mjs";
 import {
   BACKUP_LIMITS,
   applyPendingRestore,
@@ -130,6 +136,8 @@ export async function createWebServer({
   log = console,
   fetchImpl = fetch,
   schedulePush = true,
+  sampleHost = schedulePush,
+  hostStats,
 } = {}) {
   const workspace = join(root, "workspace");
   const serverDir = join(root, "server");
@@ -146,19 +154,60 @@ export async function createWebServer({
     vault: join(workspace, "vault.enc"),
   };
   let documents = new DocumentsStore(join(workspace, "documents"));
+  const readSnapshotFile = async () => {
+    const data = await readJson(files.store);
+    return data?.state && typeof data.state === "object" ? data.state : (data ?? {});
+  };
+  // AI 助手与 Cloudflare 同步按同步接口读取资料，这里保留一份与 assets.json 一致的副本。
+  let currentSnapshot = await readSnapshotFile().catch(() => ({}));
   // 浏览器关着时也按时推送续费与备忘提醒；凭据只存在 server 目录。
   const push = new WebReminderPush({
     dir: serverDir,
     fetchImpl,
     log,
-    readSnapshot: async () => {
-      const data = await readJson(files.store);
-      return data?.state && typeof data.state === "object" ? data.state : data;
-    },
+    readSnapshot: readSnapshotFile,
   });
   const pushError = (error) => {
     throw error instanceof ReminderPushError ? new HttpError(400, error.message) : error;
   };
+  // 服务器推送给已登录页面的事件：SSH 输出、AI 助手进度、服务器端改动了资料等。
+  const streams = new Set();
+  const emit = (channel, payload) => {
+    const frame = `data: ${JSON.stringify({ channel, payload })}\n\n`;
+    for (const stream of streams) stream.res.write(frame);
+  };
+  /** 服务器自己改资料（Cloudflare 同步、AI 助手的修改建议）时，与浏览器保存走同一个队列。 */
+  const mutateAssets = (mutate) =>
+    serial(async () => {
+      const raw = await readJson(files.store);
+      const before = raw?.state && typeof raw.state === "object" ? raw.state : (raw ?? {});
+      const next = mutate(before);
+      await writeAtomic(
+        files.store,
+        JSON.stringify({ ...(raw ?? {}), state: next, version: raw?.version ?? 0 }),
+      );
+      currentSnapshot = next;
+      emit("assets:changed", {});
+      return { before, snapshot: next };
+    });
+  const monitor = hostStats ?? new HostStats({ dataDir: root });
+  const stopSampling = sampleHost ? monitor.start() : () => {};
+  const secureStorage = createServerSecureStorage(join(serverDir, "secure.key"));
+  const bridge = createWebBridge({
+    workspace,
+    serverDir,
+    root,
+    version: VERSION,
+    documents: () => documents,
+    getSnapshot: () => currentSnapshot,
+    mutateAssets,
+    emit,
+    secureStorage,
+    fetchImpl,
+    hostStats: monitor,
+  });
+  await bridge.clearDownloads().catch(() => {});
+  if (schedulePush) bridge.startSchedules();
   let account = await readJson(files.account);
   const sessions = new Map(Object.entries((await readJson(files.sessions)) ?? {}));
   const failures = new Map();
@@ -352,6 +401,7 @@ export async function createWebServer({
       if (session) {
         sessions.delete(session.key);
         await persistSessions();
+        dropStreams();
       }
       res.setHeader("Set-Cookie", `${COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
       send(res, 200, { ok: true });
@@ -389,6 +439,7 @@ export async function createWebServer({
       // 改密后其他设备的会话全部失效，只保留当前这一个。
       for (const key of [...sessions.keys()]) if (key !== session.key) sessions.delete(key);
       await persistSessions();
+      dropStreams();
       send(res, 200, { ok: true });
     },
 
@@ -418,6 +469,8 @@ export async function createWebServer({
         if ((input.revision ?? null) !== current) throw new HttpError(409, "资料已在其他设备更新");
         const text = JSON.stringify(normalized);
         await writeAtomic(files.store, text);
+        currentSnapshot =
+          normalized?.state && typeof normalized.state === "object" ? normalized.state : normalized;
         send(res, 200, { revision: sha256(text) });
       });
     },
@@ -448,6 +501,38 @@ export async function createWebServer({
 
     "GET /api/web/documents": async (req, res) => send(res, 200, await documents.list()),
 
+    /** 与桌面版 preload 同名的频道；只放行 bridge.mjs 里列出的方法。 */
+    "POST /api/web/rpc": async (req, res) => {
+      const input = await json(req);
+      if (typeof input?.channel !== "string") throw new HttpError(400, "请求格式不正确");
+      try {
+        send(res, 200, { data: (await bridge.call(input.channel, input.args)) ?? null });
+      } catch (error) {
+        if (error instanceof HttpError) throw error;
+        if (!(error instanceof BridgeError)) log.error("rpc", input.channel, error?.message);
+        throw new HttpError(400, String(error?.message ?? error));
+      }
+    },
+
+    "GET /api/web/events": async (req, res, session) => {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-store",
+        Connection: "keep-alive",
+        // Nginx 默认会缓冲响应，SSE 需要关掉。
+        "X-Accel-Buffering": "no",
+      });
+      res.write(": ok\n\n");
+      const stream = { res, key: session.key };
+      streams.add(stream);
+      const beat = setInterval(() => res.write(": ping\n\n"), 25_000);
+      beat.unref?.();
+      req.on("close", () => {
+        clearInterval(beat);
+        streams.delete(stream);
+      });
+    },
+
     "POST /api/web/backup": async (req, res) => {
       const input = await json(req);
       const { data } = await serial(() =>
@@ -476,14 +561,42 @@ export async function createWebServer({
         throw new HttpError(400, error.message);
       });
       const result = await serial(async () => {
-        await stageRestore({ root: workspace, backup });
+        // 备份里带着明文的系统加密凭据时，改用这台服务器的密钥重新加密。
+        await stageRestore({ root: workspace, backup, secureStorage });
         const applied = await applyPendingRestore(workspace);
         documents = new DocumentsStore(join(workspace, "documents"));
+        currentSnapshot = await readSnapshotFile().catch(() => ({}));
+        emit("assets:changed", {});
         return applied;
       });
       send(res, 200, { ok: true, preview: backup.preview, files: result?.files ?? 0 });
     },
   };
+
+  /** 退出登录或改密后，已失效会话的事件流也一并断开。 */
+  function dropStreams() {
+    for (const stream of streams)
+      if (!sessions.has(stream.key)) {
+        streams.delete(stream);
+        stream.res.end();
+      }
+  }
+
+  async function downloadRoute(res, ticket) {
+    const entry = await bridge.takeDownload(ticket);
+    if (!entry) throw new HttpError(404, "下载链接已失效");
+    try {
+      const data = await readFile(entry.file);
+      res.writeHead(200, {
+        "Content-Type": "application/octet-stream",
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(entry.name)}`,
+        "Cache-Control": "no-store",
+      });
+      res.end(data);
+    } finally {
+      await rm(entry.file, { force: true });
+    }
+  }
 
   async function documentRoute(req, res, id) {
     if (!/^[A-Za-z0-9._-]{1,200}$/.test(id)) throw new HttpError(400, "文档标识无效");
@@ -519,6 +632,8 @@ export async function createWebServer({
       const session = sessionOf(req);
       if (!session) throw new HttpError(401, "请先登录");
       if (authed[key]) return authed[key](req, res, session);
+      const download = path.match(/^\/api\/web\/download\/([A-Za-z0-9_-]{20,})$/);
+      if (download && req.method === "GET") return downloadRoute(res, download[1]);
       const doc = path.match(/^\/api\/web\/documents\/([^/]+)$/);
       if (doc) return documentRoute(req, res, decodeURIComponent(doc[1]));
       throw new HttpError(404, "Not found");
@@ -550,10 +665,18 @@ export async function createWebServer({
     });
   });
   if (schedulePush) server.on("close", push.start());
+  server.on("close", () => {
+    stopSampling();
+    bridge.stop();
+    for (const stream of streams) stream.res.end();
+    streams.clear();
+  });
   return {
     server,
     root,
     push,
+    bridge,
+    hostStats: monitor,
     get setupToken() {
       return setupToken;
     },

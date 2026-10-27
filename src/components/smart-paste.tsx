@@ -1,8 +1,8 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { ClipboardPaste, CornerDownLeft, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Textarea } from "./ui/input";
-import { desktop } from "@/lib/desktop";
 import { PASTE_HINTS, parsePaste, type PasteMatch } from "@/lib/parse-paste";
 import { KIND_LABEL } from "@/lib/status";
 import type { AssetKind } from "@/lib/types";
@@ -48,7 +48,7 @@ export function SmartPaste({
     // A certificate is only useful once the dates are out of it, and that
     // needs X.509 from the main process.
     if (fields._pem) {
-      const bridge = desktop();
+      const bridge = hostBridge();
       if (!bridge) {
         toast(t("证书解析需要桌面版"));
         return;

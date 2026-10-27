@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useState } from "react";
 import { randomId } from "@/lib/random-id";
 import { t } from "@/lib/i18n";
@@ -9,7 +10,6 @@ import { Select } from "./ui/select";
 import { useAppStore } from "@/lib/store";
 import { type ProxyNode, type ProxyProtocol, type Server } from "@/lib/types";
 import { formatProxyUri, parseProxyUri, validateProxyNode } from "@/lib/proxy-nodes";
-import { desktop } from "@/lib/desktop";
 
 const protocols: ProxyProtocol[] = ["vless", "vmess", "trojan", "ss", "hysteria2"];
 export function ServerNodesPanel({ server }: { server: Server }) {
@@ -19,7 +19,7 @@ export function ServerNodesPanel({ server }: { server: Server }) {
   const [sourceError, setSourceError] = useState("");
   useEffect(() => {
     let active = true;
-    const api = desktop()?.usage;
+    const api = hostBridge()?.usage;
     if (!api) return;
     const load = () =>
       void api
@@ -111,7 +111,7 @@ export function ServerNodesPanel({ server }: { server: Server }) {
   async function check(node: ProxyNode) {
     setBusy(node.id);
     try {
-      const bridge = desktop();
+      const bridge = hostBridge();
       if (!bridge) throw new Error("真实 TCP 检测需要桌面端");
       const result = await bridge.nodes.check(node);
       const current = useAppStore.getState().servers.find((s) => s.id === server.id);

@@ -1,4 +1,4 @@
-import { desktop } from "./desktop";
+import { hostBridge } from "./web-bridge";
 export interface ImageBedStatus {
   configured: boolean;
   enabled: boolean;
@@ -30,7 +30,7 @@ export async function uploadImage(dataUrl: string, filename: string, kind: "docu
   }
 }
 async function performUpload(dataUrl: string, filename: string, kind: "document" | "asset") {
-  const bridge = desktop();
+  const bridge = hostBridge();
   if (!bridge) return dataUrl;
   const api = bridge.images;
   if (!api) throw new Error("请重启知屿，加载新的图床上传接口");

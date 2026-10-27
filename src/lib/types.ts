@@ -17,7 +17,9 @@ export type ViewId =
   | "certs"
   | "tags"
   | "agent"
-  | "terminal";
+  | "terminal"
+  /** 网页版专用：服务所在主机的 CPU / 内存 / 磁盘 / 网络。 */
+  | "host";
 
 export type AssetKind = "server" | "domain" | "mail" | "ai" | "secret" | "cert" | "service";
 

@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Activity, ArrowDown, ArrowUp, FolderOpen, RefreshCw } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import { t, intlLocale } from "@/lib/i18n";
 import { matchV2raynNodes } from "@/lib/v2rayn-match.mjs";
 import {
@@ -27,7 +27,7 @@ const publish = (next: Snapshot) => {
 const readSnapshot = () => snapshot;
 
 async function refresh(force = false, explicit = false) {
-  const bridge = desktop()?.usage;
+  const bridge = hostBridge()?.usage;
   if (!bridge?.v2raynStatus || request || selecting || (!force && Date.now() - lastRequest < 4500))
     return request;
   lastRequest = Date.now();
@@ -127,7 +127,7 @@ export function V2raynTraffic({ nodes }: { nodes?: SubscriptionNode[] }) {
   const liveNode = all?.find((node) => node.id === live?.nodeId);
   const liveBelongs =
     scope === "all" || (!!liveNode && matched.some((node) => node.id === liveNode.id));
-  const bridge = desktop()?.usage;
+  const bridge = hostBridge()?.usage;
   async function chooseDirectory() {
     if (!bridge?.chooseV2raynDirectory || busy || selecting) return;
     selecting = true;

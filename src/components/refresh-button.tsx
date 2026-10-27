@@ -4,7 +4,7 @@ import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
-import { isDesktop } from "@/lib/desktop";
+import { hostBridge } from "@/lib/web-bridge";
 import { refreshAll, refreshById, useProbeState, type ProbeKind } from "@/lib/probes";
 import { cn } from "@/lib/utils";
 import { useVault } from "@/lib/vault-state";
@@ -13,11 +13,11 @@ import { t } from "@/lib/i18n";
 const NEEDS_VAULT: Record<ProbeKind, boolean> = { server: true, domain: false, cert: false };
 const LABEL: Record<ProbeKind, string> = { server: "主机", domain: "域名", cert: "证书" };
 
-/** Probe every asset of one kind. Hidden entirely in the web preview. */
+/** Probe every asset of one kind. Hidden in the plain browser preview, which has nothing to probe with. */
 export function RefreshAllButton({ kind }: { kind: ProbeKind | null }) {
   const [busy, setBusy] = useState(false);
   const requireVault = useVault((s) => s.require);
-  if (!isDesktop() || !kind) return null;
+  if (!hostBridge() || !kind) return null;
 
   return (
     <Button
@@ -68,7 +68,7 @@ export function RefreshOneButton({ kind, id }: { kind: ProbeKind; id: string }) 
       kind === "server" && isCollectionPaused(s.servers.find((server) => server.id === id) ?? {}),
   );
   const requireVault = useVault((s) => s.require);
-  if (!isDesktop()) return null;
+  if (!hostBridge()) return null;
   const label = paused ? "已关闭自动采集" : configured ? "重新采集" : "配置 SSH";
 
   return (

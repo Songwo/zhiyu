@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { usageFormFromDraft, usageFormFromSource } from "@/lib/usage-setup.mjs";
 import { saveAndVerifyUsageSource } from "@/lib/usage-connect.mjs";
 import { latestSubscriptionRecord } from "@/lib/usage-insights.mjs";
@@ -98,7 +99,7 @@ export function UsageWorkspace() {
     useAppStore.getState().clearUsageSetup();
   }, [setup]);
   const load = useCallback(async (force = true) => {
-    if (!desktop()?.usage) return;
+    if (!hostBridge()?.usage) return;
     const { data: usage, status } = await usageCache.read(force);
     setData(usage);
     setLocalStatus(status);
@@ -128,7 +129,7 @@ export function UsageWorkspace() {
       else update();
     });
     update();
-    const timer = setInterval(update, desktop()?.usage.onChanged ? 60000 : 10000);
+    const timer = setInterval(update, hostBridge()?.usage.onChanged ? 60000 : 10000);
     document.addEventListener("visibilitychange", resume);
     window.addEventListener("focus", resume);
     return () => {
@@ -184,7 +185,7 @@ export function UsageWorkspace() {
   async function refresh(id?: string) {
     setBusy(true);
     try {
-      const api = desktop()?.usage;
+      const api = hostBridge()?.usage;
       if (!api) return;
       if (
         (!id || !id.startsWith("oauth:")) &&
@@ -231,7 +232,7 @@ export function UsageWorkspace() {
         delete input.inboundId;
         delete input.clientEmail;
       }
-      const result = await saveAndVerifyUsageSource(desktop()!.usage, input, editing?.id);
+      const result = await saveAndVerifyUsageSource(hostBridge()!.usage, input, editing?.id);
       setSourceErrors((previous) => {
         const next = { ...previous };
         if (result.error)
@@ -266,7 +267,7 @@ export function UsageWorkspace() {
     setBusy(true);
     try {
       if (!(await useVault.getState().require(t("管理远程用量来源需要先解锁密钥库。")))) return;
-      await desktop()!.usage.remove(removing.id);
+      await hostBridge()!.usage.remove(removing.id);
       setData((previous) => ({
         ...previous,
         sources: previous.sources.filter((source) => source.id !== removing.id),
@@ -281,7 +282,7 @@ export function UsageWorkspace() {
     }
   }
 
-  if (!desktop())
+  if (!hostBridge())
     return (
       <div className="px-4 pb-8 pt-1">
         <p className="text-sm text-muted">
@@ -409,7 +410,11 @@ export function UsageWorkspace() {
                 id={`usage-source-${source.id}`}
                 data-highlighted={focusSource === source.id || undefined}
                 data-tone={
-                  source.type === "oauth" ? "quota" : source.type.endsWith("-api") ? "api" : "traffic"
+                  source.type === "oauth"
+                    ? "quota"
+                    : source.type.endsWith("-api")
+                      ? "api"
+                      : "traffic"
                 }
                 data-state={sourceError ? "error" : source.checkedAt ? "ok" : "idle"}
                 key={source.id}

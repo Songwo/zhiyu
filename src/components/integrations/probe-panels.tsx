@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { lazy, Suspense, useState } from "react";
 import { Copy } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import type { ProbeCheckInput, ProbeHost } from "@/lib/integrations";
 import { Button } from "../ui/button";
@@ -170,7 +170,7 @@ export function ProbeEnrollment({
           setBusy(true);
           setError("");
           try {
-            setCredential(await desktop()!.integrations.probeEnroll(connectionId, name.trim()));
+            setCredential(await hostBridge()!.integrations.probeEnroll(connectionId, name.trim()));
             onDone();
           } catch (reason) {
             setError(errorText(reason));
@@ -275,7 +275,7 @@ export function CheckEditor({
           setBusy(true);
           setError("");
           try {
-            await desktop()!.integrations.probeSaveCheck(connectionId, {
+            await hostBridge()!.integrations.probeSaveCheck(connectionId, {
               id: value.id,
               name: value.name.trim(),
               type: value.type,

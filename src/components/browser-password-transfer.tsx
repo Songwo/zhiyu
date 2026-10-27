@@ -1,3 +1,4 @@
+import { isWeb } from "@/lib/web";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -441,7 +442,15 @@ export function BrowserPasswordTransfer({ close }: { close: () => void }) {
                 )}
               </div>
             )}
-            {!bridge && <p className="text-meta text-muted">{t("仅桌面版可用")}</p>}
+            {!bridge && (
+              <p className="text-meta text-muted">
+                {isWeb()
+                  ? t(
+                      "CSV 迁移要读写这台电脑上的文件并弹出系统确认框，只在桌面版提供。网页版可以用桌面版迁移后，通过「设置 → 数据」的加密备份恢复过来。",
+                    )
+                  : t("仅桌面版可用")}
+              </p>
+            )}
             {error && (
               <p role="alert" className="break-words text-meta text-crit">
                 {error}

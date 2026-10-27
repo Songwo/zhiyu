@@ -10,6 +10,9 @@ const PhoneWorkspace = lazy(() =>
 const RenewalsWorkspace = lazy(() =>
   import("./renewals-workspace").then((m) => ({ default: m.RenewalsWorkspace })),
 );
+const HostMonitorView = lazy(() =>
+  import("./host-monitor").then((m) => ({ default: m.HostMonitorView })),
+);
 const UsageWorkspace = lazy(() =>
   import("./usage-workspace").then((m) => ({ default: m.UsageWorkspace })),
 );
@@ -24,7 +27,7 @@ import { DomainsCloudflareEntry } from "./integrations/domain-cloudflare";
 import { ServiceCard } from "./service-card";
 import { AssetTypeManagerButton } from "./asset-type-manager";
 import { Overview } from "./overview";
-import { NAV } from "./sidebar";
+import { NAV_ALL as NAV } from "./web-nav";
 import { AssetOrganizer } from "./asset-organizer";
 const MailWorkspace = lazy(() =>
   import("./mail-workspace").then((module) => ({ default: module.MailWorkspace })),
@@ -125,6 +128,8 @@ function ViewBody() {
       return <AgentView />;
     case "terminal":
       return <TerminalView />;
+    case "host":
+      return <HostMonitorView />;
   }
 }
 
@@ -153,6 +158,7 @@ const PAGE_DESC: Partial<Record<ViewId, string>> = {
   tags: "按标签跨类别整理资产。",
   relations: "资产与文档之间的真实关联。",
   terminal: "已打开的 SSH 会话。",
+  host: "网页版所在主机的 CPU、内存、磁盘、网络与进程，每 5 秒刷新。",
 };
 
 const LIST_VIEWS: ViewId[] = [
@@ -351,6 +357,7 @@ const PROBE_KIND: Record<ViewId, ProbeKind | null> = {
   tags: null,
   agent: null,
   terminal: "server",
+  host: null,
 };
 
 const BADGE_KEY: Record<ViewId, keyof ReturnType<typeof attentionOf>> = {
@@ -371,6 +378,7 @@ const BADGE_KEY: Record<ViewId, keyof ReturnType<typeof attentionOf>> = {
   tags: "total",
   agent: "total",
   terminal: "servers",
+  host: "total",
 };
 
 const TITLE: Record<string, { all: string; attention: string }> = {
@@ -741,20 +749,7 @@ function TagsView() {
   );
 }
 
-/** 网页版不能直连主机，终端只在桌面版提供。 */
 function TerminalView() {
-  if (isWeb())
-    return (
-      <div className="mx-4 mt-4">
-        <Empty
-          text={t("网页版不提供 SSH 终端：浏览器不能直接连接主机。需要终端时请使用桌面版。")}
-        />
-      </div>
-    );
-  return <TerminalList />;
-}
-
-function TerminalList() {
   const list = useAppStore((s) => s.servers);
   const openSsh = useAppStore((s) => s.openSsh);
   const cpuMap = useLive((s) => s.cpu);
@@ -763,11 +758,15 @@ function TerminalList() {
   return (
     <div className="mx-4 mt-4 pb-24">
       <p className="mb-3 px-1 text-meta text-muted">
-        {isDesktop()
-          ? t("选择一台主机，打开真实 SSH 会话。需要先在密钥库中保存该主机的凭据。")
-          : t(
-              "选择一台在线主机，打开玻璃效果 SSH 会话。浏览器里的会话是模拟的，桌面版才会真正连出网络。",
-            )}
+        {isWeb()
+          ? t(
+              "选择一台主机，由网页版所在的服务器发起真实 SSH 会话。凭据在浏览器里解密后随连接发送，服务器不保存。",
+            )
+          : isDesktop()
+            ? t("选择一台主机，打开真实 SSH 会话。需要先在密钥库中保存该主机的凭据。")
+            : t(
+                "选择一台在线主机，打开玻璃效果 SSH 会话。浏览器里的会话是模拟的，桌面版才会真正连出网络。",
+              )}
       </p>
       {items.length === 0 ? (
         <Empty text={t("没有匹配的主机。")} />

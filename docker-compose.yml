@@ -17,3 +17,11 @@ services:
       ZHIYU_TRUST_PROXY: "0"
     volumes:
       - ./zhiyu-data:/data
+      # 主机监控（只读）：挂载宿主机的 /proc，网络与进程换成整台 VPS 的；
+      # 不挂载时 CPU、内存、负载仍是宿主机的数字，但网卡和进程只有容器自己。
+      - /proc:/host/proc:ro
+      # 显示 VPS 的系统版本（只读）。
+      - /etc/os-release:/host/etc/os-release:ro
+      # 显示 VPS 的主机名（可选）：先确认宿主机上有 /etc/hostname 再取消注释，
+      # 否则 Docker 会在宿主机上新建一个同名空目录。
+      # - /etc/hostname:/host/etc/hostname:ro

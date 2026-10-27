@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { ViewErrorBoundary } from "./view-error-boundary";
 import { isWeb } from "@/lib/web";
 import { startWebSync } from "@/lib/web-store";
@@ -12,6 +13,7 @@ import { CaptureInbox } from "./capture-inbox";
 import { AssetDetailPage } from "./expand-layer";
 import { RightRail } from "./right-rail";
 import { Sidebar } from "./sidebar";
+import { WebBottomNav, WebTopBar } from "./web-shell";
 import { GlobalMarkdownImport } from "./global-markdown-import";
 import { Settings, SettingsPage } from "./settings";
 import { SshTerminal } from "./ssh-terminal";
@@ -145,7 +147,8 @@ export function AppShell() {
     view === "agent" ||
     view === "overview" ||
     view === "renewals" ||
-    view === "relations";
+    view === "relations" ||
+    view === "host";
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
   const vaultUnlocked = useVault((s) => s.unlocked);
   const monitorReady = useSettings((s) => s.monitorReady);
@@ -200,7 +203,7 @@ export function AppShell() {
   // Real metric sweeps, but never before the vault is open: probing needs the
   // stored credentials, and a password prompt on launch would be rude.
   useEffect(() => {
-    if (!isDesktop() || !vaultUnlocked || !monitorReady) return;
+    if (!hostBridge() || !vaultUnlocked || !monitorReady) return;
     return startServerMonitor({
       minutes: serverMonitorMinutes,
       visible: () => document.visibilityState === "visible",
@@ -235,6 +238,83 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", onKey);
   }, [setCommandOpen]);
 
+  const web = isWeb();
+  const workspace = (
+    <>
+      {/* 对话使用内部滚动；资产视图保留两列共用的滚动区域。 */}
+      <div
+        ref={workspaceScroll}
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto",
+          web && "web-scroll",
+          !detailOpen && view === "docs" && "documents-shell",
+          !detailOpen && view === "agent" && "agent-shell",
+        )}
+      >
+        <div
+          className={cn(
+            "page-container flex items-start",
+            !detailOpen && (view === "docs" || view === "agent") && "page-container-wide",
+            !detailOpen && view === "agent" && "agent-shell-columns",
+          )}
+        >
+          <main
+            className={cn(
+              "@container min-w-0 flex-1",
+              !detailOpen && view === "agent" && "agent-shell-main",
+              !detailOpen && !wideWorkspace && "2xl:border-r 2xl:border-line",
+            )}
+          >
+            <AssetDetailPage />
+            <SettingsPage />
+            {/* 详情打开时列表只隐藏不卸载，返回时筛选、展开状态都还在。 */}
+            <div className="workspace-view" hidden={detailOpen}>
+              <TopTabs />
+              <ViewErrorBoundary key={view}>
+                <MainView />
+              </ViewErrorBoundary>
+            </div>
+          </main>
+          {!detailOpen && !wideWorkspace && <RightRail className="hidden 2xl:block" />}
+        </div>
+      </div>
+    </>
+  );
+  const overlays = (
+    <>
+      <SshTerminal />
+      <Settings />
+      <Composer />
+      <CreateAssetPicker />
+      <CaptureInbox />
+      <GlobalMarkdownImport />
+      <CommandPalette />
+      <KeyboardShortcuts />
+      <VaultGate />
+      <Onboarding />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          className: "!bg-card !text-ink !shadow-[var(--shadow-float)] !border-0 !rounded-lg",
+        }}
+      />
+    </>
+  );
+
+  // 网页版：顶部导航条取代左侧栏与标题栏，内容区放宽，窄屏用底部快捷栏与整屏菜单。
+  if (web)
+    return (
+      <div
+        data-app-ready={hydrated}
+        className="app-frame web-frame h-[var(--app-viewport-height,100dvh)] min-h-0 text-ink"
+      >
+        <WebTopBar />
+        {workspace}
+        <WebBottomNav />
+        {overlays}
+      </div>
+    );
+
   return (
     <div
       data-app-ready={hydrated}
@@ -247,42 +327,7 @@ export function AppShell() {
       <div className="app-main flex min-w-0 flex-1 flex-col">
         <div className="app-panel flex min-h-0 flex-1 flex-col">
           <TitleBar />
-          {/* 对话使用内部滚动；资产视图保留两列共用的滚动区域。 */}
-          <div
-            ref={workspaceScroll}
-            className={cn(
-              "min-h-0 flex-1 overflow-y-auto",
-              !detailOpen && view === "docs" && "documents-shell",
-              !detailOpen && view === "agent" && "agent-shell",
-            )}
-          >
-            <div
-              className={cn(
-                "page-container flex items-start",
-                !detailOpen && (view === "docs" || view === "agent") && "page-container-wide",
-                !detailOpen && view === "agent" && "agent-shell-columns",
-              )}
-            >
-              <main
-                className={cn(
-                  "@container min-w-0 flex-1",
-                  !detailOpen && view === "agent" && "agent-shell-main",
-                  !detailOpen && !wideWorkspace && "2xl:border-r 2xl:border-line",
-                )}
-              >
-                <AssetDetailPage />
-                <SettingsPage />
-                {/* 详情打开时列表只隐藏不卸载，返回时筛选、展开状态都还在。 */}
-                <div className="workspace-view" hidden={detailOpen}>
-                  <TopTabs />
-                  <ViewErrorBoundary key={view}>
-                    <MainView />
-                  </ViewErrorBoundary>
-                </div>
-              </main>
-              {!detailOpen && !wideWorkspace && <RightRail className="hidden 2xl:block" />}
-            </div>
-          </div>
+          {workspace}
         </div>
       </div>
 
@@ -320,22 +365,7 @@ export function AppShell() {
         })}
       </nav>
 
-      <SshTerminal />
-      <Settings />
-      <Composer />
-      <CreateAssetPicker />
-      <CaptureInbox />
-      <GlobalMarkdownImport />
-      <CommandPalette />
-      <KeyboardShortcuts />
-      <VaultGate />
-      <Onboarding />
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          className: "!bg-card !text-ink !shadow-[var(--shadow-float)] !border-0 !rounded-lg",
-        }}
-      />
+      {overlays}
     </div>
   );
 }

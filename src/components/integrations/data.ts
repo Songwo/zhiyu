@@ -1,5 +1,5 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useState } from "react";
-import { desktop } from "@/lib/desktop";
 import { intlLocale } from "@/lib/i18n";
 import type { IntegrationInventory, IntegrationProvider } from "@/lib/integrations";
 
@@ -31,7 +31,7 @@ export function useInventory(id: string, provider: IntegrationProvider) {
       pending = true;
       setBusy(true);
       try {
-        const result = await desktop()!.integrations.inventory(id, first && revision > 0);
+        const result = await hostBridge()!.integrations.inventory(id, first && revision > 0);
         if (!stopped) {
           setData(result);
           setError("");

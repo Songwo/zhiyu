@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useRef, useState } from "react";
 import { UserRound, KeyRound } from "lucide-react";
 import { desktop } from "@/lib/desktop";
@@ -61,7 +62,7 @@ export function ProfileForm({ initial = false }: { initial?: boolean }) {
         try {
           if (initial && !profile?.vaultExists && password !== confirm)
             throw new Error(t("两次主密码不一致"));
-          await desktop()?.profile.save({
+          await hostBridge()?.profile.save({
             name: name.trim(),
             ...(avatarDirty.current ? { avatarDataUrl: avatar } : {}),
             password: initial ? password : undefined,

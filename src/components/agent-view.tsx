@@ -1,3 +1,5 @@
+import { hostBridge } from "@/lib/web-bridge";
+import { vaultApi } from "@/lib/vault-api";
 import {
   ArrowUp,
   ArrowLeft,
@@ -50,7 +52,7 @@ import { AgentSettings } from "./agent-settings";
 import { Markdown } from "./markdown";
 import type { Source, WorkspaceProposal, WorkspaceAccessRequest } from "@/lib/agent-client";
 import { useConversations, type Message } from "@/lib/conversations";
-import { accountId, credentialId, desktop } from "@/lib/desktop";
+import { accountId, credentialId } from "@/lib/desktop";
 import { attentionOf, chipClass, dotClass, KIND_LABEL } from "@/lib/status";
 import { assetEntries } from "@/lib/operations";
 import { useAppStore } from "@/lib/store";
@@ -117,7 +119,7 @@ export function AgentView() {
   } | null>(null);
   const runRef = useRef<string | null>(null);
   const [error, setError] = useState("");
-  const api = desktop()?.agent;
+  const api = hostBridge()?.agent;
   const messagesRef = useRef<HTMLDivElement>(null);
   const followBottom = useRef(true);
   const busy = Boolean(running) || preparing || !hydrated;
@@ -1045,7 +1047,7 @@ function ProposalCard({ proposal }: { proposal: WorkspaceProposal }) {
   };
   const dismiss = async () => {
     if (state !== "pending" || dismissing) return;
-    const api = desktop()?.agent;
+    const api = hostBridge()?.agent;
     if (!api) return;
     setDismissing(true);
     setFailure("");
@@ -1060,7 +1062,7 @@ function ProposalCard({ proposal }: { proposal: WorkspaceProposal }) {
   };
   const apply = async () => {
     if (state !== "pending" || dismissing) return;
-    const api = desktop()?.agent;
+    const api = hostBridge()?.agent;
     if (!api) return;
     setState("applying");
     setFailure("");
@@ -1213,7 +1215,8 @@ function ProposalTarget({ proposal }: { proposal: WorkspaceProposal }) {
  * the vault when this mounts and lives in component state, never in history.
  */
 function SecretBlock({ block }: { block: Extract<Block, { type: "secret" }> }) {
-  const bridge = desktop();
+  // 桌面版在主进程解密；网页版在浏览器里解密，密码不经过服务器。
+  const bridge = vaultApi();
   const unlocked = useVault((s) => s.unlocked);
   const requireVault = useVault((s) => s.require);
   const secrets = useAppStore((s) => s.secrets);
@@ -1229,11 +1232,11 @@ function SecretBlock({ block }: { block: Extract<Block, { type: "secret" }> }) {
     void (async () => {
       if (!bridge || !unlocked) return;
       try {
-        const account = await bridge.vault.get(accountId(block.assetId));
+        const account = await bridge.get(accountId(block.assetId));
         let found = account?.[block.field as keyof typeof account] as string | undefined;
         // A server's SSH password lives under its own key, not the account one.
         if (!found && block.kind === "server" && block.field === "password") {
-          const ssh = await bridge.vault.get(credentialId(block.assetId));
+          const ssh = await bridge.get(credentialId(block.assetId));
           found = ssh?.password;
         }
         if (!alive) return;
@@ -1249,7 +1252,7 @@ function SecretBlock({ block }: { block: Extract<Block, { type: "secret" }> }) {
   }, [bridge, unlocked, block.assetId, block.field, block.kind, secrets]);
 
   if (!bridge) {
-    return <p className="text-meta text-muted">{t("桌面版才能读取加密库。")}</p>;
+    return <p className="text-meta text-muted">{t("浏览器预览没有加密密钥库。")}</p>;
   }
 
   if (!unlocked) {

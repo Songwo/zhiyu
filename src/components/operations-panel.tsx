@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import {
   ArrowUp,
   CalendarArrowDown,
@@ -192,7 +193,7 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
   );
   const requireVault = useVault((s) => s.require);
   async function load(next: string) {
-    const bridge = desktop();
+    const bridge = hostBridge();
     if (!bridge) return;
     const token = ++request.current;
     setBusy(true);
@@ -221,7 +222,7 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
         <Button
           variant="outline"
           size="sm"
-          disabled={!desktop() || busy}
+          disabled={!hostBridge() || busy}
           onClick={async () => {
             if (open) {
               setOpen(false);
@@ -235,7 +236,7 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
           {open ? t("收起") : t("浏览文件")}
         </Button>
       </div>
-      {!desktop() && <p className="tool-empty">{t("文件浏览需要桌面版")}</p>}
+      {!hostBridge() && <p className="tool-empty">{t("文件浏览需要桌面版")}</p>}
       {open && (
         <div className="mt-3 space-y-3">
           <form
@@ -341,7 +342,7 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
                         setDownloading(entry.name);
                         setError("");
                         try {
-                          if (await desktop()?.sftp.download(serverId, join(entry.name)))
+                          if (await hostBridge()?.sftp.download(serverId, join(entry.name)))
                             toast(t("下载完成"));
                         } catch (err) {
                           setError(errorText(err));

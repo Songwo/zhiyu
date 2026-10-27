@@ -1,3 +1,5 @@
+import { isWeb } from "@/lib/web";
+import { openExternal } from "@/lib/web-bridge";
 import { useEffect, useRef, useState } from "react";
 import { Copy, Download, ExternalLink, Link2, Loader2, Puzzle, Unplug } from "lucide-react";
 import { toast } from "sonner";
@@ -121,11 +123,7 @@ export function ExtensionSettings() {
             <Download className="size-4" />
             {t("下载浏览器插件")}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void desktop()?.openExternal(RELEASES_URL)}
-          >
+          <Button variant="outline" size="sm" onClick={() => void openExternal(RELEASES_URL)}>
             <ExternalLink className="size-4" />
             {t("打开 GitHub 发布页")}
           </Button>
@@ -142,7 +140,13 @@ export function ExtensionSettings() {
         )}
       </p>
       {!bridge ? (
-        <p className="text-meta text-muted">{t("仅桌面版可用")}</p>
+        <p className="text-meta text-muted">
+          {isWeb()
+            ? t(
+                "插件通过这台电脑上的本机端口与桌面版配对；网页版运行在远端服务器上，插件连不到它。需要在登录页自动填写账号时，请在这台电脑安装桌面版。",
+              )
+            : t("仅桌面版可用")}
+        </p>
       ) : (
         <>
           <dl className="divide-y divide-line text-meta">

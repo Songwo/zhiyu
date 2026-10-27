@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useState, type FormEvent } from "react";
 import { Plus, Pencil, Trash2, ArrowRight } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import type { DnsInput, DnsProposal, DnsRecord } from "@/lib/integrations";
 import { Button } from "../ui/button";
@@ -30,7 +30,7 @@ export function DnsManager({
   useEffect(() => {
     let cancelled = false;
     setBusy(true);
-    void desktop()!
+    void hostBridge()!
       .integrations.dnsList(connectionId, zoneId, revision > 0)
       .then((result) => {
         if (!cancelled) {
@@ -53,7 +53,7 @@ export function DnsManager({
     setError("");
     try {
       setProposal(
-        await desktop()!.integrations.dnsPreview({
+        await hostBridge()!.integrations.dnsPreview({
           connectionId,
           zoneId,
           action,
@@ -72,7 +72,7 @@ export function DnsManager({
     setBusy(true);
     setError("");
     try {
-      await desktop()!.integrations.dnsApply(proposal.ticket);
+      await hostBridge()!.integrations.dnsApply(proposal.ticket);
       setProposal(null);
       setEdit(null);
       setRevision((n) => n + 1);

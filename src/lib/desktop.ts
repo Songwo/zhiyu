@@ -134,6 +134,8 @@ export interface AppInfo {
   packaged: boolean;
   /** 程序目录有便携标记时，资料保存在程序旁的 data 文件夹。 */
   portable?: boolean;
+  /** 自托管网页版：信息来自服务器，userData 是服务器上的资料目录。 */
+  web?: boolean;
 }
 
 export interface UpdateCheck {

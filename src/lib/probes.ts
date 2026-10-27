@@ -1,8 +1,9 @@
+import { hostBridge } from "./web-bridge";
 import { canProbeServer } from "./server-observation.mjs";
 import { ProbeFlights, currentProbeAsset } from "./probe-guard";
 import { shouldRefreshProbe } from "./probe-cache.mjs";
 import { create } from "zustand";
-import { desktop, formatUptime } from "./desktop";
+import { formatUptime } from "./desktop";
 import { useLive } from "./live";
 import { expiryStatus } from "./status";
 import { useAppStore } from "./store";
@@ -50,7 +51,7 @@ export function refreshServer(server: Server): Promise<void> {
 
 async function probeServer(server: Server): Promise<void> {
   if (server.demo || !canProbeServer(server)) return;
-  const bridge = desktop();
+  const bridge = hostBridge();
   if (!bridge) return;
   busy(server.id, true);
   const store = useAppStore.getState();
@@ -111,7 +112,7 @@ export function refreshDomain(domain: Domain): Promise<void> {
 
 async function probeDomain(domain: Domain): Promise<void> {
   if (domain.demo) return;
-  const bridge = desktop();
+  const bridge = hostBridge();
   if (!bridge) return;
   busy(domain.id, true);
   const store = useAppStore.getState();
@@ -158,7 +159,7 @@ export function refreshCert(cert: Certificate): Promise<void> {
 
 async function probeCert(cert: Certificate): Promise<void> {
   if (cert.demo) return;
-  const bridge = desktop();
+  const bridge = hostBridge();
   if (!bridge) return;
   busy(cert.id, true);
   const store = useAppStore.getState();
@@ -218,7 +219,7 @@ export async function refreshAll(
   kind: "server" | "domain" | "cert",
   options: { force?: boolean; minAgeMs?: number } = {},
 ): Promise<number> {
-  const bridge = desktop();
+  const bridge = hostBridge();
   if (!bridge) return 0;
   const s = useAppStore.getState();
   const jobs: Array<() => Promise<void>> =

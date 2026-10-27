@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useState } from "react";
 import { Link2 } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import type { IntegrationRef } from "@/lib/integrations";
 import { Button } from "../ui/button";
@@ -100,7 +100,7 @@ export function BoundIntegrationPanel({
         <ConfirmAction
           title={t("解除绑定")}
           description={t("仅解除此资产的远端关联，本机资产和远端资源都会保留。")}
-          action={() => desktop()!.integrations.unbind({ kind, id })}
+          action={() => hostBridge()!.integrations.unbind({ kind, id })}
           onClose={() => setUnbindOpen(false)}
           onDone={() => setUnbindOpen(false)}
         />

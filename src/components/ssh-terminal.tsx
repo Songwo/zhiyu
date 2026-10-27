@@ -1,7 +1,7 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LiveShell, type ShellStatus } from "./live-shell";
-import { isDesktop } from "@/lib/desktop";
 import { usePresence } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
 import type { Server } from "@/lib/types";
@@ -46,7 +46,8 @@ function TerminalWindow({
   shown: boolean;
   onClose: () => void;
 }) {
-  const live = isDesktop();
+  // 桌面版与自托管网页版都会真正连接主机，只有纯浏览器预览是模拟会话。
+  const live = Boolean(hostBridge());
   const [status, setStatus] = useState<ShellStatus>("connecting");
   const badge = STATUS_TEXT[live ? status : "sim"];
 

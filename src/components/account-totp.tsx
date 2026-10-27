@@ -1,3 +1,4 @@
+import { totpApi } from "@/lib/web-totp";
 import { useEffect, useRef, useState } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import {
@@ -25,7 +26,7 @@ type TotpCode = Awaited<ReturnType<TotpBridge["code"]>>;
 
 /** seed 只临时存在输入框中；验证码由主进程按需生成。 */
 export function AccountTotp({ assetId }: { assetId: string }) {
-  const bridge = desktop()?.totp;
+  const bridge = totpApi();
   const unlocked = useVault((state) => state.unlocked);
   const [status, setStatus] = useState<TotpStatus | null>(null);
   const [currentCode, setCurrentCode] = useState<TotpCode | null>(null);

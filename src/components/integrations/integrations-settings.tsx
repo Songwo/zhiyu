@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useState } from "react";
 import {
   Activity,
@@ -11,7 +12,6 @@ import {
   Trash2,
   Zap,
 } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import type {
@@ -62,10 +62,10 @@ export function IntegrationsSettings() {
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
-    if (!desktop()?.integrations) return;
+    if (!hostBridge()?.integrations) return;
     let cancelled = false;
     setBusy(true);
-    void desktop()!
+    void hostBridge()!
       .integrations.list()
       .then((rows) => {
         if (!cancelled) {
@@ -87,7 +87,7 @@ export function IntegrationsSettings() {
     };
   }, [revision]);
   const connection = connections.find((row) => row.id === selected);
-  if (!desktop()?.integrations) return <p className="integration-empty">{t("仅桌面版可用")}</p>;
+  if (!hostBridge()?.integrations) return <p className="integration-empty">{t("仅桌面版可用")}</p>;
   return (
     <section className="integration-workspace" aria-label={t("云服务与探针")}>
       <div className="integration-toolbar">
@@ -164,7 +164,7 @@ export function IntegrationsSettings() {
         <ConfirmAction
           title={t("移除连接")}
           description={t("将移除本机保存的连接凭据。已导入资产保留，远端资源不会删除。")}
-          action={() => desktop()!.integrations.remove(removing.id)}
+          action={() => hostBridge()!.integrations.remove(removing.id)}
           onClose={() => setRemoving(null)}
           onDone={() => {
             setRemoving(null);
@@ -209,7 +209,7 @@ function ConnectionEditor({
           setBusy(true);
           setError("");
           try {
-            const saved = await desktop()!.integrations.save({
+            const saved = await hostBridge()!.integrations.save({
               ...value,
               name: value.name.trim(),
               token: token.trim() || undefined,
@@ -546,8 +546,8 @@ function ConnectionWorkspace({ connection }: { connection: IntegrationConnection
           }
           action={() =>
             removing.type === "host"
-              ? desktop()!.integrations.probeRevoke(connection.id, removing.remoteId)
-              : desktop()!.integrations.probeDeleteCheck(connection.id, removing.remoteId)
+              ? hostBridge()!.integrations.probeRevoke(connection.id, removing.remoteId)
+              : hostBridge()!.integrations.probeDeleteCheck(connection.id, removing.remoteId)
           }
           onClose={() => setRemoving(null)}
           onDone={() => {
@@ -617,7 +617,7 @@ function BindDialog({
               setBusy(true);
               setError("");
               try {
-                await desktop()!.integrations.bind({
+                await hostBridge()!.integrations.bind({
                   connectionId: connection.id,
                   resourceKey: resource.key,
                   assetId: assetId === "new" ? undefined : assetId,

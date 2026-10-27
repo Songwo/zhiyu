@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CloudUpload, Settings2 } from "lucide-react";
-import { desktop } from "@/lib/desktop";
+import { hostBridge } from "@/lib/web-bridge";
 import { type ImageBedStatus } from "@/lib/image-bed";
 import { Button } from "./ui/button";
 export function ImageBedSettings({
@@ -13,7 +13,7 @@ export function ImageBedSettings({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    void desktop()
+    void hostBridge()
       ?.images?.status()
       .then((s) => {
         setStatus(s);
@@ -22,7 +22,7 @@ export function ImageBedSettings({
       })
       .catch(() => setError("图床配置读取失败"));
   }, [onStatusChange]);
-  if (!desktop()) return <span className="text-xs text-muted">网页预览：图片保存在本机</span>;
+  if (!hostBridge()) return <span className="text-xs text-muted">网页预览：图片保存在本机</span>;
   return (
     <div className="text-sm">
       <Button type="button" size="sm" variant="outline" onClick={() => setOpen(!open)}>
@@ -34,7 +34,8 @@ export function ImageBedSettings({
         <div className="my-3 rounded-lg border border-line bg-card p-4">
           <h3 className="font-semibold">上传台图库</h3>
           <p className="mt-2 break-all text-xs text-muted">
-            zensimagebed.pages.dev · 上传文档与资产图片。图片访问地址会随文档保存；已有本地图片不会自动上传。
+            zensimagebed.pages.dev ·
+            上传文档与资产图片。图片访问地址会随文档保存；已有本地图片不会自动上传。
           </p>
           <label className="mt-3 block text-xs">
             {status?.configured ? "替换 API Key（留空保留现有 Key）" : "API Key"}
@@ -64,7 +65,7 @@ export function ImageBedSettings({
               setBusy(true);
               setError("");
               try {
-                const result = await desktop()!.images.configure({
+                const result = await hostBridge()!.images.configure({
                   apiKey: key || undefined,
                   enabled,
                 });

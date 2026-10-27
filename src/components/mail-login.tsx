@@ -1,10 +1,11 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { CheckCircle2, Loader2, LogIn, Mail, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { OAuthLogin } from "./oauth-login";
 import { Button } from "./ui/button";
 import { Field, Input, Select } from "./ui/input";
-import { desktop, type MailLogin, type MailProvider } from "@/lib/desktop";
+import { type MailLogin, type MailProvider } from "@/lib/desktop";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
@@ -29,7 +30,7 @@ export function MailLogin({
   form: Record<string, string>;
   set: (key: string, value: string) => void;
 }) {
-  const bridge = desktop();
+  const bridge = hostBridge();
   const [open, setOpen] = useState(false);
   const [providers, setProviders] = useState<Record<string, MailProvider>>({});
   const [provider, setProvider] = useState<string>("");

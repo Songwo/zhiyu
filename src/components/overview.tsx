@@ -28,6 +28,8 @@ import { QuickStart, UpcomingRenewals } from "./overview-guides";
 import { Button } from "./ui/button";
 import { DepthHero, PageSection, RowButton } from "./ui/page";
 import { createAsset } from "@/lib/create-asset";
+import { isWeb } from "@/lib/web";
+import { HostPulse } from "./host-monitor";
 
 export function Overview() {
   const servers = useAppStore((s) => s.servers);
@@ -119,17 +121,144 @@ export function Overview() {
     costs.services.length +
     costs.aiAssets.length +
     costs.certs.length;
+  const statStrip = (
+    <section className="stat-strip" aria-label={t("资产摘要")}>
+      {stats.map(({ label, value, detail, icon: Icon, view }) => (
+        <button type="button" key={view} className="hero-stat" onClick={() => setView(view)}>
+          <span className="hero-stat-label">
+            <Icon aria-hidden="true" />
+            {t(label)}
+          </span>
+          <strong className="hero-stat-value">{value}</strong>
+          <span className="hero-stat-detail">{detail}</span>
+        </button>
+      ))}
+    </section>
+  );
+  const attentionSection = attention.length > 0 && (
+    <PageSection
+      title={t("待处理事项")}
+      description={t("点击分类查看异常资产")}
+      aria-label={t("待处理事项")}
+      action={
+        <button
+          type="button"
+          className="section-link"
+          onClick={() =>
+            useAppStore
+              .getState()
+              .askAgent(
+                t(
+                  "逐项分析需要留意的 {0} 项资产：原因、会影响哪些关联资产、下一步怎么处理。请引用依据。",
+                  counts.total,
+                ),
+              )
+          }
+        >
+          <Sparkles aria-hidden="true" />
+          {t("让 AI 逐项分析")}
+        </button>
+      }
+    >
+      <div className="row-grid">
+        {attention.map(([view, label, count]) => (
+          <RowButton
+            key={view}
+            className="attention-row"
+            title={
+              <>
+                <span className="attention-chip-dot" aria-hidden="true" />
+                {t(label)} · {t("{0} 项需要留意", count)}
+              </>
+            }
+            onClick={() => {
+              if (view === "phones") useAppStore.getState().openPhones({ attention: true });
+              else {
+                setView(view);
+                useAppStore.getState().setFilter("attention");
+              }
+            }}
+          />
+        ))}
+      </div>
+    </PageSection>
+  );
+  const serverSection = servers.length > 0 && (
+    <PageSection
+      title={t("服务器")}
+      action={
+        <button type="button" className="section-link" onClick={() => setView("servers")}>
+          {t("查看全部")}
+          <ArrowUpRight aria-hidden="true" />
+        </button>
+      }
+    >
+      <div className="row-list">
+        {servers.slice(0, 4).map((server) => (
+          <RowButton
+            key={server.id}
+            className="asset-summary-row"
+            icon={Server}
+            title={server.name}
+            detail={server.host}
+            arrow={false}
+            trailing={
+              <StatusBadge status={server.status} pending={!hasServerObservation(server)} />
+            }
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              useAppStore.getState().setExpanded({
+                kind: "server",
+                id: server.id,
+                origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
+              });
+            }}
+          />
+        ))}
+      </div>
+    </PageSection>
+  );
+  const headline = assetTotal
+    ? counts.total
+      ? t("{0} 项资产，{1} 项需要留意", assetTotal, counts.total)
+      : t("{0} 项资产，一切正常", assetTotal)
+    : t("从添加第一项资产开始");
+
+  // 网页版：宽屏仪表盘。上方是这台 VPS 的实时状态，下面左栏资产、右栏续费与动态。
+  if (isWeb())
+    return (
+      <div className="web-dashboard page-stagger">
+        <header className="web-dashboard-head">
+          <div className="min-w-0">
+            <h1>{headline}</h1>
+            <p>{t("这台服务器的状态与你的全部资产，在一页里看完。")}</p>
+          </div>
+          <Button onClick={() => void createAsset()}>
+            <Plus />
+            {t("添加资产")}
+          </Button>
+        </header>
+        <HostPulse />
+        {statStrip}
+        <div className="web-dashboard-grid">
+          <div className="web-dashboard-col">
+            {attentionSection}
+            {serverSection}
+            <QuickStart />
+          </div>
+          <div className="web-dashboard-col">
+            <UpcomingRenewals />
+            <ActivityJournal />
+          </div>
+        </div>
+      </div>
+    );
+
   return (
     <div className="overview-layout page-stagger">
       <DepthHero
         eyebrow={t("资产总览")}
-        title={
-          assetTotal
-            ? counts.total
-              ? t("{0} 项资产，{1} 项需要留意", assetTotal, counts.total)
-              : t("{0} 项资产，一切正常", assetTotal)
-            : t("从添加第一项资产开始")
-        }
+        title={headline}
         description={t("集中管理资产，快速找到需要处理的事项。")}
         actions={
           <Button onClick={() => void createAsset()}>
@@ -172,107 +301,15 @@ export function Overview() {
         </div>
       </DepthHero>
 
-      <section className="stat-strip" aria-label={t("资产摘要")}>
-        {stats.map(({ label, value, detail, icon: Icon, view }) => (
-          <button type="button" key={view} className="hero-stat" onClick={() => setView(view)}>
-            <span className="hero-stat-label">
-              <Icon aria-hidden="true" />
-              {t(label)}
-            </span>
-            <strong className="hero-stat-value">{value}</strong>
-            <span className="hero-stat-detail">{detail}</span>
-          </button>
-        ))}
-      </section>
+      {statStrip}
 
       <QuickStart />
       <UpcomingRenewals />
 
-      {attention.length > 0 && (
-        <PageSection
-          title={t("待处理事项")}
-          description={t("点击分类查看异常资产")}
-          aria-label={t("待处理事项")}
-          action={
-            <button
-              type="button"
-              className="section-link"
-              onClick={() =>
-                useAppStore
-                  .getState()
-                  .askAgent(
-                    t(
-                      "逐项分析需要留意的 {0} 项资产：原因、会影响哪些关联资产、下一步怎么处理。请引用依据。",
-                      counts.total,
-                    ),
-                  )
-              }
-            >
-              <Sparkles aria-hidden="true" />
-              {t("让 AI 逐项分析")}
-            </button>
-          }
-        >
-          <div className="row-grid">
-            {attention.map(([view, label, count]) => (
-              <RowButton
-                key={view}
-                className="attention-row"
-                title={
-                  <>
-                    <span className="attention-chip-dot" aria-hidden="true" />
-                    {t(label)} · {t("{0} 项需要留意", count)}
-                  </>
-                }
-                onClick={() => {
-                  if (view === "phones") useAppStore.getState().openPhones({ attention: true });
-                  else {
-                    setView(view);
-                    useAppStore.getState().setFilter("attention");
-                  }
-                }}
-              />
-            ))}
-          </div>
-        </PageSection>
-      )}
+      {attentionSection}
 
       <div className={servers.length ? "overview-columns" : "grid gap-8"}>
-        {servers.length > 0 && (
-          <PageSection
-            title={t("服务器")}
-            action={
-              <button type="button" className="section-link" onClick={() => setView("servers")}>
-                {t("查看全部")}
-                <ArrowUpRight aria-hidden="true" />
-              </button>
-            }
-          >
-            <div className="row-list">
-              {servers.slice(0, 4).map((server) => (
-                <RowButton
-                  key={server.id}
-                  className="asset-summary-row"
-                  icon={Server}
-                  title={server.name}
-                  detail={server.host}
-                  arrow={false}
-                  trailing={
-                    <StatusBadge status={server.status} pending={!hasServerObservation(server)} />
-                  }
-                  onClick={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    useAppStore.getState().setExpanded({
-                      kind: "server",
-                      id: server.id,
-                      origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
-                    });
-                  }}
-                />
-              ))}
-            </div>
-          </PageSection>
-        )}
+        {serverSection}
         <ActivityJournal />
       </div>
     </div>

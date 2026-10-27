@@ -2,7 +2,10 @@ import { CheckCircle2, KeyRound, Loader2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Field, Input, Select, Textarea } from "./ui/input";
-import { credentialId, desktop, type CredentialKind, type SshCredential } from "@/lib/desktop";
+import { credentialId, type CredentialKind, type SshCredential } from "@/lib/desktop";
+import { vaultApi } from "@/lib/vault-api";
+import { isWeb } from "@/lib/web";
+import { hostBridge } from "@/lib/web-bridge";
 import { useVault } from "@/lib/vault-state";
 import { t } from "@/lib/i18n";
 
@@ -46,7 +49,9 @@ export function CredentialFields({
   form: Record<string, string>;
   set: (key: string, value: string) => void;
 }) {
-  const bridge = desktop();
+  // 桌面版由主进程连接；网页版由服务器连接，凭据仍只存在浏览器加密的密钥库里。
+  const bridge = hostBridge();
+  const vault = vaultApi();
   const requireVault = useVault((s) => s.require);
   const unlocked = useVault((s) => s.unlocked);
   const [stored, setStored] = useState<CredentialKind | null | "unknown">("unknown");
@@ -58,19 +63,20 @@ export function CredentialFields({
   const kind = (form._authKind as CredentialKind) || "password";
   // The main process builds this phrase when TOFU refuses a changed host key;
   // matching on it is what offers the reset affordance.
-  const fingerprintChanged = test.state === "fail" && (test.message ?? "").includes("主机指纹已变更");
+  const fingerprintChanged =
+    test.state === "fail" && (test.message ?? "").includes("主机指纹已变更");
 
   // Only the kind is read back, so the panel can say "已保存" without
   // putting a decrypted password into the DOM.
   useEffect(() => {
     let alive = true;
     void (async () => {
-      if (!bridge || !serverId || !unlocked) {
+      if (!vault || !serverId || !unlocked) {
         if (alive) setStored(serverId ? "unknown" : null);
         return;
       }
       try {
-        const cred = await bridge.vault.get(credentialId(serverId));
+        const cred = await vault.get(credentialId(serverId));
         if (alive) setStored(cred?.kind ?? null);
       } catch {
         if (alive) setStored("unknown");
@@ -79,9 +85,9 @@ export function CredentialFields({
     return () => {
       alive = false;
     };
-  }, [bridge, serverId, unlocked]);
+  }, [vault, serverId, unlocked]);
 
-  if (!bridge) return null;
+  if (!bridge || !vault) return null;
 
   async function runTest() {
     const credential = credentialFromForm(form);
@@ -147,7 +153,8 @@ export function CredentialFields({
               options={[
                 { value: "password", label: t("密码") },
                 { value: "key", label: t("私钥") },
-                { value: "agent", label: "SSH Agent" },
+                // 网页版由服务器发起连接，服务器上没有你的 SSH agent。
+                ...(isWeb() ? [] : [{ value: "agent", label: "SSH Agent" }]),
               ]}
             />
           </Field>
@@ -192,7 +199,12 @@ export function CredentialFields({
             </>
           )}
 
-          {kind === "agent" && (
+          {kind === "agent" && isWeb() && (
+            <p className="self-end pb-2 text-2xs text-crit sm:col-span-1">
+              {t("网页版由服务器发起 SSH 连接，不能使用 SSH agent，请改用密码或私钥。")}
+            </p>
+          )}
+          {kind === "agent" && !isWeb() && (
             <p className="self-end pb-2 text-2xs text-muted sm:col-span-1">
               {t("使用系统 SSH agent（Windows 为 Pageant，其它平台读 SSH_AUTH_SOCK）。")}
             </p>

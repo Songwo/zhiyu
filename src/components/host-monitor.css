@@ -1,0 +1,515 @@
+/* 主机监控：网页版专用。系列色取分类调色板第 1、2 位（蓝 / 橙），浅色与深色分别校验过。 */
+:root {
+  --host-a: #2a78d6;
+  --host-b: #eb6834;
+  --host-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root[data-theme="dark"] {
+  --host-a: #3987e5;
+  --host-b: #d95926;
+}
+
+.host-page {
+  display: grid;
+  gap: 16px;
+  padding: 4px 16px 96px;
+}
+@media (min-width: 768px) {
+  .host-page {
+    padding-inline: 4px;
+  }
+}
+
+.host-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+  line-height: 1.5;
+}
+.host-scope svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.host-scope[data-partial="true"] {
+  background: var(--color-banner);
+}
+
+.host-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-line);
+}
+@media (min-width: 640px) {
+  .host-facts {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+.host-facts > div {
+  min-width: 0;
+  padding: 12px 16px;
+  background: var(--color-card);
+}
+.host-facts dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+}
+.host-facts dt svg {
+  width: 14px;
+  height: 14px;
+}
+.host-facts dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.host-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 1024px) {
+  .host-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .host-kpis-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.host-kpi {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  text-align: left;
+  color: var(--color-ink);
+}
+.host-kpi-link {
+  transition:
+    border-color 300ms var(--host-ease),
+    transform 300ms var(--host-ease);
+}
+.host-kpi-link:hover {
+  border-color: var(--color-line-strong);
+  transform: translateY(-1px);
+}
+.host-kpi-link:active {
+  transform: scale(0.98);
+}
+.host-kpi-link:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+.host-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+}
+.host-kpi-label svg {
+  width: 16px;
+  height: 16px;
+}
+.host-kpi-arrow {
+  margin-left: auto;
+  opacity: 0.6;
+}
+.host-kpi-value {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 640px) {
+  .host-kpi-value {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+}
+.host-kpi-value[data-tone="warn"] {
+  color: var(--color-warn);
+}
+.host-kpi-value[data-tone="crit"] {
+  color: var(--color-crit);
+}
+.host-kpi-detail {
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.host-meter {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--color-line);
+}
+.host-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--color-ok);
+  transform-origin: left;
+  transition: transform 500ms var(--host-ease);
+}
+.host-meter[data-tone="warn"] > span {
+  background: var(--color-warn);
+}
+.host-meter[data-tone="crit"] > span {
+  background: var(--color-crit);
+}
+.host-meter[data-tone="idle"] > span {
+  background: var(--color-subtle);
+}
+
+.host-spark {
+  width: 100%;
+  height: 28px;
+}
+.host-spark path {
+  fill: none;
+  stroke: var(--host-a);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.host-spark-empty {
+  display: block;
+  height: 28px;
+}
+
+.host-charts,
+.host-columns {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 1024px) {
+  .host-charts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .host-columns {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+.host-stack {
+  display: grid;
+  gap: 16px;
+}
+.host-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+}
+.host-card > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.host-card h3 {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.host-card > header > span {
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.host-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+}
+.host-chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.host-chart-legend strong,
+.host-tooltip strong {
+  color: var(--color-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.host-swatch {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--host-a);
+}
+.host-swatch-b {
+  background: var(--host-b);
+}
+.host-chart-plot {
+  position: relative;
+  height: 160px;
+  touch-action: pan-y;
+}
+.host-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.host-grid {
+  stroke: var(--color-line);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.host-axis {
+  stroke: var(--color-line-strong);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.host-area-a {
+  fill: var(--host-a);
+  opacity: 0.12;
+}
+.host-line {
+  fill: none;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.host-line-a {
+  stroke: var(--host-a);
+}
+.host-line-b {
+  stroke: var(--host-b);
+}
+.host-crosshair {
+  stroke: var(--color-muted);
+  stroke-width: 1px;
+  stroke-dasharray: 3 3;
+}
+.host-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 9999px;
+  background: var(--host-a);
+  box-shadow: 0 0 0 2px var(--color-card);
+  pointer-events: none;
+}
+.host-dot-b {
+  background: var(--host-b);
+}
+.host-tooltip {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  min-width: 128px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-card);
+  box-shadow: var(--shadow-float);
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+  pointer-events: none;
+  transform: translateX(12px);
+}
+.host-tooltip[data-side="left"] {
+  transform: translateX(calc(-100% - 12px));
+}
+.host-tooltip-time {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.host-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.host-tooltip-row strong {
+  margin-left: auto;
+  padding-left: 12px;
+}
+.host-chart-ticks {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-subtle);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.host-chart-empty {
+  display: grid;
+  height: 160px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+}
+
+.host-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+}
+.host-toggle button {
+  padding: 2px 12px;
+  border-radius: 8px;
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+}
+.host-toggle button[aria-pressed="true"] {
+  background: var(--color-selected);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.host-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-meta);
+  table-layout: fixed;
+}
+.host-table th {
+  padding: 0 8px 8px 0;
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  text-align: left;
+}
+.host-table td {
+  padding: 8px 8px 8px 0;
+  border-top: 1px solid var(--color-line);
+  font-variant-numeric: tabular-nums;
+}
+.host-table .num {
+  text-align: right;
+  padding-right: 0;
+}
+.host-table .mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+.host-table-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.host-table th:nth-child(2),
+.host-table td:nth-child(2) {
+  width: 72px;
+}
+
+.host-pairs {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.host-pairs > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--text-meta);
+}
+.host-pairs dt {
+  color: var(--color-muted);
+}
+.host-pairs dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.host-muted {
+  margin: 12px 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+
+/* 仪表盘首页的「本机状态」 */
+.host-pulse {
+  display: grid;
+  gap: 12px;
+}
+.host-pulse-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.host-pulse-head h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.host-pulse-head h2 svg {
+  width: 16px;
+  height: 16px;
+  align-self: center;
+}
+.host-pulse-head h2 span {
+  color: var(--color-muted);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .host-kpi-link,
+  .host-meter > span {
+    transition: opacity 200ms linear;
+  }
+  .host-kpi-link:hover,
+  .host-kpi-link:active {
+    transform: none;
+  }
+}

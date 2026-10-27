@@ -1,9 +1,9 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { hasServerObservation } from "@/lib/server-observation.mjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Terminal, RefreshCw, CheckCircle2, ShieldAlert, ChevronDown } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { refreshAll } from "@/lib/probes";
-import { isDesktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export function TerminalStream({ className }: { className?: string }) {
       id: "sys-init",
       time: "00:00:01",
       event: "[SYS_CORE]",
-      detail: isDesktop()
+      detail: hostBridge()
         ? t("本地隔离安全沙箱就绪 · AES-GCM 金融级主密钥保护已挂载")
         : t("Web 模拟沙箱引擎加载 · 实时指标遥测协议通道就绪"),
       tone: "info",

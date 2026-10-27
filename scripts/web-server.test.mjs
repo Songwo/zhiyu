@@ -12,7 +12,13 @@ async function rig(t, options = {}) {
   const root = await mkdtemp(join(tmpdir(), "zhiyu-web-"));
   const staticDir = await mkdtemp(join(tmpdir(), "zhiyu-web-static-"));
   await writeFile(join(staticDir, "index.html"), "<!doctype html><title>知屿</title>");
-  const web = await createWebServer({ root, staticDir, log: quiet, ...options });
+  const web = await createWebServer({
+    root,
+    staticDir,
+    log: quiet,
+    schedulePush: false,
+    ...options,
+  });
   await new Promise((r) => web.server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${web.server.address().port}`;
   t.after(async () => {
@@ -391,4 +397,71 @@ test("提醒推送：服务器端保存渠道（不回传凭据），按天去�
   assert.equal((await web.push.tick(now + 86_400_000)).sent, 2);
   const stored = await readFile(join(root, "server", "push.json"), "utf8");
   assert.match(stored, /123456789:/);
+});
+
+test("桌面版同名频道：只放行白名单，凭据随请求带来，服务器端改资料会推送事件", async (t) => {
+  const { web, root, call, setCookie, getCookie, base } = await rig(t);
+  const rpc = (channel, ...args) =>
+    call("/api/web/rpc", { method: "POST", body: { channel, args } });
+  assert.equal((await rpc("app:info")).status, 401);
+  await call("/api/web/setup", { method: "POST", body: { ...account, token: web.setupToken } });
+
+  const info = await (await rpc("app:info")).json();
+  assert.equal(info.data.web, true);
+  const unknown = await rpc("vault:get", "ssh:x");
+  assert.equal(unknown.status, 400);
+  assert.match((await unknown.json()).error, /不支持/);
+  assert.equal((await rpc("constructor")).status, 400);
+
+  assert.equal((await (await rpc("profile:get")).json()).data.name, "");
+  const saved = await (await rpc("profile:save", { name: "  宋  " })).json();
+  assert.equal(saved.data.name, "宋");
+  assert.equal(JSON.parse(await readFile(join(root, "workspace/profile.json"), "utf8")).name, "宋");
+  assert.equal((await rpc("profile:save", { name: "" })).status, 400);
+
+  // 资料里没有这台主机、凭据是 ssh-agent 时都直接拒绝，不会发起连接。
+  assert.match((await (await rpc("ssh:open", { id: "nope" }, {}, null)).json()).error, /不存在/);
+  await call("/api/web/store", {
+    method: "PUT",
+    body: {
+      revision: null,
+      data: { state: { servers: [{ id: "s1", host: "127.0.0.1", port: 1, username: "u" }] } },
+    },
+  });
+  assert.match(
+    (await (await rpc("ssh:open", { id: "s1" }, {}, { kind: "agent" })).json()).error,
+    /ssh-agent/,
+  );
+  assert.match(
+    (
+      await (
+        await rpc("ssh:probe", { id: "s1" }, { kind: "key", privateKeyPath: "/etc/shadow" })
+      ).json()
+    ).error,
+    /私钥文件/,
+  );
+
+  const host = await (await rpc("host:stats")).json();
+  assert.equal(typeof host.data.supported, "boolean");
+
+  // 事件流：需要登录；服务器端改动资料后推送 assets:changed。
+  const controller = new AbortController();
+  t.after(() => controller.abort());
+  const events = await fetch(base + "/api/web/events", {
+    headers: { cookie: getCookie() },
+    signal: controller.signal,
+  });
+  assert.equal(events.headers.get("content-type"), "text/event-stream; charset=utf-8");
+  const reader = events.body.getReader();
+  await reader.read();
+  const integration = await rpc("integrations:list");
+  assert.equal(integration.status, 200);
+  const usage = await (await rpc("usage:list")).json();
+  assert.deepEqual(usage.data.records, []);
+  await rpc("usage:refresh-all");
+  const chunk = new TextDecoder().decode((await reader.read()).value);
+  assert.match(chunk, /"channel":"usage:changed"/);
+
+  setCookie("");
+  assert.equal((await fetch(base + "/api/web/events")).status, 401);
 });

@@ -1,3 +1,4 @@
+import { hostBridge } from "@/lib/web-bridge";
 import {
   hasServerMetrics,
   hasServerObservation,
@@ -164,9 +165,11 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
       </div>
 
       {!paused && <ProbeNote id={data.id} error={data.probeError} at={data.probedAt} />}
-      {!paused && data.probeError && !isWeb() && data.sshConfigured !== false && (
+      {!paused && data.probeError && data.sshConfigured !== false && (
         <p className="mt-1 text-2xs text-subtle">
-          {t("本机连不上这台主机（例如需要代理）？关掉右下角的「采集」，不再连接也不再告警。")}
+          {isWeb()
+            ? t("网页版所在的服务器连不上这台主机？关掉右下角的「采集」，不再连接也不再告警。")
+            : t("本机连不上这台主机（例如需要代理）？关掉右下角的「采集」，不再连接也不再告警。")}
         </p>
       )}
 
@@ -214,7 +217,7 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
 
 /** 每台主机的「自动采集」开关：本机连不上（没有代理、内网机器）时关掉，不再探测也不再告警。 */
 function CollectSwitch({ server }: { server: ServerT }) {
-  if (isWeb() || server.sshConfigured === false) return null;
+  if (!hostBridge() || server.sshConfigured === false) return null;
   const on = !isCollectionPaused(server);
   return (
     <button

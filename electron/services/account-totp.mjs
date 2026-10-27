@@ -1,4 +1,9 @@
-import { createHmac } from "node:crypto";
+import { hmac } from "@noble/hashes/hmac.js";
+import { sha1 } from "@noble/hashes/legacy.js";
+import { sha256, sha512 } from "@noble/hashes/sha2.js";
+
+// 纯 JavaScript 实现：桌面主进程与网页版浏览器（密钥库在浏览器里解密）共用同一份代码。
+const HASHES = { SHA1: sha1, SHA256: sha256, SHA512: sha512 };
 
 const PREFIX = "totp:";
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -37,7 +42,7 @@ function base32(value) {
     bytes.length > 128
   )
     throw fail("验证码密钥长度或 Base32 编码无效，支持 10–128 字节密钥。");
-  return { secret, bytes: Buffer.from(bytes) };
+  return { secret, bytes: Uint8Array.from(bytes) };
 }
 
 function normalizeSecret(value) {
@@ -219,14 +224,15 @@ export class AccountTotp {
         throw fail("系统时间无效，无法生成验证码。");
       const interval = record.period * 1000;
       const counter = Math.floor(stamp / interval);
-      const message = Buffer.alloc(8);
-      message.writeBigUInt64BE(BigInt(counter));
+      const message = new Uint8Array(8);
+      new DataView(message.buffer).setBigUint64(0, BigInt(counter));
       const bytes = base32(record.secret).bytes;
       let digest;
       try {
-        digest = createHmac(record.algorithm.toLowerCase(), bytes).update(message).digest();
+        digest = hmac(HASHES[record.algorithm], bytes, message);
         const offset = digest[digest.length - 1] & 15;
-        const number = (digest.readUInt32BE(offset) & 0x7fffffff) % 10 ** record.digits;
+        const view = new DataView(digest.buffer, digest.byteOffset, digest.byteLength);
+        const number = (view.getUint32(offset) & 0x7fffffff) % 10 ** record.digits;
         const expiresAt = (counter + 1) * interval;
         return {
           code: String(number).padStart(record.digits, "0"),

@@ -1,3 +1,4 @@
+import { isWeb } from "@/lib/web";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCw, Trash2, Lock, Plus, Check, Loader2, Copy } from "lucide-react";
 import { desktop } from "@/lib/desktop";
@@ -437,7 +438,15 @@ export function AiAccountsPanel({
       {!session && displayed.length > 0 && (
         <p className="mb-3 text-meta text-muted">{t("当前没有进行中的登录授权。")}</p>
       )}
-      {!api && <p className="text-meta text-muted">{t("网页登录需要桌面版")}</p>}
+      {!api && (
+        <p className="text-meta text-muted">
+          {isWeb()
+            ? t(
+                "AI 账号的网页登录要在桌面版弹出的独立登录窗口里完成，网页版无法代为登录；可以改用「用量记录」里的 API 用量来源。",
+              )
+            : t("网页登录需要桌面版")}
+        </p>
+      )}
       {session && (
         <div className="mb-3 space-y-2">
           <p role="status" className="flex items-center gap-2 text-meta text-muted">

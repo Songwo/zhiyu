@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
 import { commandResults } from "@/lib/command-results.mjs";
-import { NAV } from "./sidebar";
+import { NAV_ALL as NAV } from "./web-nav";
 import { usePresence } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
 import { KIND_LABEL } from "@/lib/status";

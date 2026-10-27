@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useState } from "react";
 import { Loader2, Plug, Save, RefreshCw, FilePlus2, Trash2 } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import type { ModelConfig, KnowledgeStatus } from "@/lib/agent-client";
 import { t } from "@/lib/i18n";
 import { Button } from "./ui/button";
@@ -12,7 +12,7 @@ export function AgentSettings({
 }: {
   onConfigChange?: (config: ModelConfig) => void;
 }) {
-  const api = desktop()?.agent;
+  const api = hostBridge()?.agent;
   const [config, setConfig] = useState<ModelConfig | null>(null);
   const [key, setKey] = useState("");
   const [clearKey, setClearKey] = useState(false);
@@ -92,7 +92,10 @@ export function AgentSettings({
         </p>
         <fieldset disabled={busy} className="mt-4 space-y-3">
           {config.hasApiKey && config.apiKeyReadable === false && (
-            <p role="alert" className="rounded-md border border-line bg-canvas px-3 py-2 text-meta text-crit">
+            <p
+              role="alert"
+              className="rounded-md border border-line bg-canvas px-3 py-2 text-meta text-crit"
+            >
               {t(
                 "已保存的 API Key 在当前环境无法解密（日常数据迁移后常见），请重新输入并保存，否则问答无法连接模型。",
               )}
@@ -105,10 +108,7 @@ export function AgentSettings({
               onValueChange={(value) => {
                 if (value && value !== "custom") patch({ baseUrl: value, model: "" });
               }}
-              options={[
-                ...PROVIDERS,
-                { value: "custom", label: t("自定义地址") },
-              ]}
+              options={[...PROVIDERS, { value: "custom", label: t("自定义地址") }]}
             />
           </Field>
           <Field label="API Base URL">

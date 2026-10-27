@@ -2889,4 +2889,106 @@ export const EN: Record<string, string> = {
   这个页面出错了: "This page ran into a problem",
   "其他页面不受影响，可以从侧栏切换。如果反复出现，请把下面的错误信息发到 GitHub Issues。":
     "Other pages still work — switch from the sidebar. If it keeps happening, please post the error below to GitHub Issues.",
+
+  // —— 自托管网页版：顶部导航、主机监控、服务器端功能 ——
+  "{0} 天 {1} 小时": "{0} d {1} h",
+  "{0} 小时 {1} 分钟": "{0} h {1} min",
+  "{0} 核": "{0} cores",
+  "{0}（Docker 部署时是挂载的 ./zhiyu-data）":
+    "{0} (the mounted ./zhiyu-data when deployed with Docker)",
+  "{0}，最近 {1} 个采样点": "{0}, last {1} samples",
+  "5 分钟 {0} · 15 分钟 {1} · {2} 核": "5 min {0} · 15 min {1} · {2} cores",
+  "AI 账号的网页登录要在桌面版弹出的独立登录窗口里完成，网页版无法代为登录；可以改用「用量记录」里的 API 用量来源。":
+    "AI account sign-in happens in a separate window opened by the desktop app, so the web version can't do it for you. Use an API usage source under Usage instead.",
+  "CPU 使用率": "CPU usage",
+  "CSV 迁移要读写这台电脑上的文件并弹出系统确认框，只在桌面版提供。网页版可以用桌面版迁移后，通过「设置 → 数据」的加密备份恢复过来。":
+    "CSV migration reads and writes files on this computer behind a system confirmation dialog, so it's desktop only. Migrate in the desktop app, then restore the encrypted backup here under Settings → Data.",
+  "I/O 等待 {0} · 被宿主占用 {1}": "I/O wait {0} · steal {1}",
+  "上限 {0} 核": "limit {0} cores",
+  不限: "Unlimited",
+  两次输入的新登录密码不一致: "The two new sign-in passwords don't match",
+  主机监控: "Host monitor",
+  "交换 {0}": "swap {0}",
+  "上传 {0}": "up {0}",
+  "以下是服务器资料目录里各文件的大小。网页版没有本机缓存，界面资源由浏览器自己缓存，清除浏览器的站点数据即可。":
+    "These are the file sizes in the server's data folder. The web version keeps no local cache; the browser caches page assets itself — clear the site data in your browser to reset them.",
+  全部: "All",
+  全部页面: "All pages",
+  内存使用率: "Memory usage",
+  "剩余 {0}": "{0} free",
+  占用内存: "Memory",
+  占用最多的进程: "Top processes",
+  "合计 ↓ {0} · ↑ {1}": "Total ↓ {0} · ↑ {1}",
+  回到总览: "Back to overview",
+  图例: "Legend",
+  "在 VPS 的知屿目录里运行以下命令升级，资料目录不受影响：":
+    "To upgrade, run this in the Zhiyu folder on your VPS. Your data folder is not affected:",
+  "容器 CPU": "Container CPU",
+  "容器 CPU 以单核为 100%。没有设置上限时，容器最多可以用满整台机器。":
+    "Container CPU counts one core as 100%. Without a limit, the container can use the whole machine.",
+  容器内存: "Container memory",
+  "容器内看不到，挂载 /etc/hostname 后显示":
+    "Not visible from the container; mount /etc/hostname to show it",
+  容器配额: "Container limits",
+  已运行: "Uptime",
+  "已运行 {0} · {1} 核": "Up {0} · {1} cores",
+  开机以来累计: "Since boot",
+  当前登录密码: "Current sign-in password",
+  "当前登录：{0} · 服务端版本 {1}": "Signed in as {0} · server version {1}",
+  "挂载 /etc/os-release 后显示": "Mount /etc/os-release to show it",
+  排序: "Sort",
+  "插件通过这台电脑上的本机端口与桌面版配对；网页版运行在远端服务器上，插件连不到它。需要在登录页自动填写账号时，请在这台电脑安装桌面版。":
+    "The extension pairs with the desktop app through a local port on this computer. The web version runs on a remote server the extension can't reach. To fill accounts on sign-in pages, install the desktop app on this computer.",
+  "新建资产（Ctrl N）": "New asset (Ctrl N)",
+  新登录密码: "New sign-in password",
+  更多: "More",
+  本机: "This host",
+  本机状态: "Host status",
+  "正在收集数据，几秒后出现曲线…": "Collecting data — the chart appears in a few seconds…",
+  "正在读取…": "Loading…",
+  "正在读取主机状态…": "Reading host status…",
+  "没有找到该主机的凭据，请先在密钥库中保存":
+    "No credential for this host. Save one in the vault first",
+  "没有读到网卡。": "No network interfaces found.",
+  "浏览器预览没有加密密钥库。": "The browser preview has no encrypted vault.",
+  "登录密码保护网页入口；密钥库主密码只在浏览器里使用，两者互不影响。":
+    "The sign-in password protects the web entrance; the vault master password is only used in your browser. They are independent.",
+  "登录密码已更新，其他设备需要重新登录":
+    "Sign-in password updated. Other devices need to sign in again",
+  知屿服务: "Zhiyu service",
+  知屿用户: "Zhiyu user",
+  "知屿直接运行在这台主机上，看到的是整台机器的数据。":
+    "Zhiyu runs directly on this host, so these figures cover the whole machine.",
+  "知屿运行在 {0} 容器里，已挂载宿主机 /proc：CPU、内存、负载、网络与进程都是整台 VPS 的；磁盘为资料目录所在的分区。":
+    "Zhiyu runs in a {0} container with the host's /proc mounted: CPU, memory, load, network and processes cover the whole VPS; disk is the partition holding the data folder.",
+  "知屿运行在 {0} 容器里，没有挂载宿主机 /proc：CPU、内存、负载与运行时长来自宿主机内核，但网络与进程只含容器自己。在 docker-compose.yml 加上 /proc:/host/proc:ro 后可看到整台 VPS。":
+    "Zhiyu runs in a {0} container without the host's /proc: CPU, memory, load and uptime come from the host kernel, but network and processes only cover the container. Add /proc:/host/proc:ro in docker-compose.yml to see the whole VPS.",
+  "知识文档不能超过 500 KB。": "Knowledge documents can't exceed 500 KB.",
+  确认新登录密码: "Confirm new sign-in password",
+  磁盘读写: "Disk I/O",
+  网卡: "Network interfaces",
+  网络吞吐: "Network throughput",
+  "网页版所在的服务器连不上这台主机？关掉右下角的「采集」，不再连接也不再告警。":
+    "Can't reach this host from the server running the web version? Turn off “Collect” at the bottom right to stop connecting and alerting.",
+  网页版没有本机缓存需要清理: "The web version has no local cache to clear",
+  "网页版由服务器发起 SSH 连接，不能使用 SSH agent，请改用密码或私钥。":
+    "In the web version the server opens the SSH connection, so SSH agent isn't available. Use a password or private key.",
+  网页登录账号: "Web sign-in account",
+  自托管网页版: "Self-hosted web",
+  "解锁后才能用保存的凭据连接主机。": "Unlock to connect with the saved credential.",
+  "请先在邮箱详情保存用户名和密码 / 授权码":
+    "Save the username and password / app password in the mailbox details first",
+  "读 {0} · 写 {1}": "Read {0} · write {1}",
+  "读不到进程列表。": "Couldn't read the process list.",
+  "读取主机状态失败：{0}": "Couldn't read host status: {0}",
+  账号与设置: "Account and settings",
+  "这台服务器的状态与你的全部资产，在一页里看完。":
+    "This server's health and all your assets, on one page.",
+  "这里只有容器内的进程。": "Only processes inside the container are shown.",
+  进程: "Process",
+  "选择一台主机，由网页版所在的服务器发起真实 SSH 会话。凭据在浏览器里解密后随连接发送，服务器不保存。":
+    "Pick a host and the server running the web version opens a real SSH session. The credential is decrypted in your browser and sent with the connection; the server doesn't store it.",
+  "邮箱的 OAuth 登录需要桌面版弹出的授权窗口，网页版请改用授权码登录。":
+    "Mailbox OAuth sign-in needs the authorization window opened by the desktop app. In the web version, sign in with an app password.",
+  "附件总大小不能超过 8 MiB": "Attachments can't exceed 8 MiB in total",
 };

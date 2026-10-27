@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useEffect, useState } from "react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { desktop } from "@/lib/desktop";
 import { t, intlLocale } from "@/lib/i18n";
 import type { ProbeCheckResult } from "@/lib/integrations";
 import { Button } from "../ui/button";
@@ -27,7 +27,7 @@ export default function CheckHistory({
   useEffect(() => {
     let cancelled = false;
     setBusy(true);
-    void desktop()!
+    void hostBridge()!
       .integrations.probeCheckHistory(connectionId, checkId, range)
       .then((rows) => {
         if (!cancelled) {

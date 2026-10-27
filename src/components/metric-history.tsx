@@ -1,8 +1,9 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "./ui/button";
-import { desktop, type MetricSample } from "@/lib/desktop";
+import { type MetricSample } from "@/lib/desktop";
 import { t, intlLocale } from "@/lib/i18n";
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -16,7 +17,7 @@ export function MetricHistory({ serverId }: { serverId: string }) {
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
-    const bridge = desktop();
+    const bridge = hostBridge();
     if (!bridge) return;
     let cancelled = false;
     let request = 0;
@@ -72,7 +73,7 @@ export function MetricHistory({ serverId }: { serverId: string }) {
             size="icon-sm"
             aria-label={t("刷新")}
             title={t("刷新")}
-            disabled={busy || !desktop()}
+            disabled={busy || !hostBridge()}
             onClick={() => setRevision((n) => n + 1)}
           >
             <RefreshCw className={`size-4 ${busy ? "animate-spin" : ""}`} />

@@ -1,6 +1,6 @@
+import { hostBridge } from "@/lib/web-bridge";
 import { useState } from "react";
 import { History, Monitor, RefreshCw, ShieldCheck } from "lucide-react";
-import { desktop } from "@/lib/desktop";
 import { intlLocale, t } from "@/lib/i18n";
 import type { LocalUsageStatus } from "@/lib/usage";
 import { Button } from "./ui/button";
@@ -26,7 +26,7 @@ export function LocalUsagePanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function run(enabled?: boolean) {
-    const api = desktop()?.usage;
+    const api = hostBridge()?.usage;
     if (!api) return;
     setBusy(true);
     setError("");
