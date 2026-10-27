@@ -2910,6 +2910,10 @@ export const EN: Record<string, string> = {
   主机监控: "Host monitor",
   "交换 {0}": "swap {0}",
   "上传 {0}": "up {0}",
+  知屿已更新: "Zhiyu has been updated",
+  刷新页面: "Reload page",
+  "这个页面的文件已经换成新版本，刷新后即可继续使用。":
+    "This page's files were replaced by a new version. Reload to continue.",
   "以下是服务器资料目录里各文件的大小。网页版没有本机缓存，界面资源由浏览器自己缓存，清除浏览器的站点数据即可。":
     "These are the file sizes in the server's data folder. The web version keeps no local cache; the browser caches page assets itself — clear the site data in your browser to reset them.",
   全部: "All",

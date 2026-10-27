@@ -42,7 +42,7 @@ try {
   result.noDemo = !(await a.getByText("hk-api-01").count());
   await a
     .getByRole("navigation", { name: "主导航" })
-    .getByRole("button", { name: "费用与续费" })
+    .getByRole("button", { name: "续费", exact: true })
     .click();
   await a.getByRole("button", { name: "新建提醒" }).click();
   await a.getByRole("textbox", { name: "提醒什么" }).fill("宽带续费");
@@ -68,7 +68,7 @@ try {
   await b.locator('[data-app-ready="true"]').waitFor({ timeout: 30000 });
   await b
     .getByRole("navigation", { name: "主导航" })
-    .getByRole("button", { name: "费用与续费" })
+    .getByRole("button", { name: "续费", exact: true })
     .click();
   await b.getByRole("article", { name: "提醒 宽带续费" }).waitFor();
   result.syncedToOffice = true;
@@ -81,9 +81,30 @@ try {
   result.homeSeesCompletion =
     (await a.getByRole("article", { name: "提醒 宽带续费" }).count()) === 0;
 
-  // 网页版没有 SSH 终端，密钥库可用
+  // 网页版的顶部导航：主机监控能读到服务器状态（非 Linux 时显示原因）
   await b.goto(`${base}/`);
   await b.locator('[data-app-ready="true"]').waitFor();
+  result.sidebarGone = (await b.locator(".app-sidebar").count()) === 0;
+  await b
+    .getByRole("navigation", { name: "主导航" })
+    .getByRole("button", { name: "主机监控", exact: true })
+    .click();
+  await b.locator(".host-page").waitFor();
+  result.hostPage = await b.locator(".host-page").innerText();
+  await b.screenshot({ path: "screenshots/web-host.png" });
+
+  // 升级后旧页面取不到已删除的页面文件：自动刷新一次载入新版本，而不是停在错误页
+  await b.route(/\/assets\/renewals-workspace-[^/]+\.js$/, (route) => route.abort(), {
+    times: 1,
+  });
+  const reloaded = b.waitForEvent("load");
+  await b
+    .getByRole("navigation", { name: "主导航" })
+    .getByRole("button", { name: "续费", exact: true })
+    .click();
+  await reloaded;
+  await b.locator('[data-app-ready="true"]').waitFor();
+  result.reloadedAfterMissingChunk = true;
 
   // 设置 → 提醒推送：服务器保存渠道，浏览器只看到「已保存」
   await b.keyboard.press("Control+,");
@@ -98,8 +119,8 @@ try {
   const pushConfig = await (await b.request.get(`${base}/api/web/push`)).json();
   result.pushSaved = pushConfig.enabled && pushConfig.hasToken && !("token" in pushConfig);
   await b.keyboard.press("Escape");
-  await b.getByRole("button", { name: "更多操作" }).click();
-  await b.getByText("退出登录").click();
+  await b.getByRole("button", { name: "账号与设置" }).click();
+  await b.getByRole("menuitem", { name: "退出登录" }).click();
   await b.waitForURL(/\/login$/);
   result.loggedOut = true;
   result.afterLogoutApi = (await b.request.get(`${base}/api/web/store`)).status();
@@ -117,4 +138,7 @@ assert.equal(result.loggedOut, true);
 assert.equal(result.pushSaved, true);
 assert.equal(result.homeSeesCompletion, true);
 assert.equal(result.afterLogoutApi, 401);
+assert.equal(result.sidebarGone, true);
+assert.match(result.hostPage, /CPU|主机监控需要 Linux/);
+assert.equal(result.reloadedAfterMissingChunk, true);
 assert.deepEqual(errors, []);
