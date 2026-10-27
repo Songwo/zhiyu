@@ -13,6 +13,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.16.2",
+    date: "2026-10-27",
+    title: "修复桌面版启动报错",
+    changes: [
+      "修复 1.16.0 与 1.16.1 安装后启动即弹出「A JavaScript error occurred in the main process」、提示找不到 @noble/hashes 的问题：安装包漏装了二次验证码用到的依赖。请直接下载 1.16.2 安装包覆盖安装，资料不受影响。",
+      "打包前会核对主进程实际用到的每个依赖，漏装时直接停止打包，不会再发出缺依赖的安装包。",
+    ],
+  },
+  {
     version: "1.16.1",
     date: "2026-10-27",
     title: "网页版升级后旧页面自动恢复",
