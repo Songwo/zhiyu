@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 要构建镜像的正式版标签（例如 v1.16.0）
+        description: 要构建镜像的正式版标签（例如 v1.16.1）
         required: true
         type: string
 permissions:
