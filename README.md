@@ -330,3 +330,7 @@ npm run desktop:dist -- --win --x64 --publish never
 SSH 指标采集面向提供 `/proc` 的 Linux 主机。WHOIS 可能因注册局限制无法返回到期日。AI 订阅 OAuth 使用供应商公开客户端及兼容接口，可能因供应商调整失效；账号连接失败会显示错误，不会读取其他应用已有登录数据补救。Gemini 额度查询要求账号已经开通 Code Assist 并能返回项目。服务商订阅结束日期目前没有统一可查询来源，软件不会据令牌有效期推算订阅到期。
 
 问题反馈请提交 [GitHub Issue](https://github.com/Songwo/zhiyu/issues)，包含版本、操作步骤与去除敏感信息后的错误。不要提交 API Key、Token、主密码或完整个人数据文件。
+
+## Star 趋势
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Songwo/zhiyu&type=Date)](https://star-history.com/#Songwo/zhiyu&Date)
