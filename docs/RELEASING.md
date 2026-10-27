@@ -44,7 +44,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-打包脚本将主进程及编译后的界面放入系统临时目录中的独立暂存区，使用仓库锁文件版本安装 `ssh2`、`electron-updater`、`imapflow`、`openai`、`minisearch`、`nodemailer`、`mailparser`、`html-to-text`、`sanitize-html`、`unified`、`remark-parse`、`remark-gfm`、`js-yaml` 及其运行依赖，再通过 electron-builder 内置的目录遍历器收集依赖，避免将网页构建工具装进桌面包。暂存区先解析真实路径，npm 子进程只通过工作目录定位项目，避免 macOS 符号链接路径与 `--prefix` 解析不一致。排除可选原生加速模块，SSH 使用库自带的 JavaScript 实现；无需 Visual Studio 编译环境。复用本机已安装的同版本 Electron，输出到 `release/v版本号/`；构建结束清理暂存区。
+打包脚本将主进程及编译后的界面放入系统临时目录中的独立暂存区，使用仓库锁文件版本安装 `ssh2`、`electron-updater`、`imapflow`、`openai`、`minisearch`、`nodemailer`、`mailparser`、`html-to-text`、`sanitize-html`、`unified`、`remark-parse`、`remark-gfm`、`js-yaml`、`@noble/hashes` 及其运行依赖（清单在 `scripts/package-stage.mjs`，主进程新引用的第三方包没有加入清单时打包会直接报错），再通过 electron-builder 内置的目录遍历器收集依赖，避免将网页构建工具装进桌面包。暂存区先解析真实路径，npm 子进程只通过工作目录定位项目，避免 macOS 符号链接路径与 `--prefix` 解析不一致。排除可选原生加速模块，SSH 使用库自带的 JavaScript 实现；无需 Visual Studio 编译环境。复用本机已安装的同版本 Electron，输出到 `release/v版本号/`；构建结束清理暂存区。
 
 安装包生成后检查版本和包内容，运行 `node scripts/release-smoke.mjs release/v1.16.1/win-unpacked/Zhiyu.exe` 验证打包程序，计算 SHA256，补齐 Release 说明中的验证记录。该脚本使用独立临时数据目录，不修改日常资料。发布时显式选择源码、文档和必要资源，不提交临时截图、日志、用户数据或运行目录。将发布标签指向已经验证的提交，再上传 `Zhiyu-1.16.1-setup.exe`、便携版 ZIP、浏览器扩展包与 `SHA256SUMS.txt`，以及下文要求的应用内更新附件。
 

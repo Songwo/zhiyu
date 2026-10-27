@@ -2,33 +2,29 @@ import { cp, readFile, writeFile, rm, realpath } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  DESKTOP_RUNTIME_DEPENDENCIES,
   createPackageStage,
   installPackageDependencies,
+  mainProcessPackages,
   packageEnvironment,
   runPackageCommand,
 } from "./package-stage.mjs";
 
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), ".."));
+// 漏装的包只会在安装后的程序启动时报错（1.16.1 的 @noble/hashes），所以打包前先核对。
+const missing = mainProcessPackages(root).filter(
+  (name) => !DESKTOP_RUNTIME_DEPENDENCIES.includes(name),
+);
+if (missing.length)
+  throw new Error(
+    `主进程引用了未加入打包清单的依赖：${missing.join("、")}，请加到 scripts/package-stage.mjs`,
+  );
 const stage = await createPackageStage();
 const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const lock = JSON.parse(await readFile(join(root, "package-lock.json"), "utf8"));
 // React 界面已经被 Vite 打包，暂存区只安装主进程运行依赖及其传递依赖。
 const dependencies = Object.fromEntries(
-  [
-    "ssh2",
-    "electron-updater",
-    "imapflow",
-    "openai",
-    "minisearch",
-    "nodemailer",
-    "mailparser",
-    "html-to-text",
-    "sanitize-html",
-    "unified",
-    "remark-parse",
-    "remark-gfm",
-    "js-yaml",
-  ].map((name) => [name, lock.packages[`node_modules/${name}`].version]),
+  DESKTOP_RUNTIME_DEPENDENCIES.map((name) => [name, lock.packages[`node_modules/${name}`].version]),
 );
 const appManifest = {
   name: manifest.name,

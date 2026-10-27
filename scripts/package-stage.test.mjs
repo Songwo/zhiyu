@@ -12,9 +12,13 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
+  DESKTOP_RUNTIME_DEPENDENCIES,
   createPackageStage,
   installPackageDependencies,
+  mainProcessPackages,
   packageEnvironment,
 } from "./package-stage.mjs";
 
@@ -87,4 +91,18 @@ test("暂存锁中版本漂移时在 npm ci 前中止", async (t) => {
     /版本不一致：runtime/,
   );
   await assert.rejects(access(join(stage, "unexpected-ci")));
+});
+
+test("桌面安装包的依赖清单覆盖主进程实际引用的每个第三方包", () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const used = mainProcessPackages(root);
+  assert.ok(used.includes("ssh2"), "应能扫描到主进程的依赖");
+  assert.ok(!used.includes("mdast"), "JSDoc 里的类型引用不算运行时依赖");
+  assert.deepEqual(
+    used.filter((name) => !DESKTOP_RUNTIME_DEPENDENCIES.includes(name)),
+    [],
+  );
+  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  for (const name of DESKTOP_RUNTIME_DEPENDENCIES)
+    assert.ok(manifest.dependencies[name], `${name} 必须是生产依赖`);
 });

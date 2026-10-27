@@ -1,7 +1,59 @@
 import { mkdtemp, readFile, realpath } from "node:fs/promises";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+
+/**
+ * 桌面安装包里主进程需要的第三方包。界面已被 Vite 打包，暂存区只安装这些包及其传递依赖，
+ * 所以主进程新引用一个包时必须加在这里；desktop:dist 打包前会用 mainProcessPackages 核对。
+ */
+export const DESKTOP_RUNTIME_DEPENDENCIES = [
+  "ssh2",
+  "electron-updater",
+  "imapflow",
+  "openai",
+  "minisearch",
+  "nodemailer",
+  "mailparser",
+  "html-to-text",
+  "sanitize-html",
+  "unified",
+  "remark-parse",
+  "remark-gfm",
+  "js-yaml",
+  "@noble/hashes",
+];
+
+/** 从主进程入口出发，收集代码里实际引用（静态、动态 import 与 require）的第三方包名。 */
+export function mainProcessPackages(root) {
+  const seen = new Set();
+  const packages = new Set();
+  const visit = (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    // 去掉注释，JSDoc 里的 import("mdast") 之类只是类型，不在运行时加载。
+    const code = readFileSync(file, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+    const pattern =
+      /(?:^|[;\s])(?:import|export)\s+(?!type)(?:[^'"]*?\sfrom\s*)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)|require\(\s*["']([^"']+)["']\s*\)/g;
+    for (const match of code.matchAll(pattern)) {
+      const spec = match[1] ?? match[2] ?? match[3];
+      if (spec.startsWith(".")) {
+        const target = resolve(dirname(file), spec);
+        if (existsSync(target) && statSync(target).isFile()) visit(target);
+      } else if (!spec.startsWith("node:") && spec !== "electron") {
+        packages.add(
+          spec.startsWith("@") ? spec.split("/").slice(0, 2).join("/") : spec.split("/")[0],
+        );
+      }
+    }
+  };
+  visit(join(root, "electron/main.mjs"));
+  visit(join(root, "electron/preload.cjs"));
+  return [...packages].sort();
+}
 
 export async function createPackageStage(parent = tmpdir()) {
   // macOS 的 /var、/tmp 可能指向 /private。npm 和 builder 必须使用同一真实路径。
