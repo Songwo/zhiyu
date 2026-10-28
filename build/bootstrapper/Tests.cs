@@ -34,6 +34,9 @@ internal static class BootstrapperTests
         try {
             Check(Engine.ValidPath(@"D:\Apps\Zhiyu"), "标准安装路径");
             Check(Engine.ValidPath(@"E:\My Apps\知屿"), "含空格与中文的路径");
+            Check(Engine.VersionMatches("1.17.2.0", "1.17.2"), "接受 Windows PE 四段产品版本");
+            Check(Engine.VersionMatches("1.17.2", "1.17.2"), "接受三段产品版本");
+            Check(!Engine.VersionMatches("1.17.1.0", "1.17.2") && !Engine.VersionMatches("1.17.2.1", "1.17.2") && !Engine.VersionMatches("bad", "1.17.2"), "拒绝其他版本和错误版本格式");
             var absentDrive = Enumerable.Range('A', 26).Select(c => ((char)c) + @":\").FirstOrDefault(d => !Directory.Exists(d));
             if (absentDrive != null) Check(!Engine.Writable(Path.Combine(absentDrive, "Zhiyu")), "磁盘断开时立即返回不可写，不循环查找父目录");
             foreach (var invalid in new[] { "", @"D:\", @"relative", @"D:\Apps\..", @"D:\Apps\CON", "D:\\bad\" /S", @"D:\bad?", @"D:\bad\", "D:\\bad\npath" }) Check(!Engine.ValidPath(invalid), "拒绝非法路径 " + invalid.Replace("\n", "\\n"));
@@ -100,7 +103,9 @@ internal static class BootstrapperTests
         }
         try {
             Check(File.Exists(Path.Combine(path, "Zhiyu.exe")), "真实 NSIS 写入指定目录");
-            Check(FileVersionInfo.GetVersionInfo(Path.Combine(path, "Zhiyu.exe")).ProductVersion.Split('+')[0] == payload.Version, "实际安装版本");
+            var actualVersion = FileVersionInfo.GetVersionInfo(Path.Combine(path, "Zhiyu.exe")).ProductVersion;
+            Console.WriteLine("Installed ProductVersion: " + actualVersion);
+            Check(Engine.VersionMatches(actualVersion, payload.Version), "实际安装版本");
             using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run")) Check(key != null && (string)key.GetValue("Zhiyu") == "\"" + Path.Combine(path, "Zhiyu.exe") + "\"", "实际安装写入自启偏好");
             using (var child = Process.Start(new ProcessStartInfo(setup, Engine.Arguments(path, false, false, true).Replace(" /ZH_STARTUP=1", "")) { UseShellExecute = false, CreateNoWindow = true })) {
                 if (!child.WaitForExit(120000)) throw new Exception("覆盖升级超时。");

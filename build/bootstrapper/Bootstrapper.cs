@@ -41,6 +41,14 @@ internal sealed class Payload
 
 internal static class Engine
 {
+    internal static bool VersionMatches(string productVersion, string expectedVersion)
+    {
+        // Windows PE 的 ProductVersion 是四段，例如 1.17.2.0；发行版本是三段。
+        Version actual, expected;
+        return Version.TryParse(productVersion, out actual) && Version.TryParse(expectedVersion, out expected)
+            && actual.Major == expected.Major && actual.Minor == expected.Minor && actual.Build == expected.Build
+            && (actual.Revision == -1 || actual.Revision == 0);
+    }
     internal static bool ValidPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path) || !Regex.IsMatch(path, @"^[a-zA-Z]:\\[^<>:""/|?*]+$") || path.Any(c => c < 32)) return false;
@@ -231,7 +239,7 @@ internal sealed class Installer
                     }
                 }
                 var app = Path.Combine(selectedPath, "Zhiyu.exe");
-                if (!File.Exists(app) || FileVersionInfo.GetVersionInfo(app).ProductVersion.Split('+')[0] != payload.Version) throw new IOException("没有找到本版本的已安装程序，请使用离线安装包检查安装结果。");
+                if (!File.Exists(app) || !Engine.VersionMatches(FileVersionInfo.GetVersionInfo(app).ProductVersion, payload.Version)) throw new IOException("没有找到本版本的已安装程序，请使用离线安装包检查安装结果。");
             }
             complete = true; Show("Done");
             Text("Summary", "安装位置：" + selectedPath + "\n安装范围：" + (selectedAll ? "所有用户" : "仅当前用户") + "\n桌面快捷方式：" + (selectedDesktop ? "创建" : "不创建") + "\n开机自启：" + (selectedStartup ? "开启" : "关闭"));
