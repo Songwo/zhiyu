@@ -56,7 +56,15 @@ npm run desktop:dist -- --win --x64 --publish never
 
 首次公开仓库时检查可达历史、截图和附件，不只扫描当前目录。确认源码许可证及第三方声明，排除用户数据、真实邮箱、Token、回调链接及个人浏览器截图。历史中已存在的信息不能靠删除当前文件解决，历史处理和仓库可见性变化应由维护者明确决定。
 
-当前发行未配置 Authenticode 证书。需要签名发行时，在维护者受保护的构建环境中配置 electron-builder 签名参数；证书与密码不得写入仓库。
+当前发行未配置 Authenticode 证书。需要签名发行时，按 [Windows 签名说明](WINDOWS-SIGNING.md) 在受保护环境配置证书；证书与密码不得写入仓库。
+
+## 1.17.2 原生在线安装器
+
+离线包完成并签名后运行 `npm run desktop:online`，编译并测试 WPF 原生引导器。引导器中固定同一版本离线包的官方地址、长度与 SHA256；离线包被重新签名或重新构建时必须重新生成引导器，最后才计算 SHA256SUMS。新增发布附件 `Zhiyu-版本-online-setup.exe`，不要用它替换 `latest.yml` 指向的离线包。
+
+运行 `node scripts/installer-startup-integration.mjs`，使用隔离的 HKCU 测试键验证实际 NSIS 宏，不触碰日常自启项。Windows CI 额外设置 `ZHIYU_INSTALLER_REAL_TEST=1`，在一次性 runner 上试装与卸载实际包，检查目录、版本、自启项与卸载清理；此开关禁止在日常电脑执行。
+
+下载页同时提供在线、离线和便携版，旧 Release 没有在线附件时不伪造下载地址。GUI 预览、真实下载与真实安装检查分别记录；Windows 管理员授权确认和第三方安全软件提示不能由 UI 单元检查替代。
 
 ## 1.4.0 应用内更新验证
 

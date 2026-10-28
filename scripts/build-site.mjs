@@ -31,6 +31,9 @@ export function releaseDetails(release) {
     ? "Zhiyu"
     : "Nanpad";
   const installer = asset(`${brand}-${version}-setup.exe`);
+  const online = release.assets?.some((item) => item.name === `Zhiyu-${version}-online-setup.exe`)
+    ? asset(`Zhiyu-${version}-online-setup.exe`)
+    : null;
   const extension = asset(`${brand}-${version}-browser-extension.zip`);
   const checksum = asset("SHA256SUMS.txt");
   // 便携版自 1.7.4 起提供；旧版本没有时退回到 Release 页面。
@@ -59,6 +62,10 @@ export function releaseDetails(release) {
     RELEASE_URL: releaseUrl,
     INSTALLER_URL: installer.browser_download_url,
     INSTALLER_SIZE: `${Math.round(installer.size / 1_000_000)} MB`,
+    ONLINE_INSTALLER_URL: online?.browser_download_url ?? releaseUrl,
+    ONLINE_INSTALLER_NOTE: online
+      ? `${Math.ceil(online.size / 1024)} KB · 原生界面，联网下载完整程序`
+      : "此版本尚未提供，请先使用离线安装包",
     EXTENSION_URL: extension.browser_download_url,
     CHECKSUM_URL: checksum.browser_download_url,
     PORTABLE_URL: portable?.browser_download_url ?? releaseUrl,

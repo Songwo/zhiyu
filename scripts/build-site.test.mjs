@@ -34,6 +34,26 @@ test("统一品牌后的下载页支持新安装包名，同时兼容历史附�
   assert.match(releaseDetails(release).INSTALLER_URL, /Zhiyu-1\.6\.0-setup\.exe$/);
 });
 
+test("在线安装器采用真实附件大小，拒绝异常下载地址并兼容旧版", () => {
+  const release = publishedRelease("1.17.2");
+  const name = "Zhiyu-1.17.2-online-setup.exe";
+  const entry = {
+    name,
+    size: 70144,
+    state: "uploaded",
+    browser_download_url: `https://github.com/Songwo/zhiyu/releases/download/v1.17.2/${name}`,
+  };
+  release.assets.push(entry);
+  assert.equal(releaseDetails(release).ONLINE_INSTALLER_URL, entry.browser_download_url);
+  assert.match(releaseDetails(release).ONLINE_INSTALLER_NOTE, /69 KB/);
+  entry.browser_download_url = "https://example.invalid/setup.exe";
+  assert.throws(() => releaseDetails(release), /URL/);
+  assert.equal(
+    releaseDetails(publishedRelease()).ONLINE_INSTALLER_URL,
+    publishedRelease().html_url,
+  );
+});
+
 test("宣传页以已发布版本为准，同步全部下载入口与更新摘要", () => {
   const details = releaseDetails(publishedRelease("1.2.4"));
   assert.equal(details.VERSION, "1.2.4");
@@ -162,6 +182,8 @@ test("同步协议动画：分镜自洽，动画 SVG 与分镜同步，页面模
       RELEASE_URL: "u",
       INSTALLER_URL: "u",
       INSTALLER_SIZE: "1 MB",
+      ONLINE_INSTALLER_URL: "u",
+      ONLINE_INSTALLER_NOTE: "69 KB",
       EXTENSION_URL: "u",
       CHECKSUM_URL: "u",
       PORTABLE_URL: "u",

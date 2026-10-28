@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>知屿 · 安装体验预览</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./preview.mjs"></script>
+  </head>
+  <body>
+    <header class="review-bar">
+      <div><strong>知屿安装体验</strong><span>交互设计预览 · 不下载、不修改系统</span></div>
+      <label
+        >体验场景
+        <select id="scenario">
+          <option value="normal">正常安装</option>
+          <option value="no-drive">没有 D 盘</option>
+          <option value="offline">下载中断</option>
+        </select></label
+      >
+    </header>
+    <main>
+      <div class="window" aria-label="知屿安装程序预览">
+        <header class="titlebar">
+          <div><img src="/brand/zhiyu.svg" alt="" />知屿安装程序</div>
+          <button class="icon-button" id="close" aria-label="退出安装预览">×</button>
+        </header>
+        <div class="layout">
+          <aside class="story">
+            <div class="brand">
+              <img src="/brand/zhiyu.svg" alt="知屿标志" />
+              <div>知屿<span>Zhiyu</span></div>
+            </div>
+            <div class="story-copy">
+              <p class="eyebrow">给数字生活，一处安放。</p>
+              <h1>从这里，<br />连接你的世界。</h1>
+              <p>文档、账号与数字资产，<br />在你的工作空间相遇。</p>
+            </div>
+            <div class="island" aria-hidden="true">
+              <div class="orbit orbit-one"></div>
+              <div class="orbit orbit-two"></div>
+              <div class="satellite document"><span class="paper-lines"></span><b>文档</b></div>
+              <div class="satellite account"><span class="person"></span><b>账号</b></div>
+              <div class="satellite server"><span class="server-lines"></span><b>主机</b></div>
+              <div class="home-island"><img src="/brand/zhiyu.svg" alt="" /></div>
+              <div class="island-caption">让零散的日常，慢慢有序。</div>
+            </div>
+            <div class="story-footer">
+              <span class="local-dot"></span> 资料由你掌握 <span>开源 · 本地优先</span>
+            </div>
+          </aside>
+          <section class="content">
+            <nav class="steps" aria-label="安装步骤">
+              <span data-step="setup" aria-current="step"><i>1</i>安装偏好</span
+              ><span data-step="install"><i>2</i>准备空间</span
+              ><span data-step="done"><i>3</i>开启知屿</span>
+            </nav>
+            <div id="setup" class="page">
+              <div class="page-heading">
+                <h2>为知屿选一个位置</h2>
+                <p>几项简单设置，然后就可以开始了。</p>
+              </div>
+              <label class="field-label" for="directory">安装目录</label>
+              <div class="directory-row">
+                <input
+                  id="directory"
+                  value="D:\Apps\Zhiyu"
+                  spellcheck="false"
+                  aria-describedby="path-hint path-error"
+                /><button class="secondary" id="browse">更改</button>
+              </div>
+              <p class="hint" id="path-hint">优先使用 D 盘，程序资料与安装目录分别保存。</p>
+              <p class="error" id="path-error" role="alert" hidden></p>
+              <fieldset class="scope">
+                <legend>安装范围</legend>
+                <label><input type="radio" name="scope" value="user" checked />仅当前用户</label
+                ><label><input type="radio" name="scope" value="all" />这台电脑的所有用户</label>
+              </fieldset>
+              <div class="preferences">
+                <label
+                  ><input type="checkbox" id="desktop" checked /><span
+                    >创建桌面快捷方式<small>在桌面快速找到知屿</small></span
+                  ></label
+                ><label
+                  ><input type="checkbox" id="startup" /><span
+                    >登录 Windows 后启动知屿<small>按需开启，随时可以关闭</small></span
+                  ></label
+                >
+              </div>
+              <div class="permission">
+                <span class="shield">✓</span>
+                <p id="permission-text">
+                  仅为当前用户安装。正式安装时将检测目录写入权限，必要时再申请管理员授权。
+                </p>
+              </div>
+              <footer class="actions">
+                <button class="primary" id="start">开始安装 <span>→</span></button>
+                <p>
+                  继续即表示接受 <a href="/LICENSE" target="_blank" rel="noopener">MIT 开源许可</a>
+                </p>
+              </footer>
+            </div>
+            <div id="install" class="page" hidden>
+              <div class="page-heading">
+                <h2 id="install-heading">正在准备你的知屿</h2>
+                <p id="install-subtitle">把需要的东西放好，很快就能见面。</p>
+              </div>
+              <div class="progress-hero">
+                <span id="progress-number">0</span><span>%</span>
+                <div id="stage-label">下载程序</div>
+              </div>
+              <div
+                class="progress-track"
+                role="progressbar"
+                aria-label="安装进度"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+              >
+                <div id="progress-fill"></div>
+              </div>
+              <div class="progress-meta">
+                <span id="progress-detail">连接下载源</span><span>演示进度</span>
+              </div>
+              <ol class="tasks">
+                <li id="task-download">
+                  <i></i>
+                  <div>下载程序<small>获取完整安装文件</small></div>
+                  <span>等待中</span>
+                </li>
+                <li id="task-verify">
+                  <i></i>
+                  <div>校验文件<small>检查安装文件完整性</small></div>
+                  <span>等待中</span>
+                </li>
+                <li id="task-install">
+                  <i></i>
+                  <div>安装并创建入口<small id="target-path">D:\Apps\Zhiyu</small></div>
+                  <span>等待中</span>
+                </li>
+              </ol>
+              <p id="install-error" class="error" role="alert" hidden>
+                连接已中断。检查网络后重试，已选的安装偏好会保留。
+              </p>
+              <footer class="progress-actions">
+                <button id="pause" class="secondary">暂停</button
+                ><button id="retry" class="primary" hidden>重试下载</button
+                ><button id="cancel" class="text-button">取消安装</button>
+              </footer>
+            </div>
+            <div id="done" class="page" hidden>
+              <div class="success-symbol">✓</div>
+              <div class="page-heading">
+                <h2>一切就绪，欢迎上屿。</h2>
+                <p>你的数字生活，现在有了一处安放。</p>
+              </div>
+              <div class="receipt">
+                <p>安装位置<strong id="result-path"></strong></p>
+                <p>安装范围<strong id="result-scope"></strong></p>
+                <p>桌面快捷方式<strong id="result-desktop"></strong></p>
+                <p>开机自启<strong id="result-startup"></strong></p>
+              </div>
+              <footer class="actions">
+                <button class="primary" id="launch">开启知屿 <span>↗</span></button
+                ><button class="text-button" id="restart">重新体验</button>
+                <p>这是设计预览，尚未安装任何程序。</p>
+              </footer>
+            </div>
+            <div class="content-footer">
+              <span>Windows 安装体验</span><span>在线引导器概念版</span>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="review-caption">
+        <p>
+          <strong>小小的开始，完整的体验。</strong> 在线引导器目标为几
+          MB；完整程序另行下载，实际体积以构建结果为准。
+        </p>
+        <button class="text-button" id="skip">直接看完成页</button>
+      </div>
+    </main>
+    <dialog id="path-dialog">
+      <form method="dialog">
+        <h2>更改安装位置</h2>
+        <p>预览中可输入路径；正式安装器将打开系统文件夹选择器。</p>
+        <label class="field-label" for="custom-path">文件夹路径</label
+        ><input id="custom-path" spellcheck="false" />
+        <div class="dialog-actions">
+          <button class="secondary" value="cancel">返回</button
+          ><button class="primary" value="save">使用此位置</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="cancel-dialog">
+      <h2>退出这次安装？</h2>
+      <p>预览不会改动电脑。正式安装时会先停止下载，并清理本次安装的临时文件。</p>
+      <div class="dialog-actions">
+        <button class="secondary" id="keep">继续体验</button
+        ><button class="primary" id="confirm-cancel">退出安装</button>
+      </div>
+    </dialog>
+    <dialog id="launch-dialog">
+      <h2>安装体验到这里就结束了</h2>
+      <p>正式版会打开知屿。这份预览不会下载、安装或启动实际程序。</p>
+      <form method="dialog"><button class="primary">知道了</button></form>
+    </dialog>
+  </body>
+</html>

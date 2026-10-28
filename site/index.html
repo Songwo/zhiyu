@@ -34,8 +34,8 @@
           <span>Zhiyu</span></a
         >
         <nav aria-label="网站导航">
-          <a href="#video">宣传片</a><a href="#features">功能</a><a href="./sync.html">同步协议</a><a href="./guide.html">使用指南</a
-          ><a href="#download">下载</a
+          <a href="#video">宣传片</a><a href="#features">功能</a><a href="./sync.html">同步协议</a
+          ><a href="./guide.html">使用指南</a><a href="#download">下载</a
           ><a class="nav-github" href="https://github.com/Songwo/zhiyu">GitHub ↗</a>
         </nav>
       </div>
@@ -91,7 +91,10 @@
             你的浏览器不支持视频播放，可以
             <a href="./promo.mp4">直接下载宣传片</a>。
           </video>
-          <figcaption>宣传片 2 分钟，画面全部由代码绘制、配乐原创合成；界面截图使用 1.12 演示数据，不含私人资产，小蟹是片中的带路角色。</figcaption>
+          <figcaption>
+            宣传片 2 分钟，画面全部由代码绘制、配乐原创合成；界面截图使用 1.12
+            演示数据，不含私人资产，小蟹是片中的带路角色。
+          </figcaption>
         </figure>
       </section>
 
@@ -181,7 +184,8 @@
             <span class="tag tag-teal">图文文档</span>
             <h3>把经验写在资产旁边</h3>
             <p>
-              部署步骤、运维记录用 Markdown 写下来，目录一键跳转、显示字数和阅读时长；文档可以直接关联到对应的服务器和账号。
+              部署步骤、运维记录用 Markdown
+              写下来，目录一键跳转、显示字数和阅读时长；文档可以直接关联到对应的服务器和账号。
             </p>
             <ul>
               <li>批量导入 Markdown，或在任意页面拖入</li>
@@ -205,7 +209,8 @@
             <span class="tag tag-blue">快速上手</span>
             <h3>第一次用也不迷路</h3>
             <p>
-              首页「快速开始」五步清单按你已有的资料自动打勾；ChatGPT、Claude、Cloudflare、iCloud、Netflix 等常用订阅，选个模板就带好金额、周期和下次续费日。
+              首页「快速开始」五步清单按你已有的资料自动打勾；ChatGPT、Claude、Cloudflare、iCloud、Netflix
+              等常用订阅，选个模板就带好金额、周期和下次续费日。
             </p>
             <ul>
               <li>近期续费：首页直接列出未来 14 天要处理的事项</li>
@@ -229,10 +234,13 @@
             <span class="tag tag-teal">桌面 ↔ 网页版同步</span>
             <h3>桌面和你自己的服务器，同步也要讲安全</h3>
             <p>
-              把知屿网页版部署在自己的 VPS 上，在网页版生成一次性配对码，桌面版填入即可配对；之后自动同步资产与文档，两边都能改，冲突时两份都保留。
+              把知屿网页版部署在自己的 VPS
+              上，在网页版生成一次性配对码，桌面版填入即可配对；之后自动同步资产与文档，两边都能改，冲突时两份都保留。
             </p>
             <ul>
-              <li>配对用 PAKE，抓包也无法离线猜码；之后每次用设备密钥互相认证，纯 http 下也不怕中间人</li>
+              <li>
+                配对用 PAKE，抓包也无法离线猜码；之后每次用设备密钥互相认证，纯 http 下也不怕中间人
+              </li>
               <li>密钥库默认不同步，开启后只传密文；Token 与 API Key 永远不同步</li>
               <li>服务器恢复了旧备份时，桌面版会拒绝同步并提示；设备可随时撤销</li>
               <li><a href="./sync.html">一步一步看协议动画 →</a></li>
@@ -254,7 +262,8 @@
             <span class="tag tag-amber">端口与容器</span>
             <h3>服务器上跑着什么，一眼看到</h3>
             <p>
-              通过 SSH 只读查看监听端口和 Docker 容器：状态、健康检查、重启次数、CPU 与内存，并和你记录的服务、域名对应起来。
+              通过 SSH 只读查看监听端口和 Docker 容器：状态、健康检查、重启次数、CPU
+              与内存，并和你记录的服务、域名对应起来。
             </p>
             <ul>
               <li>容器反复重启、异常退出、内存不足时有系统通知和手机推送</li>
@@ -309,8 +318,12 @@
             <a class="text-link" href="{{RELEASE_URL}}">查看完整更新说明 ↗</a>
           </div>
           <div class="download-options">
-            <a class="download-option primary-option" href="{{INSTALLER_URL}}"
-              ><strong>Windows 安装包 <span aria-hidden="true">↓</span></strong
+            <a class="download-option primary-option" href="{{ONLINE_INSTALLER_URL}}"
+              ><strong>Windows 在线安装器 <span aria-hidden="true">↓</span></strong
+              ><span>{{ONLINE_INSTALLER_NOTE}}</span></a
+            >
+            <a class="download-option" href="{{INSTALLER_URL}}"
+              ><strong>Windows 离线安装包 <span aria-hidden="true">↓</span></strong
               ><span>x64 · {{INSTALLER_SIZE}} · 支持覆盖升级与应用内更新</span></a
             >
             <a class="download-option" href="{{PORTABLE_URL}}"
@@ -336,15 +349,16 @@
       <section class="wrap section faq" id="faq" aria-labelledby="faq-title">
         <h2 id="faq-title">开始之前，你可能想知道</h2>
         <p class="faq-more">
-          从安装、首次设置到每个功能的用法，都整理在<a href="./guide.html">使用指南</a>里，可按关键词搜索。
+          从安装、首次设置到每个功能的用法，都整理在<a href="./guide.html">使用指南</a
+          >里，可按关键词搜索。
         </p>
         <details>
           <summary>免费吗？支持什么系统？</summary>
           <p>
-            知屿是开源项目。Windows 提供 x64 正式安装包和免安装便携版；macOS
-            测试包以独立 Pre-release 提供，未签名、未公证，详见
-            <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 说明</a>。Linux
-            尚未提供经过验证的正式安装包。
+            知屿是开源项目。Windows 提供 x64 正式安装包和免安装便携版；macOS 测试包以独立
+            Pre-release 提供，未签名、未公证，详见
+            <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 说明</a
+            >。Linux 尚未提供经过验证的正式安装包。
           </p>
         </details>
         <details>
@@ -357,7 +371,10 @@
         <details>
           <summary>同步安全吗？服务器会看到我的密码吗？</summary>
           <p>
-            密钥库默认不同步；开启后只传 AES-256-GCM 密文，服务器没有主密码，看不到明文。Cloudflare Token、模型 API Key 等系统加密保存的凭据永远不同步。同步协议用一次性配对码和设备密钥互相认证，纯 http 下也不会被中间人读取或篡改。协议是自研的组合，没有经过第三方审计，设计与威胁模型见
+            密钥库默认不同步；开启后只传 AES-256-GCM 密文，服务器没有主密码，看不到明文。Cloudflare
+            Token、模型 API Key
+            等系统加密保存的凭据永远不同步。同步协议用一次性配对码和设备密钥互相认证，纯 http
+            下也不会被中间人读取或篡改。协议是自研的组合，没有经过第三方审计，设计与威胁模型见
             <a href="https://github.com/Songwo/zhiyu/blob/main/docs/SYNC.md">SYNC.md</a>，也可以先看
             <a href="./sync.html">协议动画</a>。
           </p>
@@ -365,20 +382,23 @@
         <details>
           <summary>AI 会直接修改我的资料和密码吗？</summary>
           <p>
-            不会。开启本次修改建议后，AI 先展示依据和修改前后内容，由你逐项确认后才写入；密码等凭据只在本机编辑，模型不读取密钥库。
+            不会。开启本次修改建议后，AI
+            先展示依据和修改前后内容，由你逐项确认后才写入；密码等凭据只在本机编辑，模型不读取密钥库。
           </p>
         </details>
         <details>
           <summary>订阅额度为什么是空的？</summary>
           <p>
-            订阅额度来自你在「AI 订阅」中授权的账号。部分套餐不提供额度查询，失败原因会显示在「用量记录 →
+            订阅额度来自你在「AI
+            订阅」中授权的账号。部分套餐不提供额度查询，失败原因会显示在「用量记录 →
             订阅与来源」对应账号的卡片上，不会被当作零用量。
           </p>
         </details>
         <details>
           <summary>以后可以在软件里直接更新吗？</summary>
           <p>
-            可以。在「设置 → 关于知屿」检查并下载新版本，校验完成后点击「重启并安装」，已有资料继续保留。
+            可以。在「设置 →
+            关于知屿」检查并下载新版本，校验完成后点击「重启并安装」，已有资料继续保留。
           </p>
         </details>
         <details>

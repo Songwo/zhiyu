@@ -20,7 +20,22 @@
   FunctionEnd
 !macroend
 
+!macro zhiyuApplyStartup REGISTRY_KEY
+  ; 在线引导器显式传入偏好；普通离线安装不传此参数，不改变已有设置。
+  ${GetParameters} $R0
+  ClearErrors
+  ${GetOptions} $R0 "/ZH_STARTUP=" $R1
+  ${IfNot} ${Errors}
+    ${If} $R1 == "1"
+      WriteRegStr SHELL_CONTEXT "${REGISTRY_KEY}" "Zhiyu" '$\"$appExe$\"'
+    ${ElseIf} $R1 == "0"
+      DeleteRegValue SHELL_CONTEXT "${REGISTRY_KEY}" "Zhiyu"
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !macro customInstall
+  !insertmacro zhiyuApplyStartup "Software\Microsoft\Windows\CurrentVersion\Run"
   !ifndef DO_NOT_CREATE_START_MENU_SHORTCUT
     ${if} ${FileExists} "$newStartMenuLink"
       CreateShortCut "$newStartMenuLink" "$appExe" "" "$INSTDIR\resources\zhiyu.ico" 0 "" "" "${APP_DESCRIPTION}"
@@ -36,4 +51,19 @@
   !endif
   ; 通知资源管理器更新图标，不清空全局缓存，也不重启资源管理器。
   System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
+!macroend
+
+!macro zhiyuRemoveStartup REGISTRY_KEY
+  ; 只移除指向当前卸载目录的自启项，不碰其他程序或另一安装位置。
+  ReadRegStr $R0 SHELL_CONTEXT "${REGISTRY_KEY}" "Zhiyu"
+  ${If} $R0 == '$\"$INSTDIR\Zhiyu.exe$\"'
+    DeleteRegValue SHELL_CONTEXT "${REGISTRY_KEY}" "Zhiyu"
+  ${EndIf}
+!macroend
+
+!macro customUnInstall
+  ; 覆盖升级也会调用旧卸载器；升级不能删掉用户已经开启的自启偏好。
+  ${ifNot} ${isUpdated}
+    !insertmacro zhiyuRemoveStartup "Software\Microsoft\Windows\CurrentVersion\Run"
+  ${endIf}
 !macroend
