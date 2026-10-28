@@ -41,7 +41,9 @@ jobs:
             curl -sf http://127.0.0.1:8848/api/web/state > /dev/null && break
             sleep 1
           done
-          curl -sf http://127.0.0.1:8848/api/web/state | grep -q "\"version\":\"$VERSION\""
+          # 未登录时状态接口不再返回版本号，改查启动日志里的版本。
+          docker logs zhiyu 2>&1 | grep -q "网页版 $VERSION 已启动"
+          curl -sf http://127.0.0.1:8848/api/web/state | grep -q '"setup":true'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8848/)" = "302"
           docker logs zhiyu 2>&1 | grep -q '设置口令'
           sudo test -f "$RUNNER_TEMP/zhiyu-data/server/setup-token.txt"
