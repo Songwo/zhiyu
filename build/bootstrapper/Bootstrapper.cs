@@ -105,7 +105,7 @@ internal static class Engine
     internal static bool Writable(string path)
     {
         // 仅在最近的已存在父目录写入并清理一个独立探针，不提前创建安装目录。
-        while (!Directory.Exists(path)) path = Path.GetDirectoryName(path);
+        while (path != null && !Directory.Exists(path)) path = Path.GetDirectoryName(path);
         if (path == null) return false;
         var probe = Path.Combine(path, ".zhiyu-write-" + Guid.NewGuid().ToString("N"));
         try { using (File.Create(probe, 1, FileOptions.DeleteOnClose)) { } return true; }

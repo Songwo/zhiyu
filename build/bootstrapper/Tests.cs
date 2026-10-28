@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
@@ -33,6 +34,8 @@ internal static class BootstrapperTests
         try {
             Check(Engine.ValidPath(@"D:\Apps\Zhiyu"), "标准安装路径");
             Check(Engine.ValidPath(@"E:\My Apps\知屿"), "含空格与中文的路径");
+            var absentDrive = Enumerable.Range('A', 26).Select(c => ((char)c) + @":\").FirstOrDefault(d => !Directory.Exists(d));
+            if (absentDrive != null) Check(!Engine.Writable(Path.Combine(absentDrive, "Zhiyu")), "磁盘断开时立即返回不可写，不循环查找父目录");
             foreach (var invalid in new[] { "", @"D:\", @"relative", @"D:\Apps\..", @"D:\Apps\CON", "D:\\bad\" /S", @"D:\bad?", @"D:\bad\", "D:\\bad\npath" }) Check(!Engine.ValidPath(invalid), "拒绝非法路径 " + invalid.Replace("\n", "\\n"));
             var args = Engine.Arguments(@"E:\My Apps\知屿", true, false, true);
             Check(args == @"/S /allusers --no-desktop-shortcut /ZH_STARTUP=1 /D=E:\My Apps\知屿", "NSIS 参数与目录顺序");
