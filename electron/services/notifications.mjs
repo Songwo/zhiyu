@@ -1,8 +1,18 @@
 import { phoneExpiry } from "./phone-numbers.mjs";
 import { extraExpiryCandidates } from "./renewals.mjs";
 import { dueReminders } from "./reminders.mjs";
+import { containerIssues } from "./service-monitor.mjs";
 
-/** @typedef {{ key: string, kind: string, id: string, name: string, reason: "offline" | "expiry" | "reminder", days?: number }} AttentionItem */
+/** @typedef {{ key: string, kind: string, id: string, name: string, reason: "offline" | "expiry" | "reminder" | "service", days?: number, detail?: string, detailEn?: string }} AttentionItem */
+
+/** @type {Record<string, (name: string, value?: number) => [string, string]>} */
+const ISSUE_TEXT = {
+  restarting: (n) => [`容器 ${n} 在反复重启`, `Container ${n} keeps restarting`],
+  crashed: (n, v) => [`容器 ${n} 异常退出（退出码 ${v}）`, `Container ${n} exited with code ${v}`],
+  oom: (n) => [`容器 ${n} 因内存不足被终止`, `Container ${n} was killed (out of memory)`],
+  unhealthy: (n) => [`容器 ${n} 健康检查失败`, `Container ${n} failed its health check`],
+  flapping: (n, v) => [`容器 ${n} 已重启 ${v} 次`, `Container ${n} restarted ${v} times`],
+};
 
 /**
  * leadDays：资产到期前多少天开始提醒（号码至少 30 天）。
@@ -22,6 +32,33 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
         name: s.name,
         reason: "offline",
       });
+    // Docker 容器出问题：每种问题单独一条，同一问题 24 小时内只提醒一次，恢复后重新计。
+    if (s.collect === false) continue;
+    for (const issue of containerIssues(s.serviceScan)) {
+      const [zh, en] = ISSUE_TEXT[issue.kind](issue.container, issue.value);
+      out.push({
+        key: `container:${s.id}:${issue.container}:${issue.kind}`,
+        kind: "server",
+        id: s.id,
+        name: s.name,
+        reason: "service",
+        detail: zh,
+        detailEn: en,
+      });
+    }
+  }
+  // 绑定了端口 / 容器的服务资产：采集判断为不可用时提醒。
+  for (const service of snapshot.services ?? []) {
+    if (service.demo || !service.endpoint || service.status !== "offline") continue;
+    out.push({
+      key: `service-down:${service.id}`,
+      kind: "service",
+      id: service.id,
+      name: service.name,
+      reason: "service",
+      detail: "绑定的端口或容器不可用",
+      detailEn: "The bound port or container is unavailable",
+    });
   }
   for (const [kind, list] of [
     ["domain", snapshot.domains],
@@ -82,6 +119,7 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
 /** 通知与推送共用的一行文字。 @param {AttentionItem} item @param {boolean} [en] */
 export function attentionLine(item, en = false) {
   if (item.reason === "offline") return `${item.name}: ${en ? "Connection failed" : "连接失败"}`;
+  if (item.reason === "service") return `${item.name}: ${en ? item.detailEn : item.detail}`;
   const days = item.days ?? 0;
   if (item.reason === "reminder")
     return `${item.name}: ${days < 0 ? (en ? `${-days} days overdue` : `已过期 ${-days} 天`) : days === 0 ? (en ? "today" : "今天") : en ? `in ${days} days` : `${days} 天后`}`;

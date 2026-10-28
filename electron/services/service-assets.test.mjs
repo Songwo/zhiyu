@@ -143,3 +143,41 @@ test("服务可绑定文档，Agent 确认提案后才能写入服务关联", as
   assert.equal(state.links.length, 1);
   assert.equal(state.links[0].from.kind, "service");
 });
+
+test("服务绑定：主机必填，端口、协议、容器名、域名按格式校验，保存后不丢失", async () => {
+  const { normalizeService, normalizeEndpoint } = await import("./service-assets.mjs");
+  const base = { id: "svc", name: "博客", category: "custom", status: "online", tags: [] };
+  const bound = normalizeService({
+    ...base,
+    endpoint: {
+      serverId: "s1",
+      port: "2368",
+      proto: "tcp",
+      container: "ghost_1",
+      domainId: "d1",
+      extra: "x",
+    },
+  });
+  assert.deepEqual(bound.endpoint, {
+    serverId: "s1",
+    port: 2368,
+    proto: "tcp",
+    container: "ghost_1",
+    domainId: "d1",
+  });
+  assert.equal(normalizeService(base).endpoint, undefined);
+  assert.equal(normalizeEndpoint(null), undefined);
+  for (const bad of [
+    { port: 80 },
+    { serverId: "" },
+    { serverId: "s1", port: 0 },
+    { serverId: "s1", port: 70000 },
+    { serverId: "s1", port: 1.5 },
+    { serverId: "s1", proto: "icmp" },
+    { serverId: "s1", container: "bad name; rm -rf /" },
+    { serverId: "s1", container: "x".repeat(81) },
+    { serverId: "__proto__" },
+    ["s1"],
+  ])
+    assert.throws(() => normalizeEndpoint(bad), Error, JSON.stringify(bad));
+});

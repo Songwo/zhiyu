@@ -20,6 +20,44 @@ export function serviceUrl(value) {
   return url.href;
 }
 
+/** 服务资产绑定的位置：主机必填，端口、容器、域名按需。 @param {unknown} value */
+export function normalizeEndpoint(value) {
+  if (value == null) return undefined;
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error("服务绑定无效。");
+  const item = /** @type {Record<string, unknown>} */ (value);
+  const text = (/** @type {string} */ key, /** @type {number} */ max) => {
+    const result = item[key];
+    if (result == null || result === "") return "";
+    if (typeof result !== "string" || result.length > max)
+      throw new Error("服务绑定字段过长或格式不正确。");
+    return result.trim();
+  };
+  const serverId = text("serverId", 200);
+  if (!serverId || ["__proto__", "prototype", "constructor"].includes(serverId))
+    throw new Error("服务绑定需要选择主机。");
+  const out = /** @type {import('../../src/lib/server-services').ServiceEndpoint} */ ({ serverId });
+  if (item.port != null && item.port !== "") {
+    const port = Number(item.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535)
+      throw new Error("端口需要是 1–65535 的整数。");
+    out.port = port;
+  }
+  if (item.proto != null && item.proto !== "") {
+    if (item.proto !== "tcp" && item.proto !== "udp")
+      throw new Error("端口协议只能是 TCP 或 UDP。");
+    out.proto = item.proto;
+  }
+  const container = text("container", 80);
+  if (container) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$/.test(container))
+      throw new Error("容器名称格式不正确。");
+    out.container = container;
+  }
+  const domainId = text("domainId", 200);
+  if (domainId) out.domainId = domainId;
+  return out;
+}
+
 /** @param {unknown} value @returns {import('../../src/lib/types').ServiceAsset} */
 export function normalizeService(value) {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -50,6 +88,7 @@ export function normalizeService(value) {
   const typeId = text("typeId", 200);
   const fields = normalizeFieldValues(item.fields);
   const billing = normalizeBilling(item.billing);
+  const endpoint = normalizeEndpoint(item.endpoint);
   return {
     id,
     name,
@@ -66,6 +105,7 @@ export function normalizeService(value) {
     ...(billing ? { billing } : {}),
     ...(typeId ? { typeId } : {}),
     ...(fields ? { fields } : {}),
+    ...(endpoint ? { endpoint } : {}),
   };
 }
 

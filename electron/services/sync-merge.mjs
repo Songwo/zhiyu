@@ -27,6 +27,48 @@ const hasIds = (list) =>
   Array.isArray(list) && list.every((item) => isObject(item) && typeof item.id === "string");
 const MAX_DEPTH = 24;
 
+/**
+ * 两端各自采集的遥测字段：值随时在变，谁采到都算数，不该触发同步，也不算「冲突」。
+ * 名字只在资产记录（集合里的每一项）内部生效；顶层的集合名不受影响。
+ */
+export const VOLATILE_FIELDS = new Set([
+  "cpu",
+  "memory",
+  "disk",
+  "uptime",
+  "lastSeen",
+  "loadavg",
+  "kernel",
+  "memTotalKb",
+  "diskTotalKb",
+  "probedAt",
+  "probeError",
+  "serviceScan",
+  "usageCheckedAt",
+  "usageSummary",
+  "usageAvailable",
+  "usageStale",
+  "usageScope",
+  "usagePct",
+]);
+/** 去掉每条资产记录里的遥测字段，用于比较「用户有没有改过」。 */
+export function stripVolatile(state) {
+  if (!state || typeof state !== "object" || Array.isArray(state)) return state;
+  const out = {};
+  for (const [key, value] of Object.entries(state)) {
+    out[key] = Array.isArray(value)
+      ? value.map((item) =>
+          item && typeof item === "object" && !Array.isArray(item)
+            ? Object.fromEntries(
+                Object.entries(item).filter(([field]) => !VOLATILE_FIELDS.has(field)),
+              )
+            : item,
+        )
+      : value;
+  }
+  return out;
+}
+
 const digest = (value) => createHash("sha256").update(canonical(value)).digest("hex");
 /** 内容哈希：与键顺序和文件排版无关，两端对同一份内容总是得到同一个值。 */
 export const hashValue = digest;
@@ -61,12 +103,14 @@ function mergeValue(path, base, local, remote, ctx, depth = 0) {
     const baseObject = isObject(base) ? base : {};
     const out = {};
     for (const key of new Set([...Object.keys(local), ...Object.keys(remote)])) {
+      // 遥测字段静默取较新的一边，不记入冲突。
+      const quiet = depth >= 1 && VOLATILE_FIELDS.has(key);
       const merged = mergeValue(
         [...path, key],
         baseObject[key],
         local[key],
         remote[key],
-        ctx,
+        quiet ? { newer: ctx.newer, conflicts: [] } : ctx,
         depth + 1,
       );
       if (merged !== undefined) out[key] = merged;

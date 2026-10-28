@@ -399,7 +399,9 @@ export function createWebBridge({
     "ssh:probe": async (target, credential) => {
       const probe = await ssh.probe(savedServer(target?.id), sshCredential(credential));
       try {
-        await metrics.record(target.id, probe);
+        // 端口与容器列表只给界面用，不写进指标历史。
+        const { services: _services, ...sample } = probe;
+        await metrics.record(target.id, sample);
         emit("metrics:updated", { id: target.id });
       } catch (error) {
         emit("metrics:error", { id: target.id, error: String(error.message) });

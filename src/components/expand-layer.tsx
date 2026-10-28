@@ -11,6 +11,7 @@ import {
   Activity,
   ArrowLeft,
   BookOpen,
+  Boxes,
   FolderArchive,
   KeyRound,
   Pencil,
@@ -26,6 +27,7 @@ const BoundIntegrationPanel = lazy(() =>
     default: module.BoundIntegrationPanel,
   })),
 );
+import { containerIssues } from "@/lib/server-services";
 import { ServiceCard } from "./service-card";
 import { AccountPanel } from "./account-panel";
 import { MailStatus } from "./mail-status";
@@ -33,6 +35,7 @@ import { AiAccountsPanel } from "./ai-accounts";
 import { AssetRelations, SftpBrowser } from "./operations-panel";
 import { RefreshOneButton } from "./refresh-button";
 import { ServerNodesPanel } from "./server-nodes-panel";
+import { ServerServicesPanel } from "./server-services-panel";
 import { ServerDocsPanel } from "./server-docs-panel";
 import { ServerSecretsPanel } from "./server-secrets-panel";
 import { ServerOpsToolbox } from "./server-ops-toolbox";
@@ -61,7 +64,7 @@ export function AssetDetailPage() {
   return <AssetDetail key={`${expanded.kind}:${expanded.id}`} asset={expanded} />;
 }
 
-type ServerTab = "overview" | "nodes" | "docs" | "secrets" | "ops" | "files";
+type ServerTab = "overview" | "services" | "nodes" | "docs" | "secrets" | "ops" | "files";
 
 function AssetDetail({ asset }: { asset: ExpandState }) {
   const view = useAppStore((s) => s.view);
@@ -154,6 +157,9 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   if (currentServer && serverTab !== "overview") {
     body = (
       <div className="detail-block">
+        {serverTab === "services" && (
+          <ServerServicesPanel key={`services:${asset.id}`} server={currentServer} />
+        )}
         {serverTab === "nodes" && (
           <ServerNodesPanel key={`nodes:${asset.id}`} server={currentServer} />
         )}
@@ -276,6 +282,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
           {(
             [
               ["overview", "监控概览", Activity, 0],
+              ["services", "端口与容器", Boxes, containerIssues(currentServer.serviceScan).length],
               ["nodes", "自建节点", Zap, currentServer.nodes?.length ?? 0],
               ["docs", "服务文档", BookOpen, 0],
               ["secrets", "绑定密钥", KeyRound, currentServer.customSecrets?.length ?? 0],

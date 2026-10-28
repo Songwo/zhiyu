@@ -51,6 +51,8 @@ export interface HostProbe {
   memTotalKb?: number;
   diskTotalKb?: number;
   loadavg?: string;
+  /** 监听端口与 Docker 容器（采集失败时没有这一项）。 */
+  services?: import("./server-services").ServerServices;
   at: string;
 }
 

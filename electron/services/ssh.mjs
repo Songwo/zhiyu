@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import ssh2 from "ssh2";
 import { SftpService } from "./sftp.mjs";
+import { SERVICES_SCRIPT, SERVICES_TIMEOUT, parseServices } from "./service-monitor.mjs";
 
 const { Client } = ssh2;
 
@@ -307,7 +308,16 @@ export class SshManager {
     const client = await this.#connect(target, credential);
     try {
       const out = await this.#exec(client, PROBE_SCRIPT, PROBE_TIMEOUT);
-      return { ok: true, ...parseProbe(out), at: new Date().toISOString() };
+      const base = { ok: true, ...parseProbe(out), at: new Date().toISOString() };
+      // 端口与容器是附加信息：在同一条连接上再跑一次只读脚本，失败不影响指标。
+      try {
+        return {
+          ...base,
+          services: parseServices(await this.#exec(client, SERVICES_SCRIPT, SERVICES_TIMEOUT)),
+        };
+      } catch {
+        return base;
+      }
     } finally {
       client.end();
     }

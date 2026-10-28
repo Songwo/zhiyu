@@ -4,7 +4,7 @@
  */
 import { normalizeDocument } from "./documents.mjs";
 import { normalizeSnapshotImages } from "./image-data.mjs";
-import { hashDocument, hashValue } from "./sync-merge.mjs";
+import { hashDocument, hashValue, stripVolatile } from "./sync-merge.mjs";
 
 /** assets.json 的内容（`{state, version}` 或直接是 state）。 */
 export function assetsState(parsed) {
@@ -18,6 +18,7 @@ export function assetsState(parsed) {
     return wrapped.state;
   }
 }
-export const hashAssetsFile = (parsed) => hashValue(assetsState(parsed));
+/** 资产内容哈希不含遥测字段：只有用户的改动才会触发同步。 */
+export const hashAssetsFile = (parsed) => hashValue(stripVolatile(assetsState(parsed)));
 export const hashDocumentFile = (parsed) => hashDocument(normalizeDocument(parsed));
 export const hashVaultFile = (parsed) => hashValue(parsed);

@@ -1512,6 +1512,52 @@ p {
 .table-stack > .table-stack-warn {
   color: var(--color-danger, #c0392b);
 }
+.svc-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.svc-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: var(--color-canvas);
+  white-space: nowrap;
+}
+.svc-table td {
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-line);
+  vertical-align: top;
+}
+.svc-row-problem {
+  background: color-mix(in srgb, var(--color-warn, #b7791f) 8%, transparent);
+}
+.svc-state,
+.svc-scope {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.svc-state-running {
+  color: var(--color-ok);
+}
+.svc-state-restarting,
+.svc-state-dead {
+  color: var(--color-danger, #c5221f);
+}
+.svc-state-exited,
+.svc-state-paused {
+  color: var(--color-warn, #b7791f);
+}
+.svc-scope-public {
+  color: var(--color-warn, #b7791f);
+}
 .table-ellipsis {
   display: block;
   overflow: hidden;

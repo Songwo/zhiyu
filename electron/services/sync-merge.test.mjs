@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canonical, mergeAssets, mergeDocument, mergeVault, same } from "./sync-merge.mjs";
+import {
+  canonical,
+  mergeAssets,
+  mergeDocument,
+  mergeVault,
+  same,
+  stripVolatile,
+} from "./sync-merge.mjs";
 
 const item = (id, name, extra = {}) => ({ id, name, tags: [], ...extra });
 
@@ -270,4 +277,29 @@ test("密钥库：头部相同、基线头部不同（改密后第一次合并�
   const remote = vault({ a: sealed("n1") }, "new");
   const out = mergeVault(base, local, remote);
   assert.deepEqual(Object.keys(out.doc.records).sort(), ["a", "b"]);
+});
+
+test("遥测字段（CPU、内存、最近采集）两边不同时静默取较新的一边，不记冲突", () => {
+  const base = { servers: [item("s1", "A", { cpu: 10, lastSeen: "t0" })] };
+  const local = { servers: [item("s1", "A", { cpu: 40, lastSeen: "t1" })] };
+  const remote = { servers: [item("s1", "A", { cpu: 70, lastSeen: "t2" })] };
+  const { merged, conflicts } = mergeAssets(base, local, remote, { newer: "remote" });
+  assert.equal(merged.servers[0].cpu, 70);
+  assert.equal(merged.servers[0].lastSeen, "t2");
+  assert.deepEqual(conflicts, []);
+});
+
+test("去掉遥测字段后再比较：只有采集数据不同的两份资产被认为没有变化，顶层的 services 集合不受影响", () => {
+  const a = {
+    servers: [item("s1", "A", { cpu: 1, serviceScan: { ports: [1] } })],
+    services: [item("v1", "博客")],
+  };
+  const b = {
+    servers: [item("s1", "A", { cpu: 99, serviceScan: { ports: [2] } })],
+    services: [item("v1", "博客")],
+  };
+  assert.deepEqual(stripVolatile(a), stripVolatile(b));
+  assert.equal(stripVolatile(a).services.length, 1, "服务资产集合保留");
+  const renamed = { ...b, services: [item("v1", "改名")] };
+  assert.notDeepEqual(stripVolatile(a), stripVolatile(renamed));
 });

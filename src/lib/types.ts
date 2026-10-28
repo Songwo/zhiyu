@@ -50,6 +50,8 @@ export interface ServiceAsset extends Taggable {
   typeId?: string;
   /** 自定义字段的值，键是类型里的字段标识。 */
   fields?: Record<string, string>;
+  /** 运行在哪台主机的哪个端口 / 容器，对外用哪个域名；绑定后状态由主机采集决定。 */
+  endpoint?: import("./server-services").ServiceEndpoint;
 }
 
 export type AssetTypeFieldKind = "text" | "url" | "date" | "number";
@@ -158,6 +160,8 @@ export interface Server extends ProbeMeta, Taggable {
   /** VPS 到期日 YYYY-MM-DD。 */
   expiresAt?: string;
   billing?: Billing;
+  /** 最近一次采集到的监听端口与 Docker 容器。 */
+  serviceScan?: import("./server-services").ServerServices;
 }
 
 export interface Domain extends ProbeMeta, Taggable {

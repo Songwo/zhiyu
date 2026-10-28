@@ -1,5 +1,6 @@
 import { INTEGRATIONS_EN } from "./i18n-integrations-en.ts";
 import { SYNC_EN } from "./i18n-sync-en.ts";
+import { SERVICES_EN } from "./i18n-services-en.ts";
 import { BACKUP_EN } from "./i18n-backup-en.ts";
 
 /**
@@ -15,6 +16,7 @@ import { BACKUP_EN } from "./i18n-backup-en.ts";
 export const EN: Record<string, string> = {
   ...INTEGRATIONS_EN,
   ...SYNC_EN,
+  ...SERVICES_EN,
   ...BACKUP_EN,
   "管理远程用量来源需要先解锁密钥库。":
     "Unlock your vault to manage remote usage source credentials.",

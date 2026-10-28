@@ -598,3 +598,22 @@ test("不断发起密钥交换来猜配对码：超过次数上限后配对码�
   assert.ok(exhausted, "达到上限后被拒绝");
   await assert.rejects(r.client.pair({ url: r.base(), code, name: "x" }), /没有可用的配对码/);
 });
+
+test("只有两端各自采集的数据（CPU、最近采集时间）不同，不会触发推送或拉取", async (t) => {
+  const r = await rig(t);
+  await r.pair();
+  r.local.state = { servers: [server("s1", "A", { cpu: 10, lastSeen: "t1" })], domains: [] };
+  await r.client.syncNow();
+  r.local.state = { servers: [server("s1", "A", { cpu: 55, lastSeen: "t9" })], domains: [] };
+  const result = await r.client.syncNow();
+  assert.deepEqual(
+    [result.lastResult.pulled, result.lastResult.pushed, result.lastResult.merged],
+    [0, 0, 0],
+  );
+  assert.equal(
+    (await r.serverAssets()).state.servers[0].cpu,
+    10,
+    "服务器上的数据没有被遥测噪声覆盖",
+  );
+  assert.deepEqual(result.lastResult.warnings, []);
+});

@@ -17,6 +17,7 @@ import { KIND_LABEL } from "@/lib/status";
 import { parseTags } from "@/lib/tags";
 import { useVault } from "@/lib/vault-state";
 import { useAppStore } from "@/lib/store";
+import { reconcileServiceStatuses } from "@/lib/probes";
 import type {
   AiAsset,
   AssetKind,
@@ -31,6 +32,7 @@ import type {
 } from "@/lib/types";
 import { normalizeService } from "../../electron/services/service-assets.mjs";
 import { ServiceTypeFields } from "./asset-type-fields";
+import { ServiceEndpointFields } from "./service-endpoint-fields";
 import { fieldKey, fieldsFromForm } from "@/lib/asset-type-form";
 import { uid } from "@/lib/utils";
 import { billingFormValues } from "@/lib/billing";
@@ -751,6 +753,7 @@ function kindFields(
         <ServiceTypeFields key="_type" form={form} set={set} />,
         F("url", t("服务网址"), { span: true, placeholder: "https://example.com" }),
         F("provider", t("提供方")),
+        <ServiceEndpointFields key="_endpoint" form={form} set={set} />,
         <Field key="status" label={t("手动记录状态")}>
           <Select
             aria-label={t("手动记录状态")}
@@ -887,6 +890,18 @@ function defaults(kind: AssetKind, existing: unknown): Record<string, string> {
     delete out.billing;
     if (kind === "service") {
       delete out.fields;
+      delete out.endpoint;
+      const endpoint = o.endpoint as
+        | { serverId: string; port?: number; proto?: string; container?: string; domainId?: string }
+        | undefined;
+      if (endpoint)
+        Object.assign(out, {
+          endpointServer: endpoint.serverId,
+          endpointPort: endpoint.port ? String(endpoint.port) : "",
+          endpointProto: endpoint.proto ?? "tcp",
+          endpointContainer: endpoint.container ?? "",
+          endpointDomain: endpoint.domainId ?? "",
+        });
       for (const [id, value] of Object.entries(
         (o.fields as Record<string, string> | undefined) ?? {},
       ))
@@ -1119,8 +1134,24 @@ function persist(
           imageDataUrl: form.imageDataUrl || "",
           expiresAt: form.expiresAt,
           billing: billingOf(form),
+          endpoint: form.endpointServer
+            ? {
+                serverId: form.endpointServer,
+                port: form.endpointPort || undefined,
+                proto: form.endpointPort ? form.endpointProto || "tcp" : undefined,
+                container: form.endpointContainer || undefined,
+                domainId: form.endpointDomain || undefined,
+              }
+            : undefined,
         }),
       );
+      // 绑定了主机采集的服务，状态立即按最近一次采集重新判断，并在关系图里连上主机与域名。
+      reconcileServiceStatuses();
+      if (form.endpointServer) {
+        s.linkAssets({ kind: "service", id }, { kind: "server", id: form.endpointServer });
+        if (form.endpointDomain)
+          s.linkAssets({ kind: "service", id }, { kind: "domain", id: form.endpointDomain });
+      }
       break;
     }
     case "cert": {

@@ -7,7 +7,25 @@ import { formatUptime } from "./desktop";
 import { useLive } from "./live";
 import { expiryStatus } from "./status";
 import { useAppStore } from "./store";
+import { serviceStatusFromEndpoint, withContainerIssues } from "./server-services";
 import type { Certificate, Domain, Server, Status } from "./types";
+
+/**
+ * 绑定了端口 / 容器 / 域名的服务资产，状态由最近一次主机采集决定。
+ * 判断不了时（没采集过、结果过期、主机不在了）保留手动记录的状态。
+ */
+export function reconcileServiceStatuses(serverId?: string) {
+  const state = useAppStore.getState();
+  for (const service of state.services ?? []) {
+    const endpoint = service.endpoint;
+    if (!endpoint || (serverId && endpoint.serverId !== serverId)) continue;
+    const status = serviceStatusFromEndpoint(service, {
+      server: state.servers.find((item) => item.id === endpoint.serverId),
+      domain: state.domains.find((item) => item.id === endpoint.domainId),
+    });
+    if (status !== service.status) state.upsertService({ ...service, status });
+  }
+}
 
 /** Which assets have a probe in flight, so the UI can show it spinning. */
 interface ProbeState {
@@ -79,12 +97,18 @@ async function probeServer(server: Server): Promise<void> {
       loadavg: probe.loadavg,
       memTotalKb: probe.memTotalKb,
       diskTotalKb: probe.diskTotalKb,
-      status: hostStatus(probe.cpu, probe.memory, probe.disk),
+      // 采集失败（旧主机、命令被禁用）时保留上一次的端口与容器信息，由「是否过期」来判断可信度。
+      serviceScan: probe.services ?? current.serviceScan,
+      status: withContainerIssues(
+        hostStatus(probe.cpu, probe.memory, probe.disk),
+        probe.services ?? current.serviceScan,
+      ),
       lastSeen: probe.at,
       probedAt: probe.at,
       probeError: undefined,
     };
     store.upsertServer(next);
+    reconcileServiceStatuses(next.id);
     // The cards read live metrics from here, so keep the two in step.
     useLive.getState().set(server.id, next.cpu, next.memory);
   } catch (err) {
