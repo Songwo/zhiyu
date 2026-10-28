@@ -1,5 +1,6 @@
 export const SYNC_EN: Record<string, string> = {
   同步: "Sync",
+  "看动画：配对与同步是怎么保护你的": "Watch the animation: how pairing and sync protect you",
   同步只在桌面版提供: "Sync is only available in the desktop app.",
   "同步只在桌面版提供。": "Sync is only available in the desktop app.",
   与网页版同步: "Sync with the web app",

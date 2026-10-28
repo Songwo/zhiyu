@@ -1,0 +1,402 @@
+/* 同步协议动画：沿用产品主页的色板，只加这一页需要的样式。 */
+.zsp-hero {
+  padding-block: 72px 24px;
+}
+.zsp-hero h1 {
+  margin: 8px 0 16px;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.zsp-hero .intro {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--muted);
+}
+
+.zsp {
+  padding-block: 8px 48px;
+}
+.zsp-chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.zsp-chapters button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.zsp-chapters button small {
+  margin-left: 6px;
+  color: var(--subtle);
+  font-size: 12px;
+}
+.zsp-chapters button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.zsp-chapters button[aria-pressed="true"] small {
+  color: inherit;
+  opacity: 0.7;
+}
+.zsp-chapters button:focus-visible,
+.zsp-controls button:focus-visible,
+.zsp-progress button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.zsp-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) 1fr minmax(150px, 220px);
+  align-items: center;
+  gap: 0;
+  min-height: 330px;
+  padding: 28px 28px 96px;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.zsp-actor {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.zsp-actor strong {
+  font-size: 17px;
+}
+.zsp-actor small {
+  color: var(--subtle);
+  font-size: 13px;
+}
+.zsp-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 6px;
+  border-radius: 20px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  transition:
+    transform 0.4s var(--ease),
+    box-shadow 0.4s var(--ease);
+}
+.zsp-actor.pulse .zsp-icon {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--blue) 18%, transparent);
+}
+.zsp-attacker {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.zsp-attacker[hidden] {
+  display: none;
+}
+.zsp-attacker .zsp-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  background: color-mix(in oklab, #e5484d 14%, transparent);
+  color: #e5484d;
+}
+.zsp-attacker small {
+  display: block;
+}
+
+.zsp-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.zsp-badges li {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  animation: zsp-pop 0.5s var(--ease) both;
+}
+.zsp-badges li.ok {
+  color: #1a8a5b;
+  border-color: color-mix(in oklab, #1a8a5b 35%, transparent);
+}
+@keyframes zsp-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+}
+
+.zsp-wire {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  min-height: 120px;
+}
+.zsp-wire-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 36px;
+  border-top: 2px dashed color-mix(in oklab, var(--ink) 22%, transparent);
+}
+.zsp-wire-label {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: var(--subtle);
+  font-size: 12.5px;
+}
+
+.zsp-packet {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px -8px rgba(59, 111, 224, 0.7);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+.zsp-packet.enc {
+  background: #138a96;
+  box-shadow: 0 6px 18px -8px rgba(19, 138, 150, 0.7);
+}
+.zsp-packet.human {
+  background: var(--amber);
+  color: #3a2a00;
+  border: 2px dashed rgba(58, 42, 0, 0.35);
+}
+.zsp-packet.attack {
+  background: #e5484d;
+  box-shadow: 0 6px 18px -8px rgba(229, 72, 77, 0.7);
+}
+.zsp-packet svg {
+  flex: none;
+}
+
+.zsp-result {
+  position: absolute;
+  z-index: 4;
+  right: 24px;
+  bottom: 28px;
+  max-width: 46%;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: color-mix(in oklab, #e5484d 12%, var(--card));
+  color: #c0272d;
+  font-size: 14px;
+  font-weight: 600;
+  animation: zsp-pop 0.5s var(--ease) both;
+}
+.zsp-result[hidden] {
+  display: none;
+}
+.zsp-result::before {
+  content: "✕ ";
+}
+
+.zsp-card {
+  margin-top: 18px;
+  padding: 22px 24px 20px;
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+.zsp-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.zsp-step-pill {
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 600;
+}
+.zsp-step-count {
+  color: var(--subtle);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.zsp-card h2 {
+  margin: 12px 0 8px;
+  font-size: clamp(20px, 2.6vw, 26px);
+  line-height: 1.3;
+}
+.zsp-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.zsp-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+.zsp-notes section {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--bg);
+}
+.zsp-notes h3 {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.zsp-notes p {
+  font-size: 14.5px;
+}
+
+.zsp-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.zsp-controls .button {
+  cursor: pointer;
+  font: inherit;
+}
+.zsp-progress {
+  display: flex;
+  flex: 1 1 220px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.zsp-progress button {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ink) 16%, transparent);
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--ease),
+    background 0.2s var(--ease);
+}
+.zsp-progress button.done {
+  background: color-mix(in oklab, var(--blue) 55%, transparent);
+}
+.zsp-progress button[aria-current="step"] {
+  background: var(--blue);
+  transform: scale(1.35);
+}
+.zsp-progress button.attack {
+  background: color-mix(in oklab, #e5484d 30%, transparent);
+}
+.zsp-progress button.attack[aria-current="step"] {
+  background: #e5484d;
+}
+.zsp-hint {
+  margin: 12px 0 0;
+  color: var(--subtle);
+  font-size: 13.5px;
+}
+
+.zsp-facts {
+  padding-block: 8px 80px;
+}
+.zsp-facts h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+.zsp-facts ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+  color: var(--muted);
+}
+.zsp-facts li strong {
+  color: var(--ink);
+}
+.zsp-facts .actions {
+  margin-top: 20px;
+}
+
+@media (max-width: 760px) {
+  .zsp-stage {
+    grid-template-columns: minmax(96px, 1fr) minmax(48px, 0.5fr) minmax(96px, 1fr);
+    padding: 20px 12px 130px;
+  }
+  .zsp-wire-label {
+    display: none;
+  }
+  .zsp-icon {
+    width: 56px;
+    height: 56px;
+  }
+  .zsp-notes {
+    grid-template-columns: 1fr;
+  }
+  .zsp-result {
+    right: 12px;
+    left: 12px;
+    max-width: none;
+    bottom: 10px;
+  }
+  .zsp-attacker {
+    bottom: 64px;
+  }
+  .zsp-progress {
+    justify-content: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zsp-badges li,
+  .zsp-result {
+    animation: none;
+  }
+  .zsp-icon {
+    transition: none;
+  }
+}

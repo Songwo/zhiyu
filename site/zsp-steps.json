@@ -1,0 +1,403 @@
+{
+  "chapters": [
+    {
+      "id": "pair",
+      "title": "配对",
+      "hint": "只做一次"
+    },
+    {
+      "id": "session",
+      "title": "每次同步的握手",
+      "hint": "互相认证"
+    },
+    {
+      "id": "data",
+      "title": "同步内容",
+      "hint": "合并与写入"
+    },
+    {
+      "id": "attack",
+      "title": "有人捣乱会怎样",
+      "hint": "攻击一览"
+    }
+  ],
+  "steps": [
+    {
+      "id": "code",
+      "chapter": "pair",
+      "title": "网页版生成一次性配对码",
+      "what": "你登录网页版，在「设置 → 同步」点「生成配对码」：50 位随机码，5 分钟有效，只能用一次。你把它抄到桌面版里——这一步靠你的眼睛和手，不经过网络。",
+      "why": "只有登录了网页版的人才能生成配对码，它是整个信任的起点。",
+      "seen": "网络上没有任何东西：配对码从来不会被发送。",
+      "human": {
+        "from": "server",
+        "to": "desktop",
+        "label": "你看着抄过去"
+      },
+      "badges": {
+        "desktop": ["输入配对码"],
+        "server": ["配对码 K7M2Q-9XWPD"]
+      },
+      "readme": true
+    },
+    {
+      "id": "start",
+      "chapter": "pair",
+      "title": "桌面端开始配对，拿到会话号",
+      "what": "桌面端告诉服务器「我要配对」，服务器给出一个随机的会话号。双方各自用「配对码 + 会话号」算出同一个点 g。",
+      "why": "会话号让每次配对都用不同的 g，抓到旧数据也没用。",
+      "seen": "只看到「开始配对」和一个随机会话号，两者都不是秘密。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "开始配对"
+        },
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "会话号 sid"
+        }
+      ],
+      "badges": {
+        "desktop": ["g = H(配对码, sid)"],
+        "server": ["g = H(配对码, sid)"]
+      }
+    },
+    {
+      "id": "exchange",
+      "chapter": "pair",
+      "title": "各自选一个随机数，交换 g 的幂",
+      "what": "桌面端选随机数 a，发送 Ya = g^a；服务器选随机数 b，返回 Yb = g^b。配对码本身从不在网络上出现，出现的只有这两个点。",
+      "why": "这是 PAKE（口令认证密钥交换）：即使配对码很短，抓包的人也没法拿 Ya、Yb 离线去试码。",
+      "seen": "只看到 Ya、Yb 两个看起来随机的点，不知道配对码，也算不出密钥。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "Ya = g^a"
+        },
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "Yb = g^b"
+        }
+      ],
+      "badges": {
+        "desktop": ["随机数 a"],
+        "server": ["随机数 b"]
+      },
+      "readme": true
+    },
+    {
+      "id": "key",
+      "chapter": "pair",
+      "title": "算出同一个共享密钥",
+      "what": "桌面端算 Yb^a，服务器算 Ya^b，结果都是 g^(ab)。只有双方用同一个配对码算出同一个 g，才会得到同一个密钥。",
+      "why": "配对码输错、或者对面根本不知道配对码，算出来的就是完全不同的密钥，后面的验证一步都过不去。",
+      "seen": "密钥从未在网络上出现。",
+      "badges": {
+        "desktop": ["共享密钥 K"],
+        "server": ["共享密钥 K"]
+      }
+    },
+    {
+      "id": "prove",
+      "chapter": "pair",
+      "title": "桌面端先证明，服务器验证后才回应",
+      "what": "桌面端发出确认标签 tagC（用共享密钥算出的 HMAC）。服务器验证：不对就记一次失败，累计 3 次这个配对码就作废。",
+      "why": "必须是桌面端先证明——如果服务器先回应，攻击者每发起一次就能在本地验证一次猜测，而服务器一无所知。现在每次猜错服务器都看得见。",
+      "seen": "一个 32 字节的标签，算不出配对码。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "确认标签 tagC"
+        }
+      ],
+      "badges": {
+        "desktop": ["共享密钥 K"],
+        "server": ["验证 tagC ✓"]
+      },
+      "readme": true
+    },
+    {
+      "id": "confirm",
+      "chapter": "pair",
+      "title": "服务器回确认，桌面端也验证它",
+      "what": "tagC 通过后，服务器回 tagS。桌面端验证——这证明对面确实知道配对码，不是冒充的服务器。",
+      "why": "双向确认：服务器认得出你，你也认得出服务器。",
+      "seen": "又一个看不出内容的标签。",
+      "packets": [
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "确认标签 tagS"
+        }
+      ],
+      "badges": {
+        "desktop": ["验证 tagS ✓"],
+        "server": ["验证 tagC ✓"]
+      }
+    },
+    {
+      "id": "identity",
+      "chapter": "pair",
+      "title": "加密交换身份公钥，配对码作废",
+      "what": "在用共享密钥加密的通道里，桌面端发出设备公钥和签名，服务器发出服务器公钥和签名。双方各自把对方的公钥固定下来，配对码立即作废。",
+      "why": "从此以后认的是公钥，不再需要配对码。换一台假服务器，公钥对不上就连不上。",
+      "seen": "两段加密的数据，什么也读不出来。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "设备公钥 + 签名",
+          "enc": true
+        },
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "服务器公钥 + 签名",
+          "enc": true
+        }
+      ],
+      "badges": {
+        "desktop": ["已固定服务器公钥"],
+        "server": ["已登记设备公钥"]
+      },
+      "readme": true
+    },
+    {
+      "id": "hello",
+      "chapter": "session",
+      "title": "每次同步：先交换临时公钥",
+      "what": "同步开始时，桌面端发出设备 ID、一把全新的临时公钥和随机数。这些临时密钥只用这一次。",
+      "why": "会话密钥来自临时密钥，所以即使以后长期私钥泄露，也解不开过去的同步内容（前向保密）。",
+      "seen": "设备 ID、一把临时公钥、一个随机数，都是公开信息。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "设备 ID + 临时公钥 + 随机数"
+        }
+      ],
+      "badges": {
+        "desktop": ["固定的服务器公钥"],
+        "server": ["固定的设备公钥"]
+      }
+    },
+    {
+      "id": "server-hello",
+      "chapter": "session",
+      "title": "服务器签名，桌面端用固定的公钥验证",
+      "what": "服务器回临时公钥、随机数，并用服务器私钥对整个握手内容签名。桌面端用配对时固定下来的公钥验证——假冒的服务器没有私钥，在这里就会被识破。",
+      "why": "即使你在咖啡厅的公共 Wi-Fi 上、网页版没有 HTTPS，中间人也冒充不了服务器。",
+      "seen": "临时公钥和一段签名。签名只能证明身份，读不出任何内容。",
+      "packets": [
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "临时公钥 + 随机数 + 签名"
+        }
+      ],
+      "badges": {
+        "desktop": ["验证服务器签名 ✓"],
+        "server": ["固定的设备公钥"]
+      },
+      "readme": true
+    },
+    {
+      "id": "auth",
+      "chapter": "session",
+      "title": "设备签名，双方得到会话密钥",
+      "what": "桌面端用设备私钥对握手签名并加密发出，服务器验证——被你撤销的设备在这里就被拒绝。双方用两把临时密钥算出两个方向的 AES-256-GCM 会话密钥。",
+      "why": "两个方向用不同的密钥，每条消息还带递增的计数器，一条消息不能被原样重放，也不能反射回给发送方。",
+      "seen": "一段加密数据。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "设备签名",
+          "enc": true
+        }
+      ],
+      "badges": {
+        "desktop": ["会话密钥 AES-256-GCM"],
+        "server": ["验证设备签名 ✓", "会话密钥 AES-256-GCM"]
+      },
+      "readme": true
+    },
+    {
+      "id": "manifest",
+      "chapter": "data",
+      "title": "取文件清单，检查序号没有倒退",
+      "what": "桌面端请求文件清单。服务器返回每个文件的哈希、一个单调递增的序号，以及对「序号 + 清单」的签名。桌面端核对签名，并确认序号不小于上次见到的。",
+      "why": "如果服务器被恢复成旧备份，序号会倒退，桌面端会拒绝同步并提示你，而不是悄悄把旧数据同步回来。",
+      "seen": "加密的请求和响应，每条都带递增计数器。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "请求清单 #1",
+          "enc": true
+        },
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "哈希 + 序号 + 签名 #1",
+          "enc": true
+        }
+      ],
+      "badges": {
+        "desktop": ["序号没有倒退 ✓"],
+        "server": ["清单签名"]
+      },
+      "readme": true
+    },
+    {
+      "id": "merge",
+      "chapter": "data",
+      "title": "三方合并：只传变化的内容",
+      "what": "桌面端拿「上次同步后的基线」、本机和服务器三份做合并：不同记录与字段直接合并；一边删除一边修改时保留修改；文档冲突另存副本。密钥库默认不同步，开启后也只传 AES 密文。",
+      "why": "合并发生在持有基线的桌面端，服务器只存取，不做决定；任何一种冲突都不会静默丢数据。",
+      "seen": "加密数据。就算看得到长度，也读不出内容。",
+      "packets": [
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "变化的文件 #2",
+          "enc": true
+        },
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "合并后的文件 #3",
+          "enc": true
+        }
+      ],
+      "badges": {
+        "desktop": ["三方合并"],
+        "server": ["比较期望哈希"]
+      }
+    },
+    {
+      "id": "commit",
+      "chapter": "data",
+      "title": "写入前先比较，网页版期间改过就重来",
+      "what": "写入时桌面端带上「我读到的版本哈希」。服务器写入前比较：如果期间网页版又改过，拒绝写入，桌面端重新合并再来，不会覆盖你刚改的内容。",
+      "why": "这就是「比较后交换」，两边同时编辑也不会互相覆盖。",
+      "seen": "加密数据。",
+      "packets": [
+        {
+          "from": "desktop",
+          "to": "server",
+          "label": "写入 + 期望哈希",
+          "enc": true
+        },
+        {
+          "from": "server",
+          "to": "desktop",
+          "label": "完成",
+          "enc": true
+        }
+      ],
+      "badges": {
+        "desktop": ["同步完成"],
+        "server": ["已写入"]
+      }
+    },
+    {
+      "id": "attack-replay",
+      "chapter": "attack",
+      "title": "抓包重放旧消息",
+      "what": "有人把抓到的一条同步消息原样再发一遍。",
+      "why": "每条消息的计数器必须正好是下一个期望值。重放的消息序号不对，服务器直接销毁整个会话。",
+      "seen": "只有加密的数据；原样重发得不到任何新信息。",
+      "attacker": {
+        "to": "server",
+        "label": "重放旧消息",
+        "result": "序号不对，会话销毁",
+        "target": "server"
+      },
+      "badges": {
+        "desktop": [],
+        "server": ["计数器严格递增"]
+      },
+      "readme": true
+    },
+    {
+      "id": "attack-tamper",
+      "chapter": "attack",
+      "title": "篡改一个比特",
+      "what": "有人在传输途中改动消息里的一个比特。",
+      "why": "AES-GCM 同时做加密和认证，任何改动都会让认证标签对不上，消息被丢弃，也不会推进计数器。",
+      "seen": "只有密文；改动后无法通过认证，也读不出任何内容。",
+      "attacker": {
+        "to": "desktop",
+        "label": "改动 1 比特",
+        "result": "认证失败，丢弃",
+        "target": "desktop"
+      },
+      "badges": {
+        "desktop": ["AES-GCM 认证"],
+        "server": []
+      }
+    },
+    {
+      "id": "attack-fake",
+      "chapter": "attack",
+      "title": "冒充你的服务器",
+      "what": "有人搭了一台假服务器，或者把你的流量劫持到别处。",
+      "why": "桌面端只认配对时固定下来的服务器公钥。假服务器没有对应的私钥，签名对不上，握手在第二步就失败了。",
+      "seen": "什么也拿不到：握手没有通过，桌面端不会发送任何资料。",
+      "attacker": {
+        "to": "desktop",
+        "label": "假服务器签名",
+        "result": "签名对不上，拒绝连接",
+        "target": "desktop"
+      },
+      "badges": {
+        "desktop": ["固定的服务器公钥"],
+        "server": []
+      },
+      "readme": true
+    },
+    {
+      "id": "attack-guess",
+      "chapter": "attack",
+      "title": "偷看或乱猜配对码",
+      "what": "有人想在 5 分钟里猜出配对码，或者对服务器反复发起配对。",
+      "why": "50 位随机码、一次性、5 分钟有效；必须先证明才会得到回应，所以每次猜错都被服务器记录，错 3 次或尝试超限，配对码就作废。",
+      "seen": "只能得到「配对码不正确」；每猜一次都被服务器记一笔。",
+      "attacker": {
+        "to": "server",
+        "label": "猜配对码",
+        "result": "错 3 次作废",
+        "target": "server"
+      },
+      "badges": {
+        "desktop": [],
+        "server": ["配对码作废"]
+      }
+    },
+    {
+      "id": "attack-rollback",
+      "chapter": "attack",
+      "title": "服务器恢复了旧备份",
+      "what": "服务器被入侵，或者你自己恢复了一份旧备份，网页版的数据比上次同步时更旧。",
+      "why": "清单序号倒退，桌面端拒绝同步并提示你，由你确认后才重新对照；不会悄悄用旧数据覆盖新数据。",
+      "seen": "拿不到什么：桌面端不会采纳旧数据，本机资料原样保留。",
+      "attacker": {
+        "to": "desktop",
+        "label": "旧数据 + 旧序号",
+        "result": "序号倒退，拒绝同步",
+        "target": "desktop"
+      },
+      "badges": {
+        "desktop": ["序号倒退 → 等你确认"],
+        "server": []
+      },
+      "readme": true
+    }
+  ]
+}

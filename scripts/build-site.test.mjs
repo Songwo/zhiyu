@@ -116,3 +116,57 @@ test("没有正文时回退到发布标题，长说明保持简短", () => {
       221,
   );
 });
+
+test("同步协议动画：分镜自洽，动画 SVG 与分镜同步，页面模板的占位符都有值", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { buildSvg } = await import("./build-zsp-svg.mjs");
+  const storyboard = JSON.parse(await readFile("site/zsp-steps.json", "utf8"));
+  const chapters = new Set(storyboard.chapters.map((chapter) => chapter.id));
+  const ids = new Set();
+  const actors = new Set(["desktop", "server"]);
+  for (const step of storyboard.steps) {
+    assert.ok(!ids.has(step.id), `步骤 id 重复：${step.id}`);
+    ids.add(step.id);
+    assert.ok(chapters.has(step.chapter), `${step.id} 的章节不存在`);
+    for (const field of ["title", "what", "why", "seen"])
+      assert.ok(
+        typeof step[field] === "string" && step[field].length > 4,
+        `${step.id} 缺少 ${field}`,
+      );
+    for (const packet of step.packets ?? []) {
+      assert.ok(
+        actors.has(packet.from) && actors.has(packet.to) && packet.from !== packet.to,
+        step.id,
+      );
+      assert.ok(packet.label?.length > 0, step.id);
+    }
+    if (step.chapter === "attack")
+      assert.ok(step.attacker?.result && step.attacker.target, step.id);
+    else assert.equal(step.attacker, undefined, `${step.id} 只有攻击章节才有攻击者`);
+  }
+  assert.ok(storyboard.steps.some((step) => step.readme));
+  assert.equal(
+    buildSvg(storyboard),
+    await readFile("site/zsp-flow.svg", "utf8"),
+    "分镜改过后请运行 node scripts/build-zsp-svg.mjs 重新生成 site/zsp-flow.svg",
+  );
+  for (const file of ["site/sync.html", "site/index.html", "site/guide.html"]) {
+    const html = await readFile(file, "utf8");
+    const values = {
+      VERSION: "1.2.3",
+      ASSET_REVISION: "abc",
+      STEP_COUNT: storyboard.steps.length,
+      RELEASE_DATE: "d",
+      RELEASE_ISO_DATE: "d",
+      RELEASE_SUMMARY: "s",
+      RELEASE_URL: "u",
+      INSTALLER_URL: "u",
+      INSTALLER_SIZE: "1 MB",
+      EXTENSION_URL: "u",
+      CHECKSUM_URL: "u",
+      PORTABLE_URL: "u",
+      PORTABLE_SIZE: "1 MB",
+    };
+    assert.doesNotMatch(renderSite(html, values), /\{\{[A-Z_]+\}\}/, file);
+  }
+});

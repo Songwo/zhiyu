@@ -6,7 +6,7 @@
     <title>知屿 Zhiyu — 让数字资产有处安放</title>
     <meta
       name="description"
-      content="知屿 Zhiyu：连接文档、账号与数字资产的开源本地工作空间。资产详情与关联、续费日历、用量图表、Markdown 文档与加密密钥库。下载最新 Windows 正式版。"
+      content="知屿 Zhiyu：连接文档、账号与数字资产的开源本地工作空间。资产详情与关联、续费日历、用量图表、Markdown 文档与加密密钥库，可与自己服务器上的网页版加密同步，并监控端口与 Docker 容器。下载最新 Windows 正式版。"
     />
     <link rel="canonical" href="https://songwo.github.io/zhiyu/" />
     <link rel="icon" href="./favicon.svg?v={{ASSET_REVISION}}" type="image/svg+xml" />
@@ -34,7 +34,7 @@
           <span>Zhiyu</span></a
         >
         <nav aria-label="网站导航">
-          <a href="#video">宣传片</a><a href="#features">功能</a><a href="./guide.html">使用指南</a
+          <a href="#video">宣传片</a><a href="#features">功能</a><a href="./sync.html">同步协议</a><a href="./guide.html">使用指南</a
           ><a href="#download">下载</a
           ><a class="nav-github" href="https://github.com/Songwo/zhiyu">GitHub ↗</a>
         </nav>
@@ -224,6 +224,55 @@
           </figure>
         </article>
 
+        <article class="wrap feature reverse">
+          <div class="feature-copy">
+            <span class="tag tag-teal">桌面 ↔ 网页版同步</span>
+            <h3>桌面和你自己的服务器，同步也要讲安全</h3>
+            <p>
+              把知屿网页版部署在自己的 VPS 上，在网页版生成一次性配对码，桌面版填入即可配对；之后自动同步资产与文档，两边都能改，冲突时两份都保留。
+            </p>
+            <ul>
+              <li>配对用 PAKE，抓包也无法离线猜码；之后每次用设备密钥互相认证，纯 http 下也不怕中间人</li>
+              <li>密钥库默认不同步，开启后只传密文；Token 与 API Key 永远不同步</li>
+              <li>服务器恢复了旧备份时，桌面版会拒绝同步并提示；设备可随时撤销</li>
+              <li><a href="./sync.html">一步一步看协议动画 →</a></li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img
+              src="./zsp-flow.svg?v={{ASSET_REVISION}}"
+              width="960"
+              height="540"
+              loading="lazy"
+              alt="同步协议动画：配对码、PAKE、设备公钥互相固定、AES-256-GCM 加密同步，以及重放、冒充、回滚被拒绝"
+            />
+          </figure>
+        </article>
+
+        <article class="wrap feature">
+          <div class="feature-copy">
+            <span class="tag tag-amber">端口与容器</span>
+            <h3>服务器上跑着什么，一眼看到</h3>
+            <p>
+              通过 SSH 只读查看监听端口和 Docker 容器：状态、健康检查、重启次数、CPU 与内存，并和你记录的服务、域名对应起来。
+            </p>
+            <ul>
+              <li>容器反复重启、异常退出、内存不足时有系统通知和手机推送</li>
+              <li>服务资产可绑定主机、端口、容器与域名，状态自动更新</li>
+              <li>没装 Docker 或没有权限时说明原因，不影响原有指标</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img
+              src="./services.png?v={{ASSET_REVISION}}"
+              width="1920"
+              height="1200"
+              loading="lazy"
+              alt="服务器详情的端口与容器：容器状态、监听端口，以及绑定到这台主机的服务"
+            />
+          </figure>
+        </article>
+
         <div class="wrap mini-grid">
           <figure class="shot mini">
             <img
@@ -302,7 +351,15 @@
           <summary>数据会上传吗？</summary>
           <p>
             资产、文档与用量历史默认保存在本机。启用图床会上传所选图片；连接邮箱、面板或 AI
-            服务会请求相应服务。使用远端模型问答时，相关上下文会发送给你配置的模型。
+            服务会请求相应服务。使用远端模型问答时，相关上下文会发送给你配置的模型。只有在你自己配对了自己服务器上的网页版后，才会同步到那台服务器。
+          </p>
+        </details>
+        <details>
+          <summary>同步安全吗？服务器会看到我的密码吗？</summary>
+          <p>
+            密钥库默认不同步；开启后只传 AES-256-GCM 密文，服务器没有主密码，看不到明文。Cloudflare Token、模型 API Key 等系统加密保存的凭据永远不同步。同步协议用一次性配对码和设备密钥互相认证，纯 http 下也不会被中间人读取或篡改。协议是自研的组合，没有经过第三方审计，设计与威胁模型见
+            <a href="https://github.com/Songwo/zhiyu/blob/main/docs/SYNC.md">SYNC.md</a>，也可以先看
+            <a href="./sync.html">协议动画</a>。
           </p>
         </details>
         <details>

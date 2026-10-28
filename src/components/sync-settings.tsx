@@ -6,6 +6,7 @@ import {
   KeyRound,
   Link2,
   Loader2,
+  PlayCircle,
   MonitorSmartphone,
   RefreshCw,
   ShieldCheck,
@@ -14,12 +15,30 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { desktop } from "@/lib/desktop";
+import { openExternal } from "@/lib/web-bridge";
 import { t } from "@/lib/i18n";
 import type { SyncEvent, SyncScope, SyncStatus, WebPairing, WebSyncInfo } from "@/lib/sync";
 import { relativeTime } from "@/lib/utils";
 import { isWeb, webApi } from "@/lib/web";
 import { Button } from "./ui/button";
 import { Field, Input } from "./ui/input";
+
+const ANIMATION_URL = "https://songwo.github.io/zhiyu/sync.html";
+
+/** 打开产品主页上的协议动画：一步一步看配对、认证和同步是怎么保护数据的。 */
+function AnimationLink() {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      onClick={() => void openExternal(ANIMATION_URL)}
+    >
+      <PlayCircle />
+      {t("看动画：配对与同步是怎么保护你的")}
+    </Button>
+  );
+}
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
@@ -120,6 +139,8 @@ function DesktopSync() {
           )}
         </p>
       </header>
+
+      <AnimationLink />
 
       {status.attention && (
         <Card tone="warn">
@@ -324,6 +345,7 @@ function PairForm({
           <li>{t("配对成功后，核对两边显示的服务器指纹是否一致（可选）。")}</li>
         </ol>
       </Card>
+      <AnimationLink />
       <Field label={t("网页版地址")}>
         <Input
           aria-label={t("网页版地址")}
@@ -447,6 +469,8 @@ function WebSyncHost() {
           )}
         </p>
       </header>
+
+      <AnimationLink />
 
       <Card>
         <p className="text-meta font-medium">{t("这台服务器的指纹")}</p>

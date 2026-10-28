@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540" role="img" aria-labelledby="t d">
+<title id="t">知屿桌面版与网页版同步（ZSP）的配对与同步流程动画</title>
+<desc id="d">桌面版和网页版用一次性配对码配对，之后每次同步互相认证并加密；重放、篡改、冒充、回滚都会被拒绝。完整说明见 docs/SYNC.md。</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1b2232;--muted:#5b6478;--line:rgba(27,34,50,.22);--blue:#3b6fe0;--blue-soft:#e5edff;--teal:#138a96;--amber:#ffb23f;--red:#e5484d;--chip:#f3f4f7;--ok:#1a8a5b;font-family:Inter,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){svg{--bg:#1b1d22;--ink:#eef0f5;--muted:#a2a8b6;--line:rgba(255,255,255,.25);--blue:#5b87f0;--blue-soft:rgba(91,135,240,.18);--teal:#35b6c2;--chip:#272a31;--ok:#47c98f}}
+.bg{fill:var(--bg)}.title{font-size:22px;font-weight:700;fill:var(--ink)}.why{font-size:15px;fill:var(--muted)}
+.muted{fill:var(--muted)}.small{font-size:13px}.pill{font-size:13px;fill:var(--muted)}
+.wire{stroke:var(--line);stroke-width:2;stroke-dasharray:6 6;fill:none}
+.ico-bg{fill:var(--blue-soft)}.ico{fill:none;stroke:var(--blue);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.name{font-size:17px;font-weight:700;fill:var(--ink)}
+.chip{fill:var(--chip);stroke:var(--line);stroke-width:1}.chip.ok{stroke:var(--ok)}.chip-t{font-size:13px;fill:var(--muted)}.chip-t.ok{fill:var(--ok)}
+.pk-bg{fill:var(--blue)}.pk-enc{fill:var(--teal)}.human{fill:var(--amber)}.pk-evil{fill:var(--red)}
+.pk{font-size:13px;fill:#fff}.human+.pk{fill:#3a2a00}.lock{font-size:12px}
+.evil-bg{fill:rgba(229,72,77,.14)}.evil{font-size:30px;fill:var(--red)}
+.res{fill:rgba(229,72,77,.12)}.res-t{font-size:14px;font-weight:700;fill:var(--red)}
+@keyframes v0{0%{opacity:0}0.538%{opacity:1}9.462%{opacity:1}10.000%{opacity:0}100%{opacity:0}}
+.s0{animation:v0 65s linear infinite;opacity:0}
+@keyframes h0{0%,0.923%{transform:translate(588px,92px);opacity:0}1.231%{transform:translate(588px,92px);opacity:1}4.308%{transform:translate(230px,92px);opacity:1}100%{transform:translate(230px,92px);opacity:1}}
+.h0{animation:h0 65s ease-in-out infinite}
+@keyframes v1{0%{opacity:0}10.000%{opacity:0}10.538%{opacity:1}19.462%{opacity:1}20.000%{opacity:0}100%{opacity:0}}
+.s1{animation:v1 65s linear infinite;opacity:0}
+@keyframes p1_0{0%,11.077%{transform:translate(222px,130px);opacity:0}11.385%{transform:translate(222px,130px);opacity:1}13.385%{transform:translate(650px,130px);opacity:1}100%{transform:translate(650px,130px);opacity:1}}
+.p1_0{animation:p1_0 65s ease-in-out infinite}
+@keyframes p1_1{0%,13.692%{transform:translate(650px,182px);opacity:0}14.000%{transform:translate(650px,182px);opacity:1}16.000%{transform:translate(222px,182px);opacity:1}100%{transform:translate(222px,182px);opacity:1}}
+.p1_1{animation:p1_1 65s ease-in-out infinite}
+@keyframes v2{0%{opacity:0}20.000%{opacity:0}20.538%{opacity:1}29.462%{opacity:1}30.000%{opacity:0}100%{opacity:0}}
+.s2{animation:v2 65s linear infinite;opacity:0}
+@keyframes p2_0{0%,21.077%{transform:translate(222px,130px);opacity:0}21.385%{transform:translate(222px,130px);opacity:1}23.385%{transform:translate(620px,130px);opacity:1}100%{transform:translate(620px,130px);opacity:1}}
+.p2_0{animation:p2_0 65s ease-in-out infinite}
+@keyframes v3{0%{opacity:0}30.000%{opacity:0}30.538%{opacity:1}39.462%{opacity:1}40.000%{opacity:0}100%{opacity:0}}
+.s3{animation:v3 65s linear infinite;opacity:0}
+@keyframes p3_0{0%,31.077%{transform:translate(222px,130px);opacity:0}31.385%{transform:translate(222px,130px);opacity:1}33.385%{transform:translate(590px,130px);opacity:1}100%{transform:translate(590px,130px);opacity:1}}
+.p3_0{animation:p3_0 65s ease-in-out infinite}
+@keyframes p3_1{0%,33.692%{transform:translate(577px,182px);opacity:0}34.000%{transform:translate(577px,182px);opacity:1}36.000%{transform:translate(222px,182px);opacity:1}100%{transform:translate(222px,182px);opacity:1}}
+.p3_1{animation:p3_1 65s ease-in-out infinite}
+@keyframes v4{0%{opacity:0}40.000%{opacity:0}40.538%{opacity:1}49.462%{opacity:1}50.000%{opacity:0}100%{opacity:0}}
+.s4{animation:v4 65s linear infinite;opacity:0}
+@keyframes p4_0{0%,41.077%{transform:translate(547px,182px);opacity:0}41.385%{transform:translate(547px,182px);opacity:1}43.385%{transform:translate(222px,182px);opacity:1}100%{transform:translate(222px,182px);opacity:1}}
+.p4_0{animation:p4_0 65s ease-in-out infinite}
+@keyframes v5{0%{opacity:0}50.000%{opacity:0}50.538%{opacity:1}59.462%{opacity:1}60.000%{opacity:0}100%{opacity:0}}
+.s5{animation:v5 65s linear infinite;opacity:0}
+@keyframes p5_0{0%,51.077%{transform:translate(222px,130px);opacity:0}51.385%{transform:translate(222px,130px);opacity:1}53.385%{transform:translate(638px,130px);opacity:1}100%{transform:translate(638px,130px);opacity:1}}
+.p5_0{animation:p5_0 65s ease-in-out infinite}
+@keyframes v6{0%{opacity:0}60.000%{opacity:0}60.538%{opacity:1}69.462%{opacity:1}70.000%{opacity:0}100%{opacity:0}}
+.s6{animation:v6 65s linear infinite;opacity:0}
+@keyframes p6_0{0%,61.077%{transform:translate(222px,130px);opacity:0}61.385%{transform:translate(222px,130px);opacity:1}63.385%{transform:translate(616px,130px);opacity:1}100%{transform:translate(616px,130px);opacity:1}}
+.p6_0{animation:p6_0 65s ease-in-out infinite}
+@keyframes p6_1{0%,63.692%{transform:translate(546px,182px);opacity:0}64.000%{transform:translate(546px,182px);opacity:1}66.000%{transform:translate(222px,182px);opacity:1}100%{transform:translate(222px,182px);opacity:1}}
+.p6_1{animation:p6_1 65s ease-in-out infinite}
+@keyframes v7{0%{opacity:0}70.000%{opacity:0}70.538%{opacity:1}79.462%{opacity:1}80.000%{opacity:0}100%{opacity:0}}
+.s7{animation:v7 65s linear infinite;opacity:0}
+@keyframes a7{0%,71.077%{transform:translate(432.5px,340px);opacity:0}71.385%{transform:translate(432.5px,340px);opacity:1}73.692%{transform:translate(641px,214px);opacity:1}100%{transform:translate(641px,214px);opacity:1}}
+.a7{animation:a7 65s ease-in-out infinite}
+@keyframes r7{0%,73.538%{opacity:0}74.154%{opacity:1}100%{opacity:1}}
+.r7{animation:r7 65s linear infinite;opacity:0}
+@keyframes v8{0%{opacity:0}80.000%{opacity:0}80.538%{opacity:1}89.462%{opacity:1}90.000%{opacity:0}100%{opacity:0}}
+.s8{animation:v8 65s linear infinite;opacity:0}
+@keyframes a8{0%,81.077%{transform:translate(426px,340px);opacity:0}81.385%{transform:translate(426px,340px);opacity:1}83.692%{transform:translate(224px,214px);opacity:1}100%{transform:translate(224px,214px);opacity:1}}
+.a8{animation:a8 65s ease-in-out infinite}
+@keyframes r8{0%,83.538%{opacity:0}84.154%{opacity:1}100%{opacity:1}}
+.r8{animation:r8 65s linear infinite;opacity:0}
+@keyframes v9{0%{opacity:0}90.000%{opacity:0}90.538%{opacity:1}99.462%{opacity:1}100.000%{opacity:0}100%{opacity:0}}
+.s9{animation:v9 65s linear infinite;opacity:0}
+@keyframes a9{0%,91.077%{transform:translate(415px,340px);opacity:0}91.385%{transform:translate(415px,340px);opacity:1}93.692%{transform:translate(224px,214px);opacity:1}100%{transform:translate(224px,214px);opacity:1}}
+.a9{animation:a9 65s ease-in-out infinite}
+@keyframes r9{0%,93.538%{opacity:0}94.154%{opacity:1}100%{opacity:1}}
+.r9{animation:r9 65s linear infinite;opacity:0}
+@media (prefers-reduced-motion:reduce){.step{animation:none!important;opacity:0}.s0{opacity:1!important}*[class*="p0_"],*[class*="h0"]{animation:none!important;opacity:1!important}}
+</style>
+<rect class="bg" width="960" height="540" rx="22"/>
+<text class="pill" x="32" y="42">知屿 · 同步协议 ZSP</text>
+<line class="wire" x1="222" y1="170" x2="738" y2="170"/>
+<rect class="ico-bg" x="132" y="132" width="76" height="76" rx="20"/><g transform="translate(146 134)" class="ico"><rect x="6" y="9" width="36" height="24" rx="3"/><path d="M2 38h44M18 33v5M30 33v5"/></g>
+<text class="name" x="170" y="236" text-anchor="middle">桌面版</text><text class="muted small" x="170" y="256" text-anchor="middle">你的电脑</text>
+<rect class="ico-bg" x="752" y="132" width="76" height="76" rx="20"/><g transform="translate(766 134)" class="ico"><rect x="7" y="8" width="34" height="13" rx="3"/><rect x="7" y="27" width="34" height="13" rx="3"/><path d="M13 14.5h.01M13 33.5h.01M20 14.5h14M20 33.5h14"/></g>
+<text class="name" x="790" y="236" text-anchor="middle">网页版</text><text class="muted small" x="790" y="256" text-anchor="middle">你的 VPS</text>
+<g class="step s0"><text class="pill" x="928" y="42" text-anchor="end">配对 · 1/10</text><rect class="chip" x="125.5" y="292" width="89" height="26" rx="13"/><text class="chip-t" x="170" y="309.5" text-anchor="middle">输入配对码</text><rect class="chip" x="715" y="292" width="150" height="26" rx="13"/><text class="chip-t" x="790" y="309.5" text-anchor="middle">配对码 K7M2Q-9XWPD</text><text class="muted small" x="480" y="150" text-anchor="middle">不经过网络</text><text class="title" x="32" y="468">网页版生成一次性配对码</text><text class="why" x="32" y="496">只有登录了网页版的人才能生成配对码，它是整个信任的起点。</text><g class="h0"><rect class="human" width="108" height="28" rx="14"/><text class="pk" x="14" y="19">你看着抄过去</text></g></g>
+<g class="step s1"><text class="pill" x="928" y="42" text-anchor="end">配对 · 2/10</text><rect class="chip" x="131" y="292" width="78" height="26" rx="13"/><text class="chip-t" x="170" y="309.5" text-anchor="middle">随机数 a</text><rect class="chip" x="751" y="292" width="78" height="26" rx="13"/><text class="chip-t" x="790" y="309.5" text-anchor="middle">随机数 b</text><text class="muted small" x="480" y="152" text-anchor="middle">网络（可能被监听）</text><text class="title" x="32" y="468">各自选一个随机数，交换 g 的幂</text><text class="why" x="32" y="496">这是 PAKE（口令认证密钥交换）：即使配对码很短，抓包的人也没法拿 Ya、Yb 离线去试码。</text><g class="p1_0"><rect class="pk-bg" width="88" height="28" rx="14"/><text class="pk" x="14" y="19">Ya = g^a</text></g><g class="p1_1"><rect class="pk-bg" width="88" height="28" rx="14"/><text class="pk" x="14" y="19">Yb = g^b</text></g></g>
+<g class="step s2"><text class="pill" x="928" y="42" text-anchor="end">配对 · 3/10</text><rect class="chip" x="124.5" y="292" width="91" height="26" rx="13"/><text class="chip-t" x="170" y="309.5" text-anchor="middle">共享密钥 K</text><rect class="chip ok" x="739.5" y="292" width="101" height="26" rx="13"/><text class="chip-t ok" x="790" y="309.5" text-anchor="middle">验证 tagC ✓</text><text class="muted small" x="480" y="152" text-anchor="middle">网络（可能被监听）</text><text class="title" x="32" y="468">桌面端先证明，服务器验证后才回应</text><text class="why" x="32" y="496">必须是桌面端先证明——如果服务器先回应，攻击者每发起一次就能在本地验证一次猜测，而服务器一无所知。现在每次猜错服务器都看得见</text><text class="why" x="32" y="518">。</text><g class="p2_0"><rect class="pk-bg" width="118" height="28" rx="14"/><text class="pk" x="14" y="19">确认标签 tagC</text></g></g>
+<g class="step s3"><text class="pill" x="928" y="42" text-anchor="end">配对 · 4/10</text><rect class="chip" x="106" y="292" width="128" height="26" rx="13"/><text class="chip-t" x="170" y="309.5" text-anchor="middle">已固定服务器公钥</text><rect class="chip" x="732.5" y="292" width="115" height="26" rx="13"/><text class="chip-t" x="790" y="309.5" text-anchor="middle">已登记设备公钥</text><text class="muted small" x="480" y="152" text-anchor="middle">网络（可能被监听）</text><text class="title" x="32" y="468">加密交换身份公钥，配对码作废</text><text class="why" x="32" y="496">从此以后认的是公钥，不再需要配对码。换一台假服务器，公钥对不上就连不上。</text><g class="p3_0"><rect class="pk-enc" width="148" height="28" rx="14"/><text class="lock" x="12" y="19">🔒</text><text class="pk" x="30" y="19">设备公钥 + 签名</text></g><g class="p3_1"><rect class="pk-enc" width="161" height="28" rx="14"/><text class="lock" x="12" y="19">🔒</text><text class="pk" x="30" y="19">服务器公钥 + 签名</text></g></g>
+<g class="step s4"><text class="pill" x="928" y="42" text-anchor="end">每次同步的握手 · 5/10</text><rect class="chip ok" x="105" y="292" width="130" height="26" rx="13"/><text class="chip-t ok" x="170" y="309.5" text-anchor="middle">验证服务器签名 ✓</text><rect class="chip" x="732.5" y="292" width="115" height="26" rx="13"/><text class="chip-t" x="790" y="309.5" text-anchor="middle">固定的设备公钥</text><text class="muted small" x="480" y="152" text-anchor="middle">网络（可能被监听）</text><text class="title" x="32" y="468">服务器签名，桌面端用固定的公钥验证</text><text class="why" x="32" y="496">即使你在咖啡厅的公共 Wi-Fi 上、网页版没有 HTTPS，中间人也冒充不了服务器。</text><g class="p4_0"><rect class="pk-bg" width="191" height="28" rx="14"/><text class="pk" x="14" y="19">临时公钥 + 随机数 + 签名</text></g></g>
+<g class="step s5"><text class="pill" x="928" y="42" text-anchor="end">每次同步的握手 · 6/10</text><rect class="chip" x="88.5" y="292" width="163" height="26" rx="13"/><text class="chip-t" x="170" y="309.5" text-anchor="middle">会话密钥 AES-256-GCM</text><rect class="chip ok" x="731.5" y="292" width="117" height="26" rx="13"/><text class="chip-t ok" x="790" y="309.5" text-anchor="middle">验证设备签名 ✓</text><rect class="chip" x="708.5" y="326" width="163" height="26" rx="13"/><text class="chip-t" x="790" y="343.5" text-anchor="middle">会话密钥 AES-256-GCM</text><text class="muted small" x="480" y="152" text-anchor="middle">网络（可能被监听）</text><text class="title" x="32" y="468">设备签名，双方得到会话密钥</text><text class="why" x="32" y="496">两个方向用不同的密钥，每条消息还带递增的计数器，一条消息不能被原样重放，也不能反射回给发送方。</text><g class="p5_0"><rect class="pk-enc" width="100" height="28" rx="14"/><text class="lock" x="12" y="19">🔒</text><text class="pk" x="30" y="19">设备签名</text></g></g>
+<g class="step s6"><text class="pill" x="928" y="42" text-anchor="end">同步内容 · 7/10</text><rect class="chip ok" x="111.5" y="292" width="117" height="26" rx="13"/><text class="chip-t ok" x="170" y="309.5" text-anchor="middle">序号没有倒退 ✓</text><rect class="chip" x="752" y="292" width="76" height="26" rx="13"/><text class="chip-t" x="790" y="309.5" text-anchor="middle">清单签名</text><text class="muted small" x="480" y="152" text-anchor="middle">网络（可能被监听）</text><text class="title" x="32" y="468">取文件清单，检查序号没有倒退</text><text class="why" x="32" y="496">如果服务器被恢复成旧备份，序号会倒退，桌面端会拒绝同步并提示你，而不是悄悄把旧数据同步回来。</text><g class="p6_0"><rect class="pk-enc" width="122" height="28" rx="14"/><text class="lock" x="12" y="19">🔒</text><text class="pk" x="30" y="19">请求清单 #1</text></g><g class="p6_1"><rect class="pk-enc" width="192" height="28" rx="14"/><text class="lock" x="12" y="19">🔒</text><text class="pk" x="30" y="19">哈希 + 序号 + 签名 #1</text></g></g>
+<g class="step s7"><text class="pill" x="928" y="42" text-anchor="end">有人捣乱会怎样 · 8/10</text><rect class="chip" x="732.5" y="292" width="115" height="26" rx="13"/><text class="chip-t" x="790" y="309.5" text-anchor="middle">计数器严格递增</text><text class="muted small" x="480" y="152" text-anchor="middle">有人在这条线上</text><circle class="evil-bg" cx="480" cy="372" r="30"/><text class="evil" x="480" y="381" text-anchor="middle">☠</text><text class="muted small" x="480" y="424" text-anchor="middle">捣乱的人</text><g class="r7"><rect class="res" x="705" y="336" width="170" height="32" rx="10"/><text class="res-t" x="790" y="357" text-anchor="middle">✕ 序号不对，会话销毁</text></g><text class="title" x="32" y="468">抓包重放旧消息</text><text class="why" x="32" y="496">每条消息的计数器必须正好是下一个期望值。重放的消息序号不对，服务器直接销毁整个会话。</text><g class="a7"><rect class="pk-evil" width="95" height="28" rx="14"/><text class="pk" x="14" y="19">重放旧消息</text></g></g>
+<g class="step s8"><text class="pill" x="928" y="42" text-anchor="end">有人捣乱会怎样 · 9/10</text><rect class="chip" x="106" y="292" width="128" height="26" rx="13"/><text class="chip-t" x="170" y="309.5" text-anchor="middle">固定的服务器公钥</text><text class="muted small" x="480" y="152" text-anchor="middle">有人在这条线上</text><circle class="evil-bg" cx="480" cy="372" r="30"/><text class="evil" x="480" y="381" text-anchor="middle">☠</text><text class="muted small" x="480" y="424" text-anchor="middle">捣乱的人</text><g class="r8"><rect class="res" x="78" y="336" width="184" height="32" rx="10"/><text class="res-t" x="170" y="357" text-anchor="middle">✕ 签名对不上，拒绝连接</text></g><text class="title" x="32" y="468">冒充你的服务器</text><text class="why" x="32" y="496">桌面端只认配对时固定下来的服务器公钥。假服务器没有对应的私钥，签名对不上，握手在第二步就失败了。</text><g class="a8"><rect class="pk-evil" width="108" height="28" rx="14"/><text class="pk" x="14" y="19">假服务器签名</text></g></g>
+<g class="step s9"><text class="pill" x="928" y="42" text-anchor="end">有人捣乱会怎样 · 10/10</text><rect class="chip" x="95" y="292" width="150" height="26" rx="13"/><text class="chip-t" x="170" y="309.5" text-anchor="middle">序号倒退 → 等你确认</text><text class="muted small" x="480" y="152" text-anchor="middle">有人在这条线上</text><circle class="evil-bg" cx="480" cy="372" r="30"/><text class="evil" x="480" y="381" text-anchor="middle">☠</text><text class="muted small" x="480" y="424" text-anchor="middle">捣乱的人</text><g class="r9"><rect class="res" x="85" y="336" width="170" height="32" rx="10"/><text class="res-t" x="170" y="357" text-anchor="middle">✕ 序号倒退，拒绝同步</text></g><text class="title" x="32" y="468">服务器恢复了旧备份</text><text class="why" x="32" y="496">清单序号倒退，桌面端拒绝同步并提示你，由你确认后才重新对照；不会悄悄用旧数据覆盖新数据。</text><g class="a9"><rect class="pk-evil" width="130" height="28" rx="14"/><text class="pk" x="14" y="19">旧数据 + 旧序号</text></g></g>
+</svg>

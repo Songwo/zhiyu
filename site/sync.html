@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>同步协议动画 · 知屿 Zhiyu</title>
+    <meta
+      name="description"
+      content="知屿桌面版与网页版同步（ZSP）的配对、握手与同步过程动画：一次性配对码、PAKE、设备密钥互相认证、AES-256-GCM 加密、三方合并，以及重放、篡改、冒充、回滚时会发生什么。"
+    />
+    <link rel="canonical" href="https://songwo.github.io/zhiyu/sync.html" />
+    <link rel="icon" href="./favicon.svg?v={{ASSET_REVISION}}" type="image/svg+xml" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta property="og:title" content="知屿同步协议动画：配对、认证与同步" />
+    <meta
+      property="og:description"
+      content="一步一步看桌面版和你自己的服务器如何配对、互相认证并加密同步。"
+    />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="./style.css?v={{ASSET_REVISION}}" />
+    <link rel="stylesheet" href="./sync.css?v={{ASSET_REVISION}}" />
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到正文</a>
+    <header class="site-header">
+      <div class="wrap header-row">
+        <a class="brand" href="./"
+          ><img src="./favicon.svg?v={{ASSET_REVISION}}" width="34" height="34" alt="" />知屿
+          <span>Zhiyu</span></a
+        >
+        <nav aria-label="网站导航">
+          <a href="./#features">功能</a><a href="./guide.html">使用指南</a
+          ><a href="./#download">下载</a
+          ><a class="nav-github" href="https://github.com/Songwo/zhiyu">GitHub ↗</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" data-app-ready="true">
+      <div class="wrap zsp-hero">
+        <p class="eyebrow">ZSP · ZHIYU SYNC PROTOCOL</p>
+        <h1>桌面版和你的服务器，<br />是怎么互相认出对方的。</h1>
+        <p class="intro">
+          知屿 {{VERSION}} 起，桌面版可以和你自己 VPS
+          上的网页版同步。这里把配对、握手和同步的过程拆成 {{STEP_COUNT}}
+          步：每一步发生了什么、为什么安全、旁观者能看到什么，以及有人捣乱时会怎样。
+        </p>
+      </div>
+
+      <section
+        class="wrap zsp"
+        id="zsp"
+        aria-label="同步协议动画"
+        data-steps="./zsp-steps.json?v={{ASSET_REVISION}}"
+      >
+        <div class="zsp-chapters" id="zsp-chapters" role="group" aria-label="章节"></div>
+
+        <div class="zsp-stage" id="zsp-stage">
+          <div class="zsp-actor" id="actor-desktop" data-actor="desktop">
+            <div class="zsp-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 48 48"
+                width="44"
+                height="44"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="6" y="9" width="36" height="24" rx="3" />
+                <path d="M2 38h44M18 33v5M30 33v5" />
+              </svg>
+            </div>
+            <strong>桌面版</strong>
+            <small>你的电脑</small>
+            <ul class="zsp-badges" id="badges-desktop" aria-label="桌面版当前持有"></ul>
+          </div>
+
+          <div class="zsp-wire" aria-hidden="true">
+            <span class="zsp-wire-line"></span>
+            <span class="zsp-wire-label" id="wire-label">网络（可能被监听）</span>
+          </div>
+
+          <div class="zsp-actor" id="actor-server" data-actor="server">
+            <div class="zsp-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 48 48"
+                width="44"
+                height="44"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="7" y="8" width="34" height="13" rx="3" />
+                <rect x="7" y="27" width="34" height="13" rx="3" />
+                <path d="M13 14.5h.01M13 33.5h.01M20 14.5h14M20 33.5h14" />
+              </svg>
+            </div>
+            <strong>网页版</strong>
+            <small>你的 VPS</small>
+            <ul class="zsp-badges" id="badges-server" aria-label="网页版当前持有"></ul>
+          </div>
+
+          <div class="zsp-actor zsp-attacker" id="actor-attacker" data-actor="attacker" hidden>
+            <div class="zsp-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 48 48"
+                width="40"
+                height="40"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M24 6c-9 0-15 6-15 15v6h30v-6c0-9-6-15-15-15Z" />
+                <path d="M9 27c3 9 9 15 15 15s12-6 15-15M18 22h.01M30 22h.01" />
+              </svg>
+            </div>
+            <strong>捣乱的人</strong>
+            <small>中间人 / 路人</small>
+          </div>
+          <div class="zsp-result" id="zsp-result" role="status" hidden></div>
+        </div>
+
+        <article class="zsp-card" aria-live="polite">
+          <header>
+            <span class="zsp-step-pill" id="zsp-chapter">配对</span>
+            <span class="zsp-step-count" id="zsp-count">1 / {{STEP_COUNT}}</span>
+          </header>
+          <h2 id="zsp-title"></h2>
+          <p id="zsp-what"></p>
+          <div class="zsp-notes">
+            <section>
+              <h3>为什么这样是安全的</h3>
+              <p id="zsp-why"></p>
+            </section>
+            <section>
+              <h3>旁观者能看到什么</h3>
+              <p id="zsp-seen"></p>
+            </section>
+          </div>
+        </article>
+
+        <div class="zsp-controls">
+          <button type="button" class="button" id="zsp-prev" aria-label="上一步">← 上一步</button>
+          <button type="button" class="button primary" id="zsp-play" aria-pressed="false">
+            ▶ 自动播放
+          </button>
+          <button type="button" class="button" id="zsp-next" aria-label="下一步">下一步 →</button>
+          <button type="button" class="button" id="zsp-speed" aria-label="播放速度">1×</button>
+          <div class="zsp-progress" id="zsp-progress" role="group" aria-label="步骤"></div>
+        </div>
+        <p class="zsp-hint">
+          提示：也可以用键盘 <kbd>←</kbd> <kbd>→</kbd> 切换步骤，<kbd>空格</kbd>
+          播放或暂停。系统设置了「减少动态效果」时不会自动播放。
+        </p>
+      </section>
+
+      <section class="wrap zsp-facts">
+        <h2>一句话总结</h2>
+        <ul>
+          <li>
+            <strong>配对码只在你眼前出现</strong>：它从不在网络上传输，用一次就作废，错 3 次也作废。
+          </li>
+          <li>
+            <strong>之后不再依赖它</strong
+            >：双方记住对方的公钥，每次同步先互相认证，再用临时密钥加密。
+          </li>
+          <li>
+            <strong>即使没有 HTTPS 也行</strong>：协议自己负责认证、加密和防重放，HTTPS 是额外一层。
+          </li>
+          <li>
+            <strong>密钥库默认不同步</strong>：开启后只传密文，服务器看不到明文；系统保存的 Token 与
+            API Key 永远不同步。
+          </li>
+        </ul>
+        <p>
+          完整设计、威胁模型和已知限制见
+          <a href="https://github.com/Songwo/zhiyu/blob/main/docs/SYNC.md">docs/SYNC.md ↗</a
+          >。这是自研的协议组合（构件均为标准算法和通用库），
+          <strong>没有经过第三方审计</strong>，欢迎审阅。
+        </p>
+        <div class="actions">
+          <a class="button primary" href="./guide.html#sync">阅读同步使用指南</a
+          ><a class="button" href="./">回到首页</a>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap site-footer">
+      <span>知屿 Zhiyu · Made by Songwo · MIT</span
+      ><a href="https://github.com/Songwo/zhiyu/blob/main/CHANGELOG.md">更新日志 ↗</a
+      ><a href="https://github.com/Songwo/zhiyu">查看源码 ↗</a>
+    </footer>
+    <script src="./sync.js?v={{ASSET_REVISION}}" defer></script>
+  </body>
+</html>

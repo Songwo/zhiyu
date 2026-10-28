@@ -108,13 +108,24 @@ async function buildSite(releaseFile, outputDirectory) {
     "promo-poster.jpg",
     "robots.txt",
     "sitemap.xml",
+    "sync.css",
+    "sync.js",
+    "zsp-steps.json",
+    "zsp-flow.svg",
+    "services.png",
   ];
   const hash = createHash("sha256");
   for (const file of files) hash.update(await readFile(join(source, file)));
   // 使用指南与首页共用发布信息和资源版本号，一起渲染、一起发布。
-  const values = { ...details, ASSET_REVISION: hash.digest("hex").slice(0, 12) };
+  const steps = JSON.parse(await readFile(join(source, "zsp-steps.json"), "utf8")).steps.length;
+  const values = {
+    ...details,
+    ASSET_REVISION: hash.digest("hex").slice(0, 12),
+    STEP_COUNT: steps,
+  };
   const html = renderSite(await readFile(join(source, "index.html"), "utf8"), values);
   const guide = renderSite(await readFile(join(source, "guide.html"), "utf8"), values);
+  const sync = renderSite(await readFile(join(source, "sync.html"), "utf8"), values);
   // 完成校验和渲染后才写入输出，附件缺失时不发布半成品。
   const output = resolve(outputDirectory);
   if (output === source || output === root)
@@ -123,6 +134,7 @@ async function buildSite(releaseFile, outputDirectory) {
   for (const file of files) await cp(join(source, file), join(output, file));
   await writeFile(join(output, "index.html"), html);
   await writeFile(join(output, "guide.html"), guide);
+  await writeFile(join(output, "sync.html"), sync);
   await writeFile(join(output, "release.json"), `${JSON.stringify(details, null, 2)}\n`);
   console.log(JSON.stringify({ ok: true, version: details.VERSION, output, assets: files.length }));
 }

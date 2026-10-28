@@ -58,6 +58,8 @@
           <a href="#renewals">费用与续费日历</a>
           <a href="#reminders">备忘提醒与推送</a>
           <a href="#web">网页版（自托管）</a>
+          <a href="#sync">桌面与网页版同步</a>
+          <a href="#monitor">端口与容器监控</a>
           <a href="#usage">用量记录</a>
           <a href="#docs">文档</a>
           <p>安全与数据</p>
@@ -190,9 +192,48 @@
             <li>浏览器打开 <code>http://服务器:8848</code>，用设置口令创建登录账号；之后在家和公司都用这个账号登录同一份资料。</li>
             <li>密钥库在浏览器里用主密码解密，服务器只保存密文；放到公网前请放在 HTTPS 反向代理后面。</li>
             <li>「设置 → 提醒推送」可以让服务器按时把续费与备忘提醒推送到 Telegram、微信或企业微信，浏览器关着也能收到。</li>
-            <li>「设置 → 数据」可以下载加密备份到桌面版恢复，也能把桌面版备份恢复到网页版。SSH 终端、主机监控、本机用量和 AI 助手只在桌面版提供。</li>
+            <li>「设置 → 数据」可以下载加密备份到桌面版恢复，也能把桌面版备份恢复到网页版。</li>
+            <li>网页版改由服务器执行 SSH 终端、SFTP、主机采集、域名与证书检查、Cloudflare、AI 助手和用量刷新；另有「主机监控」页，显示这台 VPS 自己的 CPU、内存、磁盘、网络。浏览器插件配对、浏览器密码 CSV 迁移、OAuth 网页登录、v2rayN 流量等仍只在桌面版。</li>
           </ol>
           <p class="guide-tip">完整步骤、环境变量和 HTTPS 示例见仓库里的 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/WEB.md">docs/WEB.md</a>。</p>
+        </section>
+
+        <section id="sync" class="guide-section">
+          <h2>桌面与网页版同步</h2>
+          <p>让桌面版和你自己服务器上的网页版保持一致，两边都能改，合并后一致。需要两边都升级到 1.17.0 或更新。</p>
+          <ol class="guide-steps">
+            <li>登录网页版，打开「设置 → 同步」，点「生成配对码」。配对码 5 分钟有效，只能用一次。</li>
+            <li>在桌面版打开「设置 → 同步」，填入网页版地址（例如 <code>https://zhiyu.example.com</code>）和配对码，点「配对」。</li>
+            <li>配对成功后，两边会显示同一个「服务器指纹」，可以核对确认连的是这台服务器。之后每 2 分钟和每次修改后自动同步，也可以点「立即同步」。</li>
+            <li>在「同步哪些内容」里选择资产与关联、文档；<strong>密钥库默认不同步</strong>，开启后只传密文，且两边必须使用同一个主密码。</li>
+          </ol>
+          <div class="guide-table">
+            <table>
+              <thead><tr><th>情况</th><th>会怎样</th></tr></thead>
+              <tbody>
+                <tr><td>两边改了不同的记录或字段</td><td>直接合并，不会有提示。</td></tr>
+                <tr><td>两边改了同一个字段</td><td>保留较新的一边，并在同步结果里提示是哪一项。</td></tr>
+                <tr><td>文档两边都改了</td><td>较新的作正文，另一份另存为「（冲突副本）」，内容都不丢。</td></tr>
+                <tr><td>一边删除、一边修改</td><td>保留修改，不会静默删除。</td></tr>
+                <tr><td>两边密钥库的主密码不同</td><td>不会自动处理，由你选择「以桌面版为准」或「以网页版为准」。</td></tr>
+                <tr><td>服务器恢复了旧备份（序号倒退）</td><td>桌面版拒绝同步并提示；确认是你自己恢复的，再点「接受服务器当前状态」。</td></tr>
+                <tr><td>丢了桌面设备</td><td>在网页版「设置 → 同步 → 已配对的设备」里撤销，立即生效。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="guide-tip">系统加密保存的 Cloudflare Token、模型 API Key、图床 Key 等不参与同步，需要在网页版重新填写。想看协议是怎么保护你的，打开<a href="./sync.html">协议动画</a>；设计、威胁模型和已知限制见 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/SYNC.md">docs/SYNC.md</a>（自研协议组合，未经第三方审计）。</p>
+        </section>
+
+        <section id="monitor" class="guide-section">
+          <h2>端口与容器监控</h2>
+          <ol class="guide-steps">
+            <li>先为服务器配置 SSH（见「添加资产」）。打开服务器详情，切到「端口与容器」，点右上角刷新。之后随「设置 → 监控采集」的周期自动更新。</li>
+            <li>知屿通过 SSH <strong>只读</strong>执行 <code>ss</code>（或 <code>netstat</code>）与 <code>docker ps / inspect / stats</code>，不会改动主机。显示监听端口（对外 / 内网 / 仅本机）、容器状态、健康检查、重启次数、CPU 与内存。</li>
+            <li>没装 Docker、登录用户不在 docker 组、Docker 服务没运行时，会说明原因；原有的 CPU、内存、磁盘采集不受影响。</li>
+            <li>容器反复重启、异常退出、因内存不足被终止、健康检查失败时，主机进入「注意」，并发系统通知；在「设置 → 邮件推送」勾选「续费与备忘提醒也推送到这个渠道」后也会推送到手机。同一问题 24 小时内只提醒一次。</li>
+            <li>要让服务资产的状态自动更新：编辑服务，在「运行位置」里选择运行在哪台主机，填监听端口、选择 Docker 容器和对外域名。端口没在监听或容器停了会显示「告警」，关系图里自动连上主机与域名。</li>
+          </ol>
+          <p class="guide-tip">「对外」只表示监听在所有地址上，公网是否真的可达还取决于防火墙。登录用户看不到其他用户的进程名。网页版同样可用，由服务器通过 SSH 采集。</p>
         </section>
 
         <section id="usage" class="guide-section">
