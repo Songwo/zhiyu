@@ -118,10 +118,30 @@ export class WebReminderPush {
     return { ok: true };
   }
 
-  async #send(record, text) {
+  /**
+   * 安全提醒（异常登录等）：提醒推送已开启并配好渠道才发，没配或发送失败都静默，不影响登录本身。
+   * @param {string} text
+   */
+  async notify(text) {
+    try {
+      const record = await this.#record();
+      if (
+        !record.enabled ||
+        !record.token ||
+        (requiresDestination(record.provider) && !record.destination)
+      )
+        return false;
+      await this.#send(record, text, "知屿 Zhiyu 安全提醒");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async #send(record, text, title = "知屿 Zhiyu 续费提醒") {
     let request;
     try {
-      request = buildPushRequest(record, text, "知屿 Zhiyu 续费提醒");
+      request = buildPushRequest(record, text, title);
     } catch (error) {
       throw new ReminderPushError(error.message);
     }

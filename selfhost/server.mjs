@@ -24,6 +24,19 @@ import { ReminderPushError, WebReminderPush } from "./reminder-push.mjs";
 import { BridgeError, createWebBridge } from "./bridge.mjs";
 import { HostStats } from "./host-stats.mjs";
 import { SyncHttpError, createSyncHost } from "./sync.mjs";
+import {
+  LoginGuard,
+  appendLog,
+  base32Encode,
+  hashRecovery,
+  isKnownIp,
+  newRecoveryCodes,
+  newTotpSecret,
+  otpauthUri,
+  parseAllowedNets,
+  shortAgent,
+  verifyTotp,
+} from "./security.mjs";
 import { createServerSecureStorage } from "./secure-storage.mjs";
 import {
   BACKUP_LIMITS,
@@ -41,6 +54,9 @@ const VERSION = JSON.parse(
 ).version;
 const LOGIN_KDF = { N: 2 ** 15, r: 8, p: 1 };
 const SESSION_DAYS = 30;
+// 超过这么久没有任何操作的登录自动失效，丢在别处的浏览器不会一直有效。
+const SESSION_IDLE_DAYS = 7;
+const PUBLIC_BODY_LIMIT = 8 * 1024;
 const COOKIE = "zhiyu_session";
 const JSON_LIMIT = 64 * 1024 * 1024;
 const RESTORE_LIMIT = BACKUP_LIMITS.bytes + 1024 * 1024;
@@ -140,7 +156,10 @@ export async function createWebServer({
   sampleHost = schedulePush,
   hostStats,
   syncLimits,
+  allowedNets = process.env.ZHIYU_ALLOWED_NETS,
 } = {}) {
+  // 来源白名单写错时直接报错退出：不能因为手误把服务开放给所有人。
+  const allowed = parseAllowedNets(allowedNets);
   const workspace = join(root, "workspace");
   const serverDir = join(root, "server");
   await mkdir(workspace, { recursive: true });
@@ -151,6 +170,7 @@ export async function createWebServer({
   const files = {
     account: join(serverDir, "account.json"),
     sessions: join(serverDir, "sessions.json"),
+    securityLog: join(serverDir, "security-log.json"),
     token: join(serverDir, "setup-token.txt"),
     store: join(workspace, "assets.json"),
     vault: join(workspace, "vault.enc"),
@@ -212,7 +232,10 @@ export async function createWebServer({
   if (schedulePush) bridge.startSchedules();
   let account = await readJson(files.account);
   const sessions = new Map(Object.entries((await readJson(files.sessions)) ?? {}));
-  const failures = new Map();
+  const guard = new LoginGuard();
+  let securityLog = (await readJson(files.securityLog).catch(() => null)) ?? [];
+  // 正在设置的两步验证密钥：确认验证码正确之前只在内存里，不落盘。
+  let pendingTotp = null;
   let queue = Promise.resolve();
   const serial = (work) => {
     const task = queue.then(work);
@@ -244,6 +267,9 @@ export async function createWebServer({
     sessions.set(sha256(token), {
       username,
       created: now,
+      seen: now,
+      ip: clientIp(req),
+      agent: shortAgent(req.headers["user-agent"]),
       expires: now + SESSION_DAYS * 86_400_000,
     });
     for (const [key, value] of sessions) if (value.expires < now) sessions.delete(key);
@@ -260,27 +286,121 @@ export async function createWebServer({
     if (!match) return null;
     const key = sha256(match[1]);
     const session = sessions.get(key);
-    if (!session || session.expires < Date.now() || session.username !== account?.username)
+    const now = Date.now();
+    if (
+      !session ||
+      session.expires < now ||
+      now - (session.seen ?? session.created) > SESSION_IDLE_DAYS * 86_400_000 ||
+      session.username !== account?.username
+    )
       return null;
+    // 活动时间每 10 分钟更新一次，避免每个请求都写文件。
+    if (now - (session.seen ?? 0) > 600_000) {
+      session.seen = now;
+      persistSessions().catch(() => {});
+    }
     return { key, ...session };
   }
-  const clientIp = (req) =>
-    (trustProxy &&
+  // 放在反向代理后面时取代理追加的最后一项：第一项是客户端自己填的，可以伪造来绕过限流和白名单。
+  // 只支持一层代理（Caddy / Nginx）。
+  // 只有来自本机或私网的连接（也就是同一台机器 / 同一个 Docker 网络里的反向代理）带来的
+  // X-Forwarded-For 才可信；公网直连的人填什么都不算数。
+  const proxyPeers = parseAllowedNets("private");
+  const loopback = parseAllowedNets("127.0.0.0/8,::1");
+  const clientIp = (req) => {
+    const peer = req.socket.remoteAddress || "?";
+    if (!trustProxy || !proxyPeers.allows(peer)) return peer;
+    return (
       String(req.headers["x-forwarded-for"] ?? "")
-        .split(",")[0]
-        .trim()) ||
-    req.socket.remoteAddress ||
-    "?";
-  function limitLogin(req) {
+        .split(",")
+        .at(-1)
+        .trim() || peer
+    );
+  };
+  const secureRequest = (req) =>
+    secureCookie ||
+    Boolean(req.socket.encrypted) ||
+    (trustProxy && req.headers["x-forwarded-proto"] === "https");
+  /** 记一条登录或安全事件，供设置里查看；写盘失败不影响请求。 */
+  function record(kind, req, extra = {}) {
+    securityLog = appendLog(securityLog, {
+      kind,
+      ip: clientIp(req),
+      agent: shortAgent(req.headers["user-agent"]),
+      ...extra,
+    });
+    writeAtomic(files.securityLog, JSON.stringify(securityLog)).catch(() => {});
+  }
+  let lastFailureAlert = 0;
+  /** 登录和首次设置共用：先检查限流（不进入昂贵的密码哈希），返回失败时要调用的记账函数。 */
+  async function limitLogin(req) {
     const ip = clientIp(req);
-    const now = Date.now();
-    const list = (failures.get(ip) ?? []).filter((t) => now - t < 15 * 60_000);
-    failures.set(ip, list);
-    if (list.length >= 8) throw new HttpError(429, "尝试次数过多，请 15 分钟后再试");
+    const gate = guard.check(ip);
+    if (gate.blocked) {
+      record("blocked", req, { reason: gate.reason });
+      throw new HttpError(
+        429,
+        gate.reason === "ip" ? "尝试次数过多，请 15 分钟后再试" : "登录请求过于频繁，请稍后再试",
+      );
+    }
+    const delay = guard.delayMs();
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
     return () => {
-      list.push(now);
-      failures.set(ip, list);
+      const count = guard.fail(ip);
+      // 同一来源连续失败达到 3 次就提醒一次，每小时最多一条，免得被刷屏。
+      if (count >= 3 && Date.now() - lastFailureAlert > 3_600_000) {
+        lastFailureAlert = Date.now();
+        void push.notify(
+          `有人在 ${ip} 反复尝试登录你的知屿网页版，已失败 ${count} 次。如果不是你，请检查访问来源限制和登录密码。`,
+        );
+      }
     };
+  }
+
+  /**
+   * 第二因素：没开两步验证时直接通过；开启后接受验证码，或一次性的恢复码（用过即作废）。
+   * `passwordOk` 为假时也照样比较一遍，响应一致，不泄露「密码是否正确」。
+   */
+  async function checkSecondFactor(code, passwordOk = true) {
+    if (!account?.totp) return { ok: true };
+    return serial(async () => {
+      let secret;
+      try {
+        secret = Buffer.from(
+          secureStorage.decryptString(Buffer.from(account.totp.secret, "base64")),
+          "base64",
+        );
+      } catch {
+        return { ok: false };
+      }
+      const verified = verifyTotp(secret, code, Date.now(), account.totp.lastStep ?? 0);
+      if (verified.ok) {
+        if (!passwordOk) return { ok: false };
+        account.totp.lastStep = verified.step;
+        await writeAtomic(files.account, JSON.stringify(account));
+        return { ok: true };
+      }
+      const index = account.totp.recovery.indexOf(hashRecovery(code, account.totp.salt));
+      if (index >= 0 && passwordOk) {
+        account.totp.recovery.splice(index, 1);
+        await writeAtomic(files.account, JSON.stringify(account));
+        return { ok: true, recovery: true };
+      }
+      return { ok: false };
+    });
+  }
+  /** 改安全设置前重新确认登录密码；错误同样计入登录限流。 */
+  async function requirePassword(req, password) {
+    const fail = await limitLogin(req);
+    const hash = await hashPassword(
+      String(password ?? ""),
+      Buffer.from(account.salt, "base64"),
+      account.kdf,
+    );
+    if (!timingSafeEqual(Buffer.from(hash), Buffer.from(account.hash))) {
+      fail();
+      throw new HttpError(403, "当前登录密码不正确");
+    }
   }
 
   // 桌面端按 ZSP 协议配对与同步（docs/SYNC.md）；对外接口在 /api/sync/，不用登录 Cookie。
@@ -319,9 +439,9 @@ export async function createWebServer({
     }
     return Buffer.concat(chunks);
   }
-  async function json(req) {
+  async function json(req, limit = JSON_LIMIT) {
     try {
-      return JSON.parse((await body(req)).toString("utf8") || "null");
+      return JSON.parse((await body(req, limit)).toString("utf8") || "null");
     } catch (error) {
       if (error instanceof HttpError) throw error;
       throw new HttpError(400, "请求格式不正确");
@@ -367,17 +487,22 @@ export async function createWebServer({
   }
 
   const routes = {
-    "GET /api/web/state": async (req, res) =>
+    // 未登录的人只能知道「要不要先设置」「要不要验证码」，不暴露用户名和版本号。
+    "GET /api/web/state": async (req, res) => {
+      const session = sessionOf(req);
       send(res, 200, {
         setup: !account,
-        username: sessionOf(req)?.username ?? null,
-        version: VERSION,
-      }),
+        username: session?.username ?? null,
+        totp: Boolean(account?.totp),
+        ...(session ? { version: VERSION } : {}),
+        insecure: !secureRequest(req),
+      });
+    },
 
     "POST /api/web/setup": async (req, res) => {
-      const input = await json(req);
+      const input = await json(req, PUBLIC_BODY_LIMIT);
       if (account) throw new HttpError(409, "账号已经创建，请直接登录");
-      const fail = limitLogin(req);
+      const fail = await limitLogin(req);
       const given = Buffer.from(String(input?.token ?? ""));
       const expected = Buffer.from(setupToken ?? "");
       if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
@@ -399,34 +524,49 @@ export async function createWebServer({
       await rm(files.token, { force: true });
       setupToken = undefined;
       await newSession(res, req, username);
+      record("setup", req);
       send(res, 200, { username });
     },
 
     "POST /api/web/login": async (req, res) => {
-      const input = await json(req);
+      const input = await json(req, PUBLIC_BODY_LIMIT);
       if (!account) throw new HttpError(409, "还没有创建账号");
-      const fail = limitLogin(req);
+      const fail = await limitLogin(req);
       const hash = await hashPassword(
         String(input?.password ?? ""),
         Buffer.from(account.salt, "base64"),
         account.kdf,
       );
-      const ok =
+      const passwordOk =
         typeof input?.username === "string" &&
         input.username.trim() === account.username &&
         timingSafeEqual(Buffer.from(hash), Buffer.from(account.hash));
-      if (!ok) {
+      // 开了两步验证时，密码和验证码都要对；密码错误时也照样走一遍验证，响应一致。
+      const second = await checkSecondFactor(input?.code, passwordOk);
+      if (!passwordOk || !second.ok) {
         fail();
+        record("fail", req, { reason: !passwordOk ? "password" : "code" });
         await new Promise((r) => setTimeout(r, 400));
-        throw new HttpError(401, "用户名或密码不正确");
+        throw new HttpError(
+          401,
+          account.totp ? "用户名、密码或验证码不正确" : "用户名或密码不正确",
+        );
       }
+      const knownIp = isKnownIp(securityLog, clientIp(req));
+      guard.success(clientIp(req));
       await newSession(res, req, account.username);
+      record("login", req, second.recovery ? { recovery: true } : {});
+      if (!knownIp)
+        void push.notify(
+          `你的知屿网页版有一次来自新地址 ${clientIp(req)} 的登录${second.recovery ? "（使用了恢复码）" : ""}。如果不是你，请在「设置 → 个人资料 → 账号安全」里退出所有设备并修改密码。`,
+        );
       send(res, 200, { username: account.username });
     },
 
     "POST /api/web/logout": async (req, res) => {
       const session = sessionOf(req);
       if (session) {
+        record("logout", req);
         sessions.delete(session.key);
         await persistSessions();
         dropStreams();
@@ -468,6 +608,107 @@ export async function createWebServer({
       for (const key of [...sessions.keys()]) if (key !== session.key) sessions.delete(key);
       await persistSessions();
       dropStreams();
+      record("password", req);
+      send(res, 200, { ok: true });
+    },
+
+    "GET /api/web/security": async (req, res, session) => {
+      const now = Date.now();
+      send(res, 200, {
+        totp: { enabled: Boolean(account.totp), recoveryLeft: account.totp?.recovery.length ?? 0 },
+        sessions: [...sessions.entries()]
+          .filter(([, item]) => item.username === account.username && item.expires > now)
+          .map(([key, item]) => ({
+            id: key.slice(0, 12),
+            current: key === session.key,
+            ip: item.ip ?? "",
+            agent: item.agent ?? "",
+            createdAt: new Date(item.created).toISOString(),
+            seenAt: new Date(item.seen ?? item.created).toISOString(),
+          }))
+          .sort((a, b) => b.seenAt.localeCompare(a.seenAt)),
+        log: securityLog.slice(0, 50),
+        encrypted: secureRequest(req),
+        allowlist: allowed.empty ? null : allowed.entries,
+        recentFailures: guard.recentFailures,
+      });
+    },
+
+    "POST /api/web/totp/start": async (req, res) => {
+      const input = await json(req, PUBLIC_BODY_LIMIT);
+      await requirePassword(req, input?.password);
+      if (account.totp) throw new HttpError(409, "两步验证已经开启");
+      const secret = newTotpSecret();
+      pendingTotp = { secret, expires: Date.now() + 10 * 60_000 };
+      send(res, 200, {
+        secret: base32Encode(secret),
+        uri: otpauthUri({ secret, account: account.username }),
+      });
+    },
+
+    "POST /api/web/totp/enable": async (req, res) => {
+      const input = await json(req, PUBLIC_BODY_LIMIT);
+      if (!pendingTotp || pendingTotp.expires < Date.now())
+        throw new HttpError(409, "请先点「开启两步验证」获取密钥");
+      const fail = await limitLogin(req);
+      const verified = verifyTotp(pendingTotp.secret, input?.code);
+      if (!verified.ok) {
+        fail();
+        throw new HttpError(400, "验证码不正确，请核对手机上的时间和刚才扫描的密钥");
+      }
+      const salt = randomBytes(16).toString("base64");
+      const codes = newRecoveryCodes();
+      account = {
+        ...account,
+        totp: {
+          secret: secureStorage
+            .encryptString(pendingTotp.secret.toString("base64"))
+            .toString("base64"),
+          enabledAt: new Date().toISOString(),
+          lastStep: verified.step,
+          salt,
+          recovery: codes.map((code) => hashRecovery(code, salt)),
+        },
+      };
+      pendingTotp = null;
+      await writeAtomic(files.account, JSON.stringify(account));
+      record("totp-on", req);
+      send(res, 200, { recovery: codes });
+    },
+
+    "POST /api/web/totp/disable": async (req, res) => {
+      const input = await json(req, PUBLIC_BODY_LIMIT);
+      await requirePassword(req, input?.password);
+      if (!account.totp) return send(res, 200, { ok: true });
+      const second = await checkSecondFactor(input?.code, true);
+      if (!second.ok) throw new HttpError(403, "验证码或恢复码不正确");
+      const { totp: _removed, ...rest } = account;
+      account = rest;
+      await writeAtomic(files.account, JSON.stringify(account));
+      record("totp-off", req);
+      send(res, 200, { ok: true });
+    },
+
+    "POST /api/web/sessions/revoke": async (req, res, session) => {
+      const input = await json(req, PUBLIC_BODY_LIMIT);
+      const id = String(input?.id ?? "");
+      const matches = [...sessions.keys()].filter(
+        (key) => /^[0-9a-f]{12}$/.test(id) && key.startsWith(id),
+      );
+      if (matches.length !== 1) throw new HttpError(404, "没有这个登录设备");
+      if (matches[0] === session.key) throw new HttpError(400, "这是当前设备，请用「退出登录」");
+      sessions.delete(matches[0]);
+      await persistSessions();
+      dropStreams();
+      record("revoke", req);
+      send(res, 200, { ok: true });
+    },
+
+    "POST /api/web/sessions/revoke-others": async (req, res, session) => {
+      for (const key of [...sessions.keys()]) if (key !== session.key) sessions.delete(key);
+      await persistSessions();
+      dropStreams();
+      record("revoke-others", req);
       send(res, 200, { ok: true });
     },
 
@@ -664,6 +905,14 @@ export async function createWebServer({
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+    res.setHeader(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    );
+    // 不让搜索引擎收录，也不让登录页出现在公开索引里。
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    if (secureRequest(req)) res.setHeader("Strict-Transport-Security", "max-age=31536000");
     const url = new URL(req.url ?? "/", "http://zhiyu.local");
     const path = url.pathname;
     if (path.startsWith("/api/")) {
@@ -708,6 +957,13 @@ export async function createWebServer({
   }
 
   const server = createServer((req, res) => {
+    // 不在白名单里的来源：直接断开，不回任何内容；端口扫描只会看到一个什么都不说的服务。
+    // 本机进程（容器自己的健康检查）直连、且没有经过代理时始终放行，免得白名单把自己锁在外面。
+    const localProbe = loopback.allows(req.socket.remoteAddress) && !req.headers["x-forwarded-for"];
+    if (!localProbe && !allowed.allows(clientIp(req))) {
+      req.socket.destroy();
+      return;
+    }
     handle(req, res).catch((error) => {
       const status = error instanceof HttpError ? error.status : 500;
       if (status === 500) log.error("request", req.method, req.url, error);
@@ -715,6 +971,9 @@ export async function createWebServer({
       send(res, status, { error: status === 500 ? "服务器出错了，请查看日志" : error.message });
     });
   });
+  // 慢速攻击：请求头必须在 20 秒内发完。
+  server.headersTimeout = 20_000;
+  server.maxHeadersCount = 100;
   if (schedulePush) server.on("close", push.start());
   server.on("close", () => {
     syncHost.stop();
@@ -728,6 +987,7 @@ export async function createWebServer({
     root,
     push,
     sync: syncHost,
+    security: { allowlist: allowed.entries, secureCookie, trustProxy },
     bridge,
     hostStats: monitor,
     get setupToken() {
@@ -739,8 +999,13 @@ export async function createWebServer({
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.ZHIYU_PORT ?? 8848);
   const host = process.env.ZHIYU_HOST ?? "0.0.0.0";
-  const { server, root } = await createWebServer();
-  server.listen(port, host, () =>
-    console.log(`[知屿] 网页版 ${VERSION} 已启动：http://${host}:${port}  资料目录 ${root}`),
-  );
+  const { server, root, security } = await createWebServer();
+  server.listen(port, host, () => {
+    console.log(`[知屿] 网页版 ${VERSION} 已启动：http://${host}:${port}  资料目录 ${root}`);
+    const exposed = !/^(127\.|localhost|::1)/.test(host);
+    if (exposed && !security.secureCookie && !security.allowlist.length)
+      console.log(
+        "[知屿] 安全提示：现在是明文 HTTP，并且任何来源都能访问登录页。放到公网前请用 HTTPS（docker-compose.https.yml），或用 ZHIYU_ALLOWED_NETS 只允许自己的 IP / VPN；并在「设置 → 个人资料 → 账号安全」里开启两步验证。详见 docs/WEB.md「安全加固」。",
+      );
+  });
 }

@@ -1,0 +1,14 @@
+# docker-compose.https.yml 使用的 Caddy 配置：自动 HTTPS，反向代理到知屿。
+{$ZHIYU_DOMAIN} {
+	# 事件流（实时刷新）不能被缓冲，否则页面不会自动更新。
+	reverse_proxy zhiyu:8848 {
+		flush_interval -1
+	}
+	# 限制请求体大小：与网页版备份恢复的上限（512 MiB）一致，再大的请求没有用处。
+	request_body {
+		max_size 520MB
+	}
+	header {
+		-Server
+	}
+}

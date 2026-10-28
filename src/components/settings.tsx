@@ -26,6 +26,7 @@ import { ExtensionSettings } from "./extension-settings";
 import { AppUpdatePanel } from "./app-update-panel";
 import { ProfileForm } from "./onboarding";
 import { WebAccountSettings } from "./web-account-settings";
+import { WebSecuritySettings } from "./web-security-settings";
 import { SyncSettings } from "./sync-settings";
 import { hostBridge, openExternal } from "@/lib/web-bridge";
 import { PrimaryIdentityPanel } from "./primary-identity-panel";
@@ -243,6 +244,7 @@ function SettingsBody({ header }: { header?: ReactNode }) {
               <div className="space-y-6">
                 <ProfileForm />
                 {isWeb() && <WebAccountSettings />}
+                {isWeb() && <WebSecuritySettings />}
               </div>
             ))}
           {tab === "appearance" && <Appearance />}

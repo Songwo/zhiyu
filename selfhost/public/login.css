@@ -55,6 +55,10 @@ form {
   display: grid;
   gap: 14px;
 }
+/* label 设置了 display，会盖掉 hidden 属性，要显式处理。 */
+[hidden] {
+  display: none !important;
+}
 label {
   display: grid;
   gap: 6px;
@@ -62,6 +66,15 @@ label {
 }
 label span {
   color: var(--muted);
+}
+.warn {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--crit) 12%, transparent);
+  color: var(--crit);
+  font-size: 12.5px;
+  line-height: 1.55;
 }
 small {
   color: var(--muted);

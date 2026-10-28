@@ -22,6 +22,10 @@ async function post(path, body) {
 const state = await fetch("/api/web/state", { credentials: "same-origin" }).then((r) => r.json());
 if (state.username) location.replace("/");
 setup = state.setup;
+// 明文 http 且不是本机访问时提醒：登录密码会被同一网络里的人看到。
+if (location.protocol === "http:" && !/^(localhost|127\.|\[?::1\]?$)/.test(location.hostname))
+  $("insecure").hidden = false;
+if (state.totp && !state.setup) $("code-row").hidden = false;
 if (setup) {
   $("title").textContent = "创建网页版账号";
   $("sub").textContent = "第一次打开：设一个登录用户名和密码";
@@ -38,6 +42,7 @@ $("form").addEventListener("submit", async (event) => {
   const username = $("username").value.trim();
   const password = $("password").value;
   if (!username || !password) return fail("请填写用户名和密码");
+  if (!setup && state.totp && !$("code").value.trim()) return fail("请填写验证码");
   if (setup && password.length < 10) return fail("登录密码至少 10 位");
   if (setup && password !== $("confirm").value) return fail("两次输入的密码不一致");
   $("submit").disabled = true;
@@ -46,6 +51,7 @@ $("form").addEventListener("submit", async (event) => {
       token: $("token").value.trim(),
       username,
       password,
+      code: $("code").value.trim(),
     });
     location.replace("/");
   } catch (error) {

@@ -2,6 +2,7 @@ import { INTEGRATIONS_EN } from "./i18n-integrations-en.ts";
 import { SYNC_EN } from "./i18n-sync-en.ts";
 import { SERVICES_EN } from "./i18n-services-en.ts";
 import { BACKUP_EN } from "./i18n-backup-en.ts";
+import { SECURITY_EN } from "./i18n-security-en.ts";
 
 /**
  * English strings, keyed by the Chinese source text.
@@ -18,6 +19,7 @@ export const EN: Record<string, string> = {
   ...SYNC_EN,
   ...SERVICES_EN,
   ...BACKUP_EN,
+  ...SECURITY_EN,
   "管理远程用量来源需要先解锁密钥库。":
     "Unlock your vault to manage remote usage source credentials.",
   "v2rayN 本机流量": "v2rayN local traffic",

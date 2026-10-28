@@ -190,12 +190,13 @@
           <ol class="guide-steps">
             <li>在服务器上下载仓库里的 <code>docker-compose.yml</code>，运行 <code>docker compose up -d</code>（镜像 <code>ghcr.io/songwo/zhiyu-web</code>，支持 amd64 / arm64），用 <code>docker compose logs zhiyu</code> 找到「设置口令」。</li>
             <li>浏览器打开 <code>http://服务器:8848</code>，用设置口令创建登录账号；之后在家和公司都用这个账号登录同一份资料。</li>
-            <li>密钥库在浏览器里用主密码解密，服务器只保存密文；放到公网前请放在 HTTPS 反向代理后面。</li>
+            <li>密钥库在浏览器里用主密码解密，服务器只保存密文。放到公网前请用 <code>docker-compose.https.yml</code> 加域名（自动 HTTPS，知屿不直接暴露端口）。</li>
+            <li>安全设置：登录后在「设置 → 个人资料 → 账号安全」开启两步验证（TOTP）并保存 8 个恢复码；在服务器上用 <code>ZHIYU_ALLOWED_NETS</code> 只允许自己的 IP 或 VPN；登录失败会被限流，新地址登录会推送到手机，登录中的设备可以随时退出。</li>
             <li>「设置 → 提醒推送」可以让服务器按时把续费与备忘提醒推送到 Telegram、微信或企业微信，浏览器关着也能收到。</li>
             <li>「设置 → 数据」可以下载加密备份到桌面版恢复，也能把桌面版备份恢复到网页版。</li>
             <li>网页版改由服务器执行 SSH 终端、SFTP、主机采集、域名与证书检查、Cloudflare、AI 助手和用量刷新；另有「主机监控」页，显示这台 VPS 自己的 CPU、内存、磁盘、网络。浏览器插件配对、浏览器密码 CSV 迁移、OAuth 网页登录、v2rayN 流量等仍只在桌面版。</li>
           </ol>
-          <p class="guide-tip">完整步骤、环境变量和 HTTPS 示例见仓库里的 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/WEB.md">docs/WEB.md</a>。</p>
+          <p class="guide-tip">完整步骤、环境变量、HTTPS 示例和「安全加固」清单见仓库里的 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/WEB.md">docs/WEB.md</a>。</p>
         </section>
 
         <section id="sync" class="guide-section">

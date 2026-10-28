@@ -1,0 +1,53 @@
+# 知屿网页版（自托管）+ 自动 HTTPS：推荐的公网部署方式。
+#   1. 把域名解析到这台服务器（A / AAAA 记录），并放行 80、443 端口
+#   2. ZHIYU_DOMAIN=zhiyu.example.com docker compose -f docker-compose.https.yml up -d
+#   3. docker compose -f docker-compose.https.yml logs zhiyu   # 找「设置口令」
+#   4. 浏览器打开 https://zhiyu.example.com，创建账号后到「设置 → 个人资料 → 账号安全」开启两步验证
+# 与 docker-compose.yml 的区别：知屿本身不再把端口发布到公网，只有 Caddy 的 80 / 443 对外；
+# Caddy 自动申请并续期 Let's Encrypt 证书，并把 HTTP 跳转到 HTTPS。
+# 只想让自己的 IP / VPN 访问：加上 ZHIYU_ALLOWED_NETS（见 docs/WEB.md「安全加固」）。
+services:
+  zhiyu:
+    image: ghcr.io/songwo/zhiyu-web:latest
+    container_name: zhiyu
+    restart: unless-stopped
+    # 不发布端口：只有同一个 Docker 网络里的 Caddy 能访问。
+    expose:
+      - "8848"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      # 前面有 HTTPS 反向代理：登录 Cookie 只走 HTTPS，并按代理转发的真实 IP 限流。
+      ZHIYU_SECURE_COOKIE: "1"
+      ZHIYU_TRUST_PROXY: "1"
+      # 只允许这些来源访问，逗号分隔：IP、网段（CIDR）或 private（所有内网地址）。留空表示不限制。
+      # 例：ZHIYU_ALLOWED_NETS=203.0.113.8,10.0.0.0/8
+      ZHIYU_ALLOWED_NETS: "${ZHIYU_ALLOWED_NETS:-}"
+    volumes:
+      - ./zhiyu-data:/data
+      - /proc:/host/proc:ro
+      - /etc/os-release:/host/etc/os-release:ro
+
+  caddy:
+    image: caddy:2
+    container_name: zhiyu-caddy
+    restart: unless-stopped
+    depends_on:
+      - zhiyu
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      # 必须设置：你的域名。没设置时 compose 会直接报错，避免带着空域名启动。
+      ZHIYU_DOMAIN: "${ZHIYU_DOMAIN:?请先设置 ZHIYU_DOMAIN，例如 ZHIYU_DOMAIN=zhiyu.example.com}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

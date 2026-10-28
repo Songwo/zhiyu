@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "知屿 Zhiyu - 账号与文档助手",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "description": "同站多账号建议与选择填写、登录账号一键加密保存、可见网页文档保存到本机知屿。自动提示可关闭；仅在你确认后保存或填写。",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "host_permissions": ["http://127.0.0.1/*"],

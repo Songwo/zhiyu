@@ -2,19 +2,27 @@
 #   docker compose up -d
 #   docker compose logs zhiyu   # 首次启动在这里找「设置口令」
 #   升级：docker compose pull && docker compose up -d
+# 放到公网请改用 docker-compose.https.yml（自动 HTTPS，知屿不直接暴露端口），
+# 并在「设置 → 个人资料 → 账号安全」开启两步验证；说明见 docs/WEB.md「安全加固」。
 # 想从源码构建：docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 services:
   zhiyu:
     image: ghcr.io/songwo/zhiyu-web:latest
     container_name: zhiyu
     restart: unless-stopped
+    # 只在本机访问时改成 "127.0.0.1:8848:8848"；要给别的设备用，请放在 HTTPS 反向代理后面。
     ports:
       - "8848:8848"
+    security_opt:
+      - no-new-privileges:true
     environment:
       # 放在 HTTPS 反向代理（Caddy / Nginx）后面时设为 "1"，登录 Cookie 只走 HTTPS。
       ZHIYU_SECURE_COOKIE: "0"
       # 反向代理会转发真实 IP 时设为 "1"，登录失败次数按真实 IP 计算。
       ZHIYU_TRUST_PROXY: "0"
+      # 只允许这些来源访问（逗号分隔：IP、网段 CIDR 或 private=所有内网地址），其他来源直接断开。
+      # 例：ZHIYU_ALLOWED_NETS: "203.0.113.8,10.0.0.0/8"。留空表示不限制。
+      ZHIYU_ALLOWED_NETS: ""
     volumes:
       - ./zhiyu-data:/data
       # 主机监控（只读）：挂载宿主机的 /proc，网络与进程换成整台 VPS 的；
