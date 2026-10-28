@@ -398,4 +398,12 @@ SSH 指标采集面向提供 `/proc` 的 Linux 主机。WHOIS 可能因注册局
 
 ## Star 趋势
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Songwo/zhiyu&type=Date)](https://star-history.com/#Songwo/zhiyu&Date)
+点击图表可查看交互式 Star 增长曲线，数据由 Star History 更新。
+
+<a href="https://www.star-history.com/?repos=Songwo%2Fzhiyu&amp;type=date&amp;legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Songwo/zhiyu&amp;type=date&amp;theme=dark&amp;legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Songwo/zhiyu&amp;type=date&amp;legend=top-left" />
+    <img alt="知屿 Zhiyu 的 GitHub Star 增长曲线" src="https://api.star-history.com/chart?repos=Songwo/zhiyu&amp;type=date&amp;legend=top-left" width="800" />
+  </picture>
+</a>
