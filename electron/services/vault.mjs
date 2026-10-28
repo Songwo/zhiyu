@@ -242,6 +242,65 @@ export class Vault {
     );
   }
 
+  /**
+   * 同步用：读取原始密文文档，不需要解锁，也不返回任何明文。
+   * `stamp` 标识读取时的文件版本，传给 importDocument 防止覆盖同步期间的新写入。
+   */
+  exportDocument() {
+    return this.#enqueue(
+      async () => {
+        const { doc, stamp } = await this.#read();
+        return { doc: doc ? structuredClone(doc) : null, stamp, mtimeMs: this.#mtimeMs() };
+      },
+      { cancelOnLock: false },
+    );
+  }
+
+  #mtimeMs() {
+    try {
+      return statSync(this.#file).mtimeMs;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * 同步用：用合并后的密文文档替换本机文件。文件在导出之后变过就放弃；
+   * 主密码在另一端改过（盐、参数或校验块不同）时，当前解锁状态立即失效并锁库。
+   */
+  importDocument(doc, expectedStamp) {
+    return this.#enqueue(
+      async (generation) => {
+        const snapshot = await this.#read();
+        if (snapshot.stamp !== expectedStamp)
+          throw new Error("密钥库在同步期间发生变化，已放弃本次写入。");
+        const kdf = doc?.v === VERSION ? normalizeKdf(doc.kdf) : doc?.v === 1 ? LEGACY_KDF : null;
+        if (
+          !doc ||
+          typeof doc.salt !== "string" ||
+          !kdf ||
+          !doc.check ||
+          typeof doc.records !== "object"
+        )
+          throw new Error("同步得到的密钥库格式不正确，已放弃写入。");
+        await this.#write(doc, generation, snapshot, null);
+        if (this.#key) {
+          let compatible = false;
+          try {
+            compatible =
+              this.#keyContext === keyContext(doc) &&
+              open(this.#key, doc.check).equals(Buffer.from("sinan-vault"));
+          } catch {
+            // 校验块或参数不匹配：说明主密码已经换了。
+          }
+          if (!compatible) this.lock();
+        }
+        return { ok: true };
+      },
+      { cancelOnLock: false },
+    );
+  }
+
   /** First run: pick a master password and seal an empty vault with it. */
   create(master) {
     return this.#enqueue(async (generation) => {

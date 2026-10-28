@@ -23,6 +23,7 @@ import { DocumentsStore } from "../electron/services/documents.mjs";
 import { ReminderPushError, WebReminderPush } from "./reminder-push.mjs";
 import { BridgeError, createWebBridge } from "./bridge.mjs";
 import { HostStats } from "./host-stats.mjs";
+import { SyncHttpError, createSyncHost } from "./sync.mjs";
 import { createServerSecureStorage } from "./secure-storage.mjs";
 import {
   BACKUP_LIMITS,
@@ -138,6 +139,7 @@ export async function createWebServer({
   schedulePush = true,
   sampleHost = schedulePush,
   hostStats,
+  syncLimits,
 } = {}) {
   const workspace = join(root, "workspace");
   const serverDir = join(root, "server");
@@ -280,6 +282,32 @@ export async function createWebServer({
       failures.set(ip, list);
     };
   }
+
+  // 桌面端按 ZSP 协议配对与同步（docs/SYNC.md）；对外接口在 /api/sync/，不用登录 Cookie。
+  const syncHost = createSyncHost({
+    workspace,
+    serverDir,
+    secureStorage,
+    version: VERSION,
+    serial,
+    writeAtomic,
+    readJson,
+    getDocuments: () => documents,
+    normalizeAssets: (input) => normalizeSnapshotImages(input),
+    validateVault: assertVaultDoc,
+    onAssetsWritten: (state) => {
+      currentSnapshot = state;
+    },
+    emit,
+    log,
+    clientIp,
+    limits: syncLimits,
+  });
+  const syncGuard = (work) =>
+    work().catch((error) => {
+      if (error instanceof SyncHttpError) throw new HttpError(error.status, error.message);
+      throw error;
+    });
 
   async function body(req, limit = JSON_LIMIT) {
     const chunks = [];
@@ -440,6 +468,25 @@ export async function createWebServer({
       for (const key of [...sessions.keys()]) if (key !== session.key) sessions.delete(key);
       await persistSessions();
       dropStreams();
+      send(res, 200, { ok: true });
+    },
+
+    "GET /api/web/sync": async (req, res) =>
+      send(res, 200, await syncGuard(() => syncHost.owner.info())),
+    "POST /api/web/sync/pairing": async (req, res) =>
+      send(res, 200, await syncGuard(() => syncHost.owner.createPairing())),
+    "POST /api/web/sync/pairing/cancel": async (req, res) => {
+      syncHost.owner.cancelPairing();
+      send(res, 200, { ok: true });
+    },
+    "POST /api/web/sync/revoke": async (req, res) => {
+      const input = await json(req);
+      await syncGuard(() => syncHost.owner.revoke(String(input?.id ?? "")));
+      send(res, 200, { ok: true });
+    },
+    "POST /api/web/sync/remove": async (req, res) => {
+      const input = await json(req);
+      await syncGuard(() => syncHost.owner.remove(String(input?.id ?? "")));
       send(res, 200, { ok: true });
     },
 
@@ -627,6 +674,10 @@ export async function createWebServer({
         if (origin && new URL(origin).host !== req.headers.host)
           throw new HttpError(403, "请求来源不一致");
       }
+      if (path.startsWith("/api/sync/")) {
+        if (await syncHost.handle(req, res)) return;
+        throw new HttpError(404, "Not found");
+      }
       const key = `${req.method} ${path}`;
       if (routes[key]) return routes[key](req, res);
       const session = sessionOf(req);
@@ -666,6 +717,7 @@ export async function createWebServer({
   });
   if (schedulePush) server.on("close", push.start());
   server.on("close", () => {
+    syncHost.stop();
     stopSampling();
     bridge.stop();
     for (const stream of streams) stream.res.end();
@@ -675,6 +727,7 @@ export async function createWebServer({
     server,
     root,
     push,
+    sync: syncHost,
     bridge,
     hostStats: monitor,
     get setupToken() {

@@ -26,6 +26,7 @@ import { ExtensionSettings } from "./extension-settings";
 import { AppUpdatePanel } from "./app-update-panel";
 import { ProfileForm } from "./onboarding";
 import { WebAccountSettings } from "./web-account-settings";
+import { SyncSettings } from "./sync-settings";
 import { hostBridge, openExternal } from "@/lib/web-bridge";
 import { PrimaryIdentityPanel } from "./primary-identity-panel";
 import { Field, Input, Select } from "./ui/input";
@@ -52,6 +53,7 @@ type Tab =
   | "integrations"
   | "vault"
   | "data"
+  | "sync"
   | "agent"
   | "mail-push"
   | "extension"
@@ -83,6 +85,7 @@ const TAB_GROUPS: Array<{ title: string; tabs: Array<{ id: Tab; label: string }>
     tabs: [
       { id: "vault", label: "密钥库" },
       { id: "data", label: "数据" },
+      { id: "sync", label: "同步" },
       { id: "storage", label: "存储" },
     ],
   },
@@ -256,6 +259,7 @@ function SettingsBody({ header }: { header?: ReactNode }) {
               <BackupSettings />
             </>
           )}
+          {tab === "sync" && <SyncSettings />}
           {tab === "agent" && <AgentSettings />}
           {tab === "mail-push" && (isWeb() ? <WebPushSettings /> : <MailPushSettings />)}
           {tab === "extension" && <ExtensionSettings />}

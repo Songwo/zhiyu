@@ -23,6 +23,7 @@ export const DESKTOP_RUNTIME_DEPENDENCIES = [
   "remark-gfm",
   "js-yaml",
   "@noble/hashes",
+  "@noble/curves",
 ];
 
 /** 从主进程入口出发，收集代码里实际引用（静态、动态 import 与 require）的第三方包名。 */

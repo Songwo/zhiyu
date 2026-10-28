@@ -165,6 +165,7 @@ export interface PersistedFile extends Snapshot {
 }
 
 export interface DesktopBridge {
+  sync: import("./sync").SyncBridge;
   integrations: import("./integrations").IntegrationsBridge;
   documentAccounts: import("./document-accounts").DocumentAccountsBridge;
   identities: import("./identities").IdentityBridge;

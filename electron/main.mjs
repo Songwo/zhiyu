@@ -12,6 +12,7 @@ import {
 } from "./services/windows-identity.mjs";
 import { ImageBed } from "./services/image-bed.mjs";
 import { Integrations, INTEGRATION_METHODS } from "./services/integrations.mjs";
+import { SyncClient } from "./services/sync-client.mjs";
 import { checkNode } from "./services/node-check.mjs";
 import { UsageStore } from "./services/usage.mjs";
 import { V2raynUsage } from "./services/v2rayn-usage.mjs";
@@ -37,6 +38,7 @@ import {
   powerMonitor,
 } from "electron";
 import { X509Certificate, randomUUID } from "node:crypto";
+import { hostname as machineName } from "node:os";
 import { CaptureQueue } from "./services/browser-capture.mjs";
 import { ExtensionBridge } from "./services/extension-bridge.mjs";
 import { BrowserPasswords } from "./services/browser-passwords.mjs";
@@ -159,6 +161,8 @@ let quitting = false;
 let notificationTimer;
 let mailPushTimer;
 let currentSnapshot = {};
+// 与网页版同步（ZSP）；配对后才会联网。
+let syncClient = null;
 // 启动时替换资料的结果，供设置页和启动提示展示。
 let restoreOutcome = null;
 let restartingForRestore = false;
@@ -328,6 +332,7 @@ function mutateWorkspaceAssets(mutate) {
     await writeJson(dataFile(), { state: next, version: 0 });
     currentSnapshot = next;
     emit("assets:changed", { before, snapshot: next });
+    syncClient?.notifyLocalChange();
     return { before, snapshot: next };
   });
 }
@@ -570,6 +575,7 @@ function registerIpc() {
       const result = await documents[method](...args);
       if (method === "save") emit("documents:changed", { document: result });
       if (method === "remove") emit("documents:changed", { removedId: args[0] });
+      if (method === "save" || method === "remove") syncClient?.notifyLocalChange();
       return result;
     });
   handle("capture:list", () => captures.list());
@@ -582,6 +588,49 @@ function registerIpc() {
     stopPrivateTasks();
     emit("vault:changed", {});
   });
+  // ---- 与网页版同步 ---------------------------------------------------------
+  syncClient = new SyncClient({
+    directory: join(app.getPath("userData"), "sync"),
+    secureStorage: safeStorage,
+    fetchImpl: (...args) => net.fetch(...args),
+    emit,
+    adapters: {
+      assets: {
+        read: async () => {
+          await assetWrites;
+          const info = await stat(dataFile()).catch(() => null);
+          return { state: structuredClone(currentSnapshot), mtimeMs: info?.mtimeMs ?? 0 };
+        },
+        apply: (fn) => mutateWorkspaceAssets(fn).then(() => undefined),
+      },
+      documents: {
+        list: () => documents.list(),
+        get: (id) => documents.get(id),
+        save: async (doc) => {
+          const saved = await documents.save(doc);
+          emit("documents:changed", { document: saved });
+          return saved;
+        },
+        remove: async (id) => {
+          await documents.remove(id);
+          emit("documents:changed", { removedId: id });
+        },
+      },
+      vault,
+    },
+  });
+  for (const method of ["status", "unpair", "syncNow", "setScope", "acceptServerState", "resolveVault"])
+    handle("sync:" + method, (...args) => syncClient[method](...args));
+  handle("sync:pair", (input) =>
+    syncClient.pair({
+      url: input?.url,
+      code: input?.code,
+      name: String(input?.name || machineName() || "桌面端"),
+    }),
+  );
+  void syncClient.start();
+  app.once("before-quit", () => syncClient?.stop());
+
   documentAccounts = new DocumentAccountImports({
     vault,
     documents,
@@ -1448,6 +1497,7 @@ function registerIpc() {
       await writeJson(dataFile(), normalized?.state ? { ...normalized, state: next } : next);
       currentSnapshot = next;
       notifyAttention();
+      syncClient?.notifyLocalChange();
       return true;
     }),
   );

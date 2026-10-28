@@ -23,6 +23,16 @@ function on(channel, handler) {
 }
 
 contextBridge.exposeInMainWorld("sinan", {
+  sync: {
+    status: () => unwrap(ipcRenderer.invoke("sync:status")),
+    pair: (input) => unwrap(ipcRenderer.invoke("sync:pair", input)),
+    unpair: () => unwrap(ipcRenderer.invoke("sync:unpair")),
+    syncNow: () => unwrap(ipcRenderer.invoke("sync:syncNow")),
+    setScope: (scope) => unwrap(ipcRenderer.invoke("sync:setScope", scope)),
+    acceptServerState: () => unwrap(ipcRenderer.invoke("sync:acceptServerState")),
+    resolveVault: (choice) => unwrap(ipcRenderer.invoke("sync:resolveVault", choice)),
+    onChanged: (handler) => on("sync:changed", handler),
+  },
   integrations: {
     list: () => unwrap(ipcRenderer.invoke("integrations:list")),
     save: (input) => unwrap(ipcRenderer.invoke("integrations:save", input)),
