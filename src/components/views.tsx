@@ -751,12 +751,21 @@ function TagsView() {
 
 function TerminalView() {
   const list = useAppStore((s) => s.servers);
+  const sessionIds = useAppStore((s) => s.sshSessionIds);
   const openSsh = useAppStore((s) => s.openSsh);
   const cpuMap = useLive((s) => s.cpu);
   const items = useListFilter(list, (s) => [s.name, s.host, tagsOf(s).join(" ")]);
 
   return (
     <div className="mx-4 mt-4 pb-24">
+      <button
+        type="button"
+        className="btn btn-sm mb-4"
+        onClick={() => openSsh("__terminal_preview__")}
+      >
+        <SquareTerminal className="size-4" />
+        终端外观预览
+      </button>
       <p className="mb-3 px-1 text-meta text-muted">
         {isWeb()
           ? t(
@@ -765,7 +774,7 @@ function TerminalView() {
           : isDesktop()
             ? t("选择一台主机，打开真实 SSH 会话。需要先在密钥库中保存该主机的凭据。")
             : t(
-                "选择一台在线主机，打开玻璃效果 SSH 会话。浏览器里的会话是模拟的，桌面版才会真正连出网络。",
+                "选择一台主机建立 SSH 连接。监控离线时也可尝试连接，连接结果会在终端中显示。",
               )}
       </p>
       {items.length === 0 ? (
@@ -778,9 +787,7 @@ function TerminalView() {
               <button
                 key={s.id}
                 type="button"
-                disabled={
-                  s.sshConfigured !== false && s.collect !== false && s.status === "offline"
-                }
+                data-terminal-server={s.id}
                 onClick={() =>
                   s.sshConfigured === false
                     ? useAppStore.getState().openComposer("server", s.id)
@@ -805,13 +812,15 @@ function TerminalView() {
                     </span>
                   ))}
                 <span className="text-2xs tabular-nums text-subtle">
-                  {s.sshConfigured === false
-                    ? t("配置 SSH")
-                    : s.collect === false
-                      ? t("不采集")
-                      : hasServerMetrics(s)
-                        ? `CPU ${cpu}%`
-                        : t("未采集")}
+                  {sessionIds.includes(s.id)
+                    ? t("返回会话")
+                    : s.sshConfigured === false
+                      ? t("配置 SSH")
+                      : s.collect === false
+                        ? t("不采集")
+                        : hasServerMetrics(s)
+                          ? `CPU ${cpu}%`
+                          : t("未采集")}
                 </span>
                 <SquareTerminal className="size-4 text-muted" />
               </button>

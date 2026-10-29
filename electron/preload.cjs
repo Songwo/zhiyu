@@ -37,20 +37,26 @@ contextBridge.exposeInMainWorld("sinan", {
     list: () => unwrap(ipcRenderer.invoke("integrations:list")),
     save: (input) => unwrap(ipcRenderer.invoke("integrations:save", input)),
     remove: (id) => unwrap(ipcRenderer.invoke("integrations:remove", id)),
-    inventory: (id, force = false) => unwrap(ipcRenderer.invoke("integrations:inventory", id, force)),
+    inventory: (id, force = false) =>
+      unwrap(ipcRenderer.invoke("integrations:inventory", id, force)),
     bind: (input) => unwrap(ipcRenderer.invoke("integrations:bind", input)),
     importZones: (input) => unwrap(ipcRenderer.invoke("integrations:importZones", input)),
     syncZones: (id) => unwrap(ipcRenderer.invoke("integrations:syncZones", id)),
     unbind: (input) => unwrap(ipcRenderer.invoke("integrations:unbind", input)),
-    dnsList: (id, zoneId, force = false) => unwrap(ipcRenderer.invoke("integrations:dnsList", id, zoneId, force)),
+    dnsList: (id, zoneId, force = false) =>
+      unwrap(ipcRenderer.invoke("integrations:dnsList", id, zoneId, force)),
     dnsPreview: (input) => unwrap(ipcRenderer.invoke("integrations:dnsPreview", input)),
     dnsApply: (ticket) => unwrap(ipcRenderer.invoke("integrations:dnsApply", ticket)),
-    probeHistory: (id, hostId, range) => unwrap(ipcRenderer.invoke("integrations:probeHistory", id, hostId, range)),
-    probeCheckHistory: (id, checkId, range) => unwrap(ipcRenderer.invoke("integrations:probeCheckHistory", id, checkId, range)),
+    probeHistory: (id, hostId, range) =>
+      unwrap(ipcRenderer.invoke("integrations:probeHistory", id, hostId, range)),
+    probeCheckHistory: (id, checkId, range) =>
+      unwrap(ipcRenderer.invoke("integrations:probeCheckHistory", id, checkId, range)),
     probeEnroll: (id, name) => unwrap(ipcRenderer.invoke("integrations:probeEnroll", id, name)),
     probeRevoke: (id, hostId) => unwrap(ipcRenderer.invoke("integrations:probeRevoke", id, hostId)),
-    probeSaveCheck: (id, input) => unwrap(ipcRenderer.invoke("integrations:probeSaveCheck", id, input)),
-    probeDeleteCheck: (id, checkId) => unwrap(ipcRenderer.invoke("integrations:probeDeleteCheck", id, checkId)),
+    probeSaveCheck: (id, input) =>
+      unwrap(ipcRenderer.invoke("integrations:probeSaveCheck", id, input)),
+    probeDeleteCheck: (id, checkId) =>
+      unwrap(ipcRenderer.invoke("integrations:probeDeleteCheck", id, checkId)),
   },
   documentAccounts: {
     preview: (documentId) => unwrap(ipcRenderer.invoke("document-accounts:preview", documentId)),
@@ -263,6 +269,16 @@ contextBridge.exposeInMainWorld("sinan", {
   },
 
   ssh: {
+    ...(process.platform === "win32"
+      ? {
+          nativeOpen: (target, appearance, bounds) =>
+            unwrap(ipcRenderer.invoke("ssh:native-open", target, appearance, bounds)),
+          nativeUpdate: (id, message) =>
+            unwrap(ipcRenderer.invoke("ssh:native-update", id, message)),
+          nativeClose: (id) => unwrap(ipcRenderer.invoke("ssh:native-close", id)),
+          onNativeEvent: (handler) => on("ssh:native-event", handler),
+        }
+      : {}),
     open: (target, size) => unwrap(ipcRenderer.invoke("ssh:open", target, size)),
     probe: (target) => unwrap(ipcRenderer.invoke("ssh:probe", target)),
     test: (target, credential) => unwrap(ipcRenderer.invoke("ssh:test", target, credential)),

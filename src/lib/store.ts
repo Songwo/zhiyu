@@ -24,6 +24,11 @@ import type {
 } from "./types";
 import { uid } from "./utils";
 import { t } from "./i18n.ts";
+import {
+  openTerminalSession,
+  leaveTerminalSession,
+  disconnectTerminalSession,
+} from "./terminal-sessions.mjs";
 import { normalizeLinks, refKey, type AssetRef, type AssetLink } from "./operations";
 import type { AiAccount } from "./ai-accounts";
 import { subscriptionFromAccount } from "./ai-subscriptions";
@@ -101,6 +106,7 @@ export interface AppState extends Snapshot {
   activity: ActivityItem[];
   expanded: ExpandState | null;
   sshServerId: string | null;
+  sshSessionIds: string[];
   commandOpen: boolean;
   settingsOpen: boolean;
   /** 系统设置作为主内容区的一页打开（头像菜单进入），与右上角的设置弹窗互不影响。 */
@@ -133,6 +139,8 @@ export interface AppState extends Snapshot {
   setExpanded: (e: ExpandState | null) => void;
   openSsh: (serverId: string) => void;
   closeSsh: () => void;
+  disconnectSsh: (id: string) => void;
+  clearSshSessions: () => void;
   setCommandOpen: (v: boolean) => void;
   setSettingsOpen: (v: boolean) => void;
   openSettingsPage: (tab?: string) => void;
@@ -182,6 +190,7 @@ const emptyUi = {
   groupByTag: false,
   expanded: null,
   sshServerId: null,
+  sshSessionIds: [] as string[],
   commandOpen: false,
   settingsOpen: false,
   settingsPage: false,
@@ -323,8 +332,18 @@ export const useAppStore = create<AppState>()(
         };
         get().log(t("查看了{0}详情", t(labels[expanded.kind])), expanded.kind);
       },
-      openSsh: (sshServerId) => set({ sshServerId, expanded: null }),
-      closeSsh: () => set({ sshServerId: null }),
+      openSsh: (sshServerId) =>
+        set((state) => ({
+          sshServerId,
+          sshSessionIds: openTerminalSession(state.sshSessionIds, sshServerId),
+          expanded: null,
+          settingsPage: false,
+          view: "terminal",
+        })),
+      closeSsh: () => set((state) => leaveTerminalSession(state.sshSessionIds, state.sshServerId)),
+      disconnectSsh: (id) =>
+        set((state) => disconnectTerminalSession(state.sshSessionIds, state.sshServerId, id)),
+      clearSshSessions: () => set({ sshServerId: null, sshSessionIds: [] }),
       setCommandOpen: (commandOpen) => set({ commandOpen }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen, commandOpen: false }),
       openSettingsPage: (tab) =>

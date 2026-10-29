@@ -11,8 +11,10 @@ import { spawn } from "node:child_process";
 import { connect } from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { buildNativeTerminal } from "./build-native-terminal.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+buildNativeTerminal();
 const PORT = 8090;
 const HOST = "127.0.0.1";
 const URL_ = `http://${HOST}:${PORT}/`;

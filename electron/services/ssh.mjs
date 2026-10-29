@@ -108,6 +108,7 @@ export class SshManager {
       username: target.username,
       readyTimeout: CONNECT_TIMEOUT,
       keepaliveInterval: 20_000,
+      keepaliveCountMax: 3,
       // Older boxes still hand out ssh-rsa host keys; refusing them outright
       // would make the app useless against exactly the servers people keep.
       algorithms: {
@@ -219,7 +220,7 @@ export class SshManager {
   }
 
   /** Open an interactive PTY. Output is pushed to the renderer as it arrives. */
-  async openShell(target, credential, size = { cols: 100, rows: 30 }) {
+  async openShell(target, credential, size = { cols: 100, rows: 30 }, emit = this.#emit) {
     const client = await this.#connect(target, credential);
     const sessionId = randomUUID();
 
@@ -256,23 +257,23 @@ export class SshManager {
       }
     });
 
-    stream.on("data", (chunk) =>
-      this.#emit("ssh:data", { sessionId, chunk: chunk.toString("utf8") }),
-    );
+    stream.setEncoding("utf8");
+    stream.stderr?.setEncoding("utf8");
+    stream.on("data", (chunk) => emit("ssh:data", { sessionId, chunk: chunk.toString("utf8") }));
     stream.stderr?.on("data", (chunk) =>
-      this.#emit("ssh:data", { sessionId, chunk: chunk.toString("utf8") }),
+      emit("ssh:data", { sessionId, chunk: chunk.toString("utf8") }),
     );
     stream.on("error", (err) => {
-      this.#emit("ssh:data", { sessionId, chunk: `\r\n${friendly(err)}\r\n` });
+      emit("ssh:data", { sessionId, chunk: `\r\n${friendly(err)}\r\n` });
       client.destroy();
     });
     stream.on("close", () => {
       this.#sessions.delete(sessionId);
       client.end();
-      this.#emit("ssh:exit", { sessionId });
+      emit("ssh:exit", { sessionId });
     });
     client.on("error", (err) =>
-      this.#emit("ssh:data", { sessionId, chunk: `\r\n\x1b[31m${friendly(err)}\x1b[0m\r\n` }),
+      emit("ssh:data", { sessionId, chunk: `\r\n\x1b[31m${friendly(err)}\x1b[0m\r\n` }),
     );
 
     this.#sessions.set(sessionId, { client, stream, serverId: target.id });
@@ -285,6 +286,16 @@ export class SshManager {
 
   resize(sessionId, cols, rows) {
     this.#sessions.get(sessionId)?.stream.setWindow(rows, cols, 0, 0);
+  }
+  pause(sessionId) {
+    const stream = this.#sessions.get(sessionId)?.stream;
+    stream?.pause();
+    stream?.stderr?.pause();
+  }
+  resume(sessionId) {
+    const stream = this.#sessions.get(sessionId)?.stream;
+    stream?.resume();
+    stream?.stderr?.resume();
   }
 
   close(sessionId) {

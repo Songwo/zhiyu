@@ -1,6 +1,326 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 
+/* 终端沿用主工作区的表面、文字与边框，仅输出区允许选择独立配色。 */
+.terminal-workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+  height: calc(100dvh - 136px);
+  margin: 20px 24px 24px;
+  color: var(--color-ink);
+}
+.terminal-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+.terminal-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.terminal-address {
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-muted);
+}
+.terminal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.terminal-status .status-dot {
+  background: var(--color-subtle);
+}
+.terminal-status[data-status="open"] .status-dot {
+  background: var(--color-ok);
+}
+.terminal-status[data-status="error"] .status-dot {
+  background: var(--color-crit);
+}
+.terminal-surface {
+  --terminal-edge: color-mix(
+    in srgb,
+    var(--terminal-background) 86%,
+    var(--terminal-foreground) 14%
+  );
+  --terminal-dim: color-mix(in srgb, var(--terminal-foreground) 62%, var(--terminal-background));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 280px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-line) 72%, var(--color-ink) 28%);
+  border-radius: 14px;
+  background: var(--terminal-background);
+  color: var(--terminal-foreground);
+  /* 分层阴影：贴边的接触阴影加上柔和的远投影，让终端像浮在页面上的一块面板。 */
+  box-shadow:
+    0 0 0 1px rgb(24 27 34 / 2%),
+    0 1px 1px rgb(24 27 34 / 4%),
+    0 4px 10px -2px rgb(24 27 34 / 7%),
+    0 22px 44px -18px rgb(24 27 34 / 22%);
+  transition:
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+.terminal-surface:hover {
+  border-color: color-mix(in srgb, var(--color-line) 56%, var(--color-ink) 44%);
+  box-shadow:
+    0 0 0 1px rgb(24 27 34 / 3%),
+    0 2px 3px rgb(24 27 34 / 5%),
+    0 8px 18px -4px rgb(24 27 34 / 9%),
+    0 30px 56px -20px rgb(24 27 34 / 28%);
+}
+:root[data-theme="dark"] .terminal-surface {
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 30%),
+    0 4px 10px -2px rgb(0 0 0 / 35%),
+    0 22px 44px -18px rgb(0 0 0 / 60%);
+}
+.terminal-chrome {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 42px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--terminal-edge);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--terminal-background) 93%, var(--terminal-foreground) 7%),
+    color-mix(in srgb, var(--terminal-background) 97%, var(--terminal-foreground) 3%)
+  );
+  /* 终端配色可能与软件主题不同，高光按终端背景的明暗自适应。 */
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--terminal-background) 86%, white 14%);
+  color: var(--terminal-dim);
+  font-size: 12px;
+}
+.terminal-chrome-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+}
+.terminal-chrome-title svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.terminal-chrome-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.terminal-tools {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+}
+.terminal-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 6px;
+  border-radius: 7px;
+  color: var(--terminal-dim);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.terminal-tool svg {
+  width: 15px;
+  height: 15px;
+}
+.terminal-tool:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--terminal-foreground) 9%, transparent);
+  color: var(--terminal-foreground);
+}
+.terminal-tool[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--terminal-foreground) 13%, transparent);
+  color: var(--terminal-foreground);
+}
+.terminal-tool:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.terminal-tool:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-link) 70%, transparent);
+  outline-offset: 1px;
+}
+.terminal-tool-text {
+  font-size: 12px;
+}
+.terminal-tool-size {
+  min-width: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.terminal-tool-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--terminal-edge);
+}
+.terminal-snippets {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--terminal-edge);
+  background: color-mix(in srgb, var(--terminal-background) 97%, var(--terminal-foreground) 3%);
+}
+.terminal-snippets button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--terminal-edge);
+  border-radius: 999px;
+  background: var(--terminal-background);
+  color: var(--terminal-dim);
+  font-size: 12px;
+  box-shadow: 0 1px 1px rgb(24 27 34 / 4%);
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.terminal-snippets button code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--terminal-foreground);
+}
+.terminal-snippets button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--terminal-foreground) 32%, transparent);
+  color: var(--terminal-foreground);
+}
+.terminal-snippets button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.terminal-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.native-terminal-mount,
+.live-terminal-mount {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+}
+/* 原生控件是矩形子窗口，内缩到圆角范围以内，四角由同色卡片背景补齐。 */
+.native-terminal-mount {
+  margin: 6px;
+}
+.native-terminal-mount > p {
+  margin: 20px;
+}
+.live-terminal-content {
+  position: absolute;
+  inset: 0;
+  padding: 12px 8px 8px 16px;
+}
+.terminal-error {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-crit);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-crit);
+  font-size: 12px;
+}
+.terminal-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 0;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+.terminal-footer kbd {
+  font-family: var(--font-sans);
+  font-size: inherit;
+}
+.terminal-latest {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-link);
+  font-size: inherit;
+}
+.terminal-session-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 24px 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-line);
+}
+.terminal-session-tabs button {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+  border-bottom: 2px solid transparent;
+}
+.terminal-session-tabs button[aria-pressed="true"] {
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+.terminal-workspace[data-focus-mode="true"] {
+  margin-top: 8px;
+}
+.terminal-workspace[data-focus-mode="true"] .terminal-heading {
+  display: none;
+}
+.terminal-workspace[data-focus-mode="true"] .terminal-surface {
+  margin-top: 12px;
+}
+@media (max-width: 767px) {
+  .terminal-workspace {
+    margin: 16px 12px 76px;
+    height: calc(100dvh - 190px);
+  }
+  .terminal-tool-text,
+  .terminal-tool-size,
+  .terminal-tools .terminal-tool-sep {
+    display: none;
+  }
+  .terminal-snippets {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .terminal-title {
+    font-size: 19px;
+  }
+}
+
 .mail-folder-blue {
   --mail-folder-color: #477dc8;
 }

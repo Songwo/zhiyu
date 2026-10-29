@@ -40,6 +40,7 @@ import { snapshotOf, useAppStore } from "@/lib/store";
 import { cn, downloadJson } from "@/lib/utils";
 import { useVault } from "@/lib/vault-state";
 import { t, type LocaleChoice } from "@/lib/i18n";
+import { TERMINAL_CURSORS, TERMINAL_FONTS, TERMINAL_THEMES } from "@/lib/terminal-appearance.mjs";
 
 const IntegrationsSettings = lazy(() =>
   import("./integrations/integrations-settings").then((module) => ({
@@ -50,6 +51,7 @@ const IntegrationsSettings = lazy(() =>
 type Tab =
   | "profile"
   | "appearance"
+  | "terminal"
   | "monitoring"
   | "integrations"
   | "vault"
@@ -77,6 +79,7 @@ const TAB_GROUPS: Array<{ title: string; tabs: Array<{ id: Tab; label: string }>
       { id: "agent", label: "模型与知识库" },
       { id: "integrations", label: "云服务与探针" },
       { id: "monitoring", label: "监控采集" },
+      { id: "terminal", label: "终端" },
       { id: "mail-push", label: "邮件推送" },
       { id: "extension", label: "浏览器插件" },
     ],
@@ -248,6 +251,7 @@ function SettingsBody({ header }: { header?: ReactNode }) {
               </div>
             ))}
           {tab === "appearance" && <Appearance />}
+          {tab === "terminal" && <TerminalSettings />}
           {tab === "monitoring" && <Monitoring />}
           {tab === "integrations" && (
             <Suspense fallback={<p>{t("正在加载…")}</p>}>
@@ -406,6 +410,126 @@ function Appearance() {
         </p>
       )}
       <DesktopSettings />
+    </Section>
+  );
+}
+
+function TerminalSettings() {
+  const appearance = useSettings((s) => s.terminalAppearance);
+  const setAppearance = useSettings((s) => s.setTerminalAppearance);
+  const hasSession = useAppStore((s) => Boolean(s.sshServerId));
+  return (
+    <Section title={t("终端")} hint={t("统一调整所有终端会话的阅读外观，修改后即时生效。")}>
+      <Row label={t("终端配色")} hint={t("默认与软件主题保持一致，也可单独选择柔和配色。")}>
+        <Select
+          className="w-40 text-meta"
+          aria-label={t("终端配色")}
+          value={appearance.theme}
+          onValueChange={(value) => setAppearance({ theme: value as typeof appearance.theme })}
+          options={Object.entries(TERMINAL_THEMES).map(([value, label]) => ({
+            value,
+            label: t(label),
+          }))}
+        />
+      </Row>
+      <Row label={t("终端字体")} hint={t("未安装所选字体时，自动使用系统等宽字体。")}>
+        <Select
+          className="w-40 text-meta"
+          aria-label={t("终端字体")}
+          value={appearance.font}
+          onValueChange={(value) => setAppearance({ font: value as typeof appearance.font })}
+          options={Object.entries(TERMINAL_FONTS).map(([value, font]) => ({
+            value,
+            label: font.label,
+          }))}
+        />
+      </Row>
+      <Row label={t("终端字号")} hint={t("只调整命令和输出文字，不影响其他界面。")}>
+        <Select
+          className="w-40 text-meta"
+          aria-label={t("终端字号")}
+          value={String(appearance.fontSize)}
+          onValueChange={(value) => setAppearance({ fontSize: Number(value) })}
+          options={Array.from({ length: 12 }, (_, index) => ({
+            value: String(index + 11),
+            label: `${index + 11} px`,
+          }))}
+        />
+      </Row>
+      <Row label={t("光标样式")} hint={t("终端失去焦点时光标会变暗，便于确认输入位置。")}>
+        <Select
+          className="w-40 text-meta"
+          aria-label={t("光标样式")}
+          value={appearance.cursorStyle}
+          onValueChange={(value) =>
+            setAppearance({ cursorStyle: value as typeof appearance.cursorStyle })
+          }
+          options={Object.entries(TERMINAL_CURSORS).map(([value, label]) => ({
+            value,
+            label: t(label),
+          }))}
+        />
+      </Row>
+      <Row label={t("光标闪烁")} hint={t("关闭后光标保持常亮，减少闪烁干扰。")}>
+        <Select
+          className="w-40 text-meta"
+          aria-label={t("光标闪烁")}
+          value={appearance.cursorBlink ? "on" : "off"}
+          onValueChange={(value) => setAppearance({ cursorBlink: value === "on" })}
+          options={[
+            { value: "off", label: t("常亮") },
+            { value: "on", label: t("闪烁") },
+          ]}
+        />
+      </Row>
+      <Row label={t("输出跟随")} hint={t("上翻历史或选择文字时暂停跟随，随时可回到最新输出。")}>
+        <Select
+          className="w-40 text-meta"
+          aria-label={t("输出跟随")}
+          value={appearance.autoFollow ? "on" : "off"}
+          onValueChange={(value) => setAppearance({ autoFollow: value === "on" })}
+          options={[
+            { value: "on", label: t("自动跟随") },
+            { value: "off", label: t("锁定滚动") },
+          ]}
+        />
+      </Row>
+      <Row
+        label={t("历史输出行数")}
+        hint={t("达到上限后仅移除最旧的输出，避免长时间运行占用过多内存。")}
+      >
+        <Select
+          className="w-40 text-meta"
+          aria-label={t("历史输出行数")}
+          value={String(appearance.scrollback)}
+          onValueChange={(value) => setAppearance({ scrollback: Number(value) })}
+          options={[1000, 5000, 10000, 20000].map((value) => ({
+            value: String(value),
+            label: t("{0} 行", value),
+          }))}
+        />
+      </Row>
+      <p className="mt-4 text-2xs leading-relaxed text-muted">
+        {t(
+          "离开终端或关闭窗口到托盘会保留会话，并通过 SSH 心跳保活。显式断开、锁定密钥库或完全退出程序时结束连接。",
+        )}
+      </p>
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const store = useAppStore.getState();
+            store.setSettingsOpen(false);
+            store.openSsh(store.sshServerId || "__terminal_preview__");
+          }}
+        >
+          {t(hasSession ? "返回终端" : "查看终端效果")}
+        </Button>
+        <span className="text-2xs text-muted">
+          {t("仅在本机保存，不影响服务器或远程编辑器的配置。")}
+        </span>
+      </div>
     </Section>
   );
 }

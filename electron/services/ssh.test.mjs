@@ -104,6 +104,7 @@ test("SSH 主机指纹存储不可用时拒绝连接而不是放行", { timeout:
   }
 });
 import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
 
 class BrokenClient extends EventEmitter {
   destroyed = false;
@@ -121,6 +122,39 @@ class BrokenClient extends EventEmitter {
     this.destroy();
   }
 }
+
+test("SSH 终端配置真实保活和有限失联检测，输出支持背压", async () => {
+  const client = new BrokenClient();
+  const stream = new PassThrough();
+  stream.stderr = new PassThrough();
+  let config;
+  client.connect = (value) => {
+    config = value;
+    queueMicrotask(() => client.emit("ready"));
+  };
+  client.shell = (_size, callback) => callback(null, stream);
+  const manager = new SshManager(
+    () => {},
+    undefined,
+    () => client,
+  );
+  const result = await manager.openShell(
+    { id: "heartbeat", host: "fixture", username: "tester" },
+    CREDENTIAL,
+  );
+  try {
+    assert.equal(config.keepaliveInterval, 20000);
+    assert.equal(config.keepaliveCountMax, 3);
+    manager.pause(result.sessionId);
+    assert.equal(stream.isPaused(), true);
+    assert.equal(stream.stderr.isPaused(), true);
+    manager.resume(result.sessionId);
+    assert.equal(stream.isPaused(), false);
+    assert.equal(stream.stderr.isPaused(), false);
+  } finally {
+    manager.closeAll();
+  }
+});
 
 test("SSH 首次失败及关闭时的二次错误均被处理", async () => {
   const client = new BrokenClient();

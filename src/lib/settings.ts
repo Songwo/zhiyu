@@ -14,11 +14,19 @@ export { ZOOM_PERCENTS, type ZoomPercent } from "../../electron/services/display
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { resolveLocale, setLocale, type LocaleChoice } from "./i18n";
+import {
+  normalizeTerminalAppearance,
+  legacyTerminalAppearance,
+  migrateTerminalAppearance,
+} from "./terminal-appearance.mjs";
+type TerminalAppearance = ReturnType<typeof normalizeTerminalAppearance>;
 
 export type ThemeChoice = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
 interface SettingsState {
+  terminalAppearance: TerminalAppearance;
+  setTerminalAppearance: (value: Partial<TerminalAppearance>) => void;
   serverMonitorMinutes: number;
   monitorReady: boolean;
   setServerMonitorMinutes: (minutes: number) => Promise<void>;
@@ -56,6 +64,16 @@ function readRate(value: unknown): number | null {
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
+function initialTerminalAppearance(): TerminalAppearance {
+  try {
+    return legacyTerminalAppearance(
+      typeof window === "undefined" ? undefined : window.localStorage,
+    );
+  } catch {
+    return normalizeTerminalAppearance(null);
+  }
+}
+
 export function systemTheme(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
   return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
@@ -75,6 +93,14 @@ export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
+      terminalAppearance: initialTerminalAppearance(),
+      setTerminalAppearance: (value) =>
+        set((state) => ({
+          terminalAppearance: normalizeTerminalAppearance({
+            ...state.terminalAppearance,
+            ...value,
+          }),
+        })),
       serverMonitorMinutes: 5,
       monitorReady: false,
       setServerMonitorMinutes: async (value) => {
@@ -127,6 +153,7 @@ export const useSettings = create<SettingsState>()(
       partialize: (s) =>
         ({
           theme: s.theme,
+          terminalAppearance: s.terminalAppearance,
           serverMonitorMinutes: s.serverMonitorMinutes,
           language: s.language,
           assetLayout: s.assetLayout,
@@ -142,6 +169,9 @@ export const useSettings = create<SettingsState>()(
         return {
           ...current,
           ...saved,
+          terminalAppearance: saved?.terminalAppearance
+            ? migrateTerminalAppearance(saved.terminalAppearance)
+            : initialTerminalAppearance(),
           zoomPercent: readZoomPercent(saved?.zoomPercent),
           zoomReady: false,
           monitorReady: false,

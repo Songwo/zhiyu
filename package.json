@@ -26,6 +26,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "desktop": "node scripts/desktop-dev.mjs",
+    "terminal:build": "node scripts/build-native-terminal.mjs --test",
     "web:build": "node node_modules/vite/bin/vite.js build --config vite.web.config.ts",
     "web:start": "node selfhost/server.mjs",
     "desktop:build": "node node_modules/vite/bin/vite.js build --config vite.desktop.config.ts",
@@ -138,7 +139,7 @@
     "vite": "^8.2.0"
   },
   "productName": "知屿 Zhiyu",
-  "version": "1.17.2",
+  "version": "1.17.3",
   "author": "Songwo",
   "homepage": "https://github.com/Songwo/zhiyu",
   "repository": {

@@ -1,6 +1,7 @@
 import { cp, readFile, writeFile, rm, realpath } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildNativeTerminal } from "./build-native-terminal.mjs";
 import {
   DESKTOP_RUNTIME_DEPENDENCIES,
   createPackageStage,
@@ -11,6 +12,7 @@ import {
 } from "./package-stage.mjs";
 
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), ".."));
+buildNativeTerminal();
 // 漏装的包只会在安装后的程序启动时报错（1.16.1 的 @noble/hashes），所以打包前先核对。
 const missing = mainProcessPackages(root).filter(
   (name) => !DESKTOP_RUNTIME_DEPENDENCIES.includes(name),
@@ -61,10 +63,21 @@ const config = {
     output: join(root, "release", `v${manifest.version}`),
     buildResources: join(root, "build"),
   },
-  extraResources: manifest.build.extraResources.map((entry) => ({
-    ...entry,
-    from: resolve(root, entry.from),
-  })),
+  extraResources: manifest.build.extraResources
+    .map((entry) => ({
+      ...entry,
+      from: resolve(root, entry.from),
+    }))
+    .concat(
+      process.platform === "win32"
+        ? [
+            {
+              from: join(root, "release/native-terminal/Zhiyu.Terminal.exe"),
+              to: "native-terminal/Zhiyu.Terminal.exe",
+            },
+          ]
+        : [],
+    ),
   win: {
     ...manifest.build.win,
     icon: resolve(root, manifest.build.win.icon),

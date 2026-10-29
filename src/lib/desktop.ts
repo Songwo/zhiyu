@@ -3,6 +3,27 @@ import { t } from "./i18n.ts";
 
 export type CredentialKind = "password" | "key" | "agent";
 
+export interface NativeTerminalAppearance {
+  type: "appearance";
+  background: string;
+  foreground: string;
+  colors: string[];
+  fontFamily: string;
+  fontSize: number;
+  cursorStyle: "bar" | "block" | "underline";
+  cursorBlink: boolean;
+  autoFollow: boolean;
+  scrollback: number;
+}
+export interface NativeTerminalBounds {
+  type: "bounds";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  visible: boolean;
+}
+
 export interface SshCredential {
   kind: CredentialKind;
   password?: string;
@@ -320,6 +341,42 @@ export interface DesktopBridge {
     list(): Promise<string[]>;
   };
   ssh: {
+    nativeOpen?(
+      target: { id: string },
+      appearance: NativeTerminalAppearance,
+      bounds: NativeTerminalBounds,
+    ): Promise<{ native: true }>;
+    nativeUpdate?(
+      id: string,
+      message:
+        | NativeTerminalAppearance
+        | NativeTerminalBounds
+        | { type: "copy" | "paste" | "focus" | "reconnect" | "latest" | "scroll-lock" }
+        | { type: "input"; data: string },
+    ): Promise<boolean>;
+    nativeClose?(id: string): Promise<boolean>;
+    onNativeEvent?(
+      handler: (event: {
+        serverId: string;
+        type: string;
+        value?: string;
+        message?: string;
+        elapsedMs?: number;
+        embedded?: boolean;
+        visible?: boolean;
+        background?: string;
+        fontFamily?: string;
+        fontSize?: number;
+        locked?: boolean;
+        atBottom?: boolean;
+        unread?: number;
+        history?: number;
+        offset?: number;
+        cursorBlink?: boolean;
+        autoFollow?: boolean;
+        scrollback?: number;
+      }) => void,
+    ): () => void;
     open(target: SshTarget, size: { cols: number; rows: number }): Promise<{ sessionId: string }>;
     probe(target: SshTarget): Promise<HostProbe>;
     test(target: SshTarget, credential: SshCredential): Promise<{ ok: true; message: string }>;

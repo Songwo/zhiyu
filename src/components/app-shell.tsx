@@ -110,6 +110,12 @@ export function AppShell() {
     };
   }, []);
   const view = useAppStore((s) => s.view);
+  const terminalOpen = useAppStore(
+    (s) =>
+      s.view === "terminal" &&
+      (s.sshServerId === "__terminal_preview__" ||
+        s.servers.some((server) => server.id === s.sshServerId)),
+  );
   // 资产详情和系统设置页都占据主内容区，列表只隐藏不卸载。
   const detailOpen = useAppStore((s) => Boolean(s.expanded) || s.settingsPage);
   const workspaceScroll = useRef<HTMLDivElement>(null);
@@ -148,9 +154,15 @@ export function AppShell() {
     view === "overview" ||
     view === "renewals" ||
     view === "relations" ||
-    view === "host";
+    view === "host" ||
+    view === "terminal";
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
   const vaultUnlocked = useVault((s) => s.unlocked);
+  const previousVaultUnlocked = useRef(vaultUnlocked);
+  useEffect(() => {
+    if (previousVaultUnlocked.current && !vaultUnlocked) useAppStore.getState().clearSshSessions();
+    previousVaultUnlocked.current = vaultUnlocked;
+  }, [vaultUnlocked]);
   const monitorReady = useSettings((s) => s.monitorReady);
   const serverMonitorMinutes = useSettings((s) => s.serverMonitorMinutes);
   useEffect(() => startMonitorSync((message) => toast.error(message)), []);
@@ -268,11 +280,14 @@ export function AppShell() {
             <AssetDetailPage />
             <SettingsPage />
             {/* 详情打开时列表只隐藏不卸载，返回时筛选、展开状态都还在。 */}
-            <div className="workspace-view" hidden={detailOpen}>
+            <div className="workspace-view" hidden={detailOpen || terminalOpen}>
               <TopTabs />
               <ViewErrorBoundary key={view}>
                 <MainView />
               </ViewErrorBoundary>
+            </div>
+            <div hidden={!terminalOpen || detailOpen}>
+              <SshTerminal active={terminalOpen && !detailOpen} />
             </div>
           </main>
           {!detailOpen && !wideWorkspace && <RightRail className="hidden 2xl:block" />}
@@ -282,7 +297,6 @@ export function AppShell() {
   );
   const overlays = (
     <>
-      <SshTerminal />
       <Settings />
       <Composer />
       <CreateAssetPicker />

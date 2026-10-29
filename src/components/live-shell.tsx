@@ -1,73 +1,58 @@
 import { hostBridge } from "@/lib/web-bridge";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { Terminal } from "@xterm/xterm";
+import type { FitAddon } from "@xterm/addon-fit";
 import { useVault } from "@/lib/vault-state";
 import type { Server } from "@/lib/types";
+import type { terminalPalette } from "@/lib/terminal-appearance.mjs";
 import { t } from "@/lib/i18n";
 
 export type ShellStatus = "connecting" | "open" | "closed" | "error";
-
-/** The palette the glass window is built around, handed to xterm verbatim. */
-const THEME = {
-  background: "#00000000",
-  foreground: "#d7dbdf",
-  cursor: "#c8e64a",
-  cursorAccent: "#0c0c0e",
-  selectionBackground: "rgba(255,255,255,0.22)",
-  black: "#2b2f33",
-  red: "#f4212e",
-  green: "#00ba7c",
-  yellow: "#ffad1f",
-  blue: "#63a4ff",
-  magenta: "#c58af9",
-  cyan: "#4dd0e1",
-  white: "#d7dbdf",
-  brightBlack: "#6b7480",
-  brightRed: "#ff6b74",
-  brightGreen: "#4ade80",
-  brightYellow: "#fcd34d",
-  brightBlue: "#93c5fd",
-  brightMagenta: "#d8b4fe",
-  brightCyan: "#67e8f9",
-  brightWhite: "#ffffff",
+export type ShellViewport = { locked: boolean; atBottom: boolean; unread: number };
+export type ShellControls = {
+  copy: () => void;
+  paste: () => void;
+  latest: () => void;
+  toggleScrollLock: () => void;
+  focus: () => void;
+  send: (data: string) => void;
 };
-
-/**
- * A real PTY on a real host.
- *
- * xterm and its stylesheet are imported dynamically: the same component tree is
- * built for the web preview, where there is no bridge to talk to and no reason
- * to ship a terminal emulator in the bundle.
- */
+type Palette = ReturnType<typeof terminalPalette>;
 export function LiveShell({
   server,
+  palette,
+  preview,
+  controls,
   onStatus,
+  onViewport,
 }: {
   server: Server;
-  onStatus?: (status: ShellStatus, detail?: string) => void;
+  palette: Palette;
+  preview?: boolean;
+  controls: MutableRefObject<ShellControls | null>;
+  onStatus?: (status: ShellStatus | "preview", detail?: string) => void;
+  onViewport?: (value: ShellViewport) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<ShellStatus>("connecting");
-  const [detail, setDetail] = useState<string | null>(null);
-  const requireVault = useVault((s) => s.require);
-
+  const termRef = useRef<Terminal | null>(null),
+    fitRef = useRef<FitAddon | null>(null);
+  const latest = useRef({ palette, onStatus, onViewport });
+  latest.current = { palette, onStatus, onViewport };
+  const followControl = useRef<((follow: boolean) => void) | null>(null);
+  const [error, setError] = useState("");
   useEffect(() => {
-    const bridge = hostBridge();
     const mount = host.current;
-    if (!bridge || !mount) return;
-
-    let disposed = false;
-    let term: Terminal | null = null;
-    let sessionId: string | null = null;
+    if (!mount) return;
+    const bridge = hostBridge();
+    let disposed = false,
+      sessionId: string | null = null;
     const cleanups: Array<() => void> = [];
-
-    const report = (s: ShellStatus, d?: string) => {
-      if (disposed) return;
-      setStatus(s);
-      setDetail(d ?? null);
-      onStatus?.(s, d);
+    const report = (status: ShellStatus | "preview", detail?: string) => {
+      if (!disposed) {
+        latest.current.onStatus?.(status, detail);
+        if (status === "error") setError(detail || "连接失败");
+      }
     };
-
     void (async () => {
       const [{ Terminal: Xterm }, { FitAddon }] = await Promise.all([
         import("@xterm/xterm"),
@@ -75,100 +60,235 @@ export function LiveShell({
       ]);
       await import("@xterm/xterm/css/xterm.css");
       if (disposed) return;
-
-      term = new Xterm({
-        allowTransparency: true,
-        convertEol: false,
-        cursorBlink: true,
-        fontFamily: '"IBM Plex Mono", ui-monospace, Consolas, monospace',
-        fontSize: 13,
-        lineHeight: 1.45,
-        letterSpacing: 0,
-        scrollback: 5000,
-        theme: THEME,
+      const config = latest.current.palette;
+      const term = new Xterm({
+        allowTransparency: false,
+        cursorBlink: config.cursorBlink,
+        cursorStyle: config.cursorStyle,
+        cursorInactiveStyle: "outline",
+        fontFamily: config.fontFamily,
+        fontSize: config.fontSize,
+        lineHeight: 1.5,
+        scrollback: config.scrollback,
+        theme: config.xterm,
       });
+      termRef.current = term;
       const fit = new FitAddon();
+      fitRef.current = fit;
       term.loadAddon(fit);
       term.open(mount);
       fit.fit();
-      term.writeln(
-        t("\u001b[2m正在连接 {0}@{1}:{2} …\u001b[0m", server.username, server.host, server.port),
-      );
-
-      // Opening a session needs the stored credential, which needs the vault.
-      if (!(await requireVault(t("连接 {0} 需要读取已保存的 SSH 凭据。", server.name)))) {
-        if (disposed) return;
-        term.writeln(t("\r\n\u001b[33m已取消：密钥库未解锁。\u001b[0m"));
-        report("error", t("密钥库未解锁"));
-        return;
-      }
-      if (disposed) return;
-
-      try {
-        const res = await bridge.ssh.open(
-          { id: server.id, host: server.host, port: server.port, username: server.username },
-          { cols: term.cols, rows: term.rows },
-        );
-        sessionId = res.sessionId;
-        report("open");
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!disposed) term.writeln(`\r\n\x1b[31m${msg}\x1b[0m`);
-        report("error", msg);
-        return;
-      }
-
-      cleanups.push(
-        bridge.ssh.onData(({ sessionId: id, chunk }) => {
-          if (id === sessionId) term?.write(chunk);
-        }),
-      );
-      cleanups.push(
-        bridge.ssh.onExit(({ sessionId: id }) => {
-          if (id !== sessionId) return;
-          sessionId = null;
-          term?.writeln(t("\r\n\u001b[2m连接已关闭。\u001b[0m"));
-          report("closed");
-        }),
-      );
-
-      const keys = term.onData((data) => {
-        if (sessionId) bridge.ssh.write(sessionId, data);
+      let locked = !config.autoFollow,
+        unread = 0;
+      const viewport = () =>
+        latest.current.onViewport?.({
+          locked,
+          atBottom: term.buffer.active.viewportY >= term.buffer.active.baseY,
+          unread,
+        });
+      const resume = () => {
+        locked = false;
+        unread = 0;
+        term.scrollToBottom();
+        viewport();
+      };
+      followControl.current = (follow) => {
+        locked = !follow;
+        viewport();
+      };
+      const scrolling = term.onScroll(() => {
+        if (!locked && term.buffer.active.viewportY >= term.buffer.active.baseY) unread = 0;
+        viewport();
       });
-      cleanups.push(() => keys.dispose());
-
-      const ro = new ResizeObserver(() => {
+      cleanups.push(() => scrolling.dispose());
+      const outputQueue: string[] = [];
+      let writing = false;
+      const flushOutput = () => {
+        if (disposed || writing || outputQueue.length === 0) return;
+        const text = outputQueue.splice(0).join("");
+        writing = true;
+        const buffer = term.buffer.active,
+          reading = locked || buffer.viewportY < buffer.baseY;
+        const anchor = buffer.viewportY,
+          base = buffer.baseY;
+        term.write(text, () => {
+          writing = false;
+          if (disposed) return;
+          const added =
+            Math.max(0, term.buffer.active.baseY - base) || text.match(/\n/g)?.length || 0;
+          if (reading) {
+            unread += added;
+            const trimmed = base >= term.options.scrollback! ? added : 0;
+            term.scrollToLine(Math.max(0, anchor - trimmed));
+          }
+          viewport();
+          flushOutput();
+        });
+      };
+      const writeOutput = (text: string) => {
+        outputQueue.push(text);
+        flushOutput();
+      };
+      controls.current = {
+        latest: resume,
+        focus: () => term.focus(),
+        // 与键盘输入同走 onData，未连接时自然丢弃。
+        send: (data) => term.input(data),
+        toggleScrollLock: () => {
+          locked = !locked;
+          viewport();
+        },
+        copy: () => {
+          const selected = term.getSelection();
+          if (selected)
+            void navigator.clipboard
+              .writeText(selected)
+              .catch(() => report("error", "无法访问剪贴板，请使用系统复制快捷键。"));
+        },
+        paste: () => {
+          void navigator.clipboard
+            .readText()
+            .then((text) => {
+              if (
+                !text.includes("\n") ||
+                window.confirm("内容包含多行，粘贴后可能执行多条命令。继续粘贴？")
+              )
+                term.paste(text);
+            })
+            .catch(() => report("error", "无法读取剪贴板，请使用系统粘贴快捷键。"));
+        },
+      };
+      viewport();
+      term.attachCustomKeyEventHandler((event) => {
+        if (
+          event.type === "keydown" &&
+          event.ctrlKey &&
+          event.shiftKey &&
+          event.key.toLowerCase() === "c"
+        ) {
+          controls.current?.copy();
+          return false;
+        }
+        if (
+          event.type === "keydown" &&
+          event.ctrlKey &&
+          event.shiftKey &&
+          event.key.toLowerCase() === "v"
+        ) {
+          controls.current?.paste();
+          return false;
+        }
+        return true;
+      });
+      const observer = new ResizeObserver(() => {
+        if (disposed) return;
         try {
           fit.fit();
         } catch {
-          // The window can be mid-transition; the next observation refits.
           return;
         }
-        if (sessionId && term) bridge.ssh.resize(sessionId, term.cols, term.rows);
+        if (sessionId && bridge) bridge.ssh.resize(sessionId, term.cols, term.rows);
       });
-      ro.observe(mount);
-      cleanups.push(() => ro.disconnect());
-
+      observer.observe(mount);
+      cleanups.push(() => observer.disconnect());
+      if (preview || !bridge) {
+        term.write(
+          '\x1b[90m~/workspace  $ cat deployment.ts\x1b[0m\r\n\r\n\x1b[90m// 部署配置示例\x1b[0m\r\n\x1b[35mconst\x1b[0m service = {\r\n  name: \x1b[32m"zhiyu-api"\x1b[0m,\r\n  port: \x1b[33m8080\x1b[0m,\r\n  healthy: \x1b[35mtrue\x1b[0m,\r\n};\r\n\r\n\x1b[35mawait\x1b[0m \x1b[34mdeploy\x1b[0m(service);\r\n\r\n\x1b[90m// 此处只预览外观，不执行命令或连接服务器。\x1b[0m\r\n',
+        );
+        report("preview");
+        return;
+      }
+      report("connecting");
+      term.writeln(t("正在连接 {0}@{1}:{2} …", server.username, server.host, server.port));
+      if (
+        !(await useVault.getState().require(t("连接 {0} 需要读取已保存的 SSH 凭据。", server.name)))
+      ) {
+        report("error", "密钥库未解锁");
+        return;
+      }
+      if (disposed) return;
+      // 先订阅再连接，保留在 open 返回之前到达的欢迎消息。
+      const pending: Array<{ sessionId: string; chunk: string }> = [];
+      const exited = new Set<string>();
+      cleanups.push(
+        bridge.ssh.onData((event) => {
+          if (event.sessionId === sessionId) writeOutput(event.chunk);
+          else if (!sessionId && pending.length < 128) pending.push(event);
+        }),
+      );
+      cleanups.push(
+        bridge.ssh.onExit((event) => {
+          if (event.sessionId !== sessionId) {
+            exited.add(event.sessionId);
+            return;
+          }
+          sessionId = null;
+          report("closed", "连接已关闭");
+        }),
+      );
+      const result = await bridge.ssh.open(
+        { id: server.id, host: server.host, port: server.port, username: server.username },
+        { cols: term.cols, rows: term.rows },
+      );
+      if (disposed) {
+        void bridge.ssh.close(result.sessionId);
+        return;
+      }
+      if (exited.has(result.sessionId)) {
+        report("closed", "连接已关闭");
+        return;
+      }
+      sessionId = result.sessionId;
+      for (const event of pending) if (event.sessionId === sessionId) writeOutput(event.chunk);
+      pending.length = 0;
+      exited.clear();
+      report("open");
+      const keys = term.onData((data) => {
+        if (sessionId) {
+          resume();
+          bridge.ssh.write(sessionId, data);
+        }
+      });
+      cleanups.push(() => keys.dispose());
+      bridge.ssh.resize(sessionId, term.cols, term.rows);
       term.focus();
-    })();
-
+    })().catch((failure: unknown) => {
+      const message = failure instanceof Error ? failure.message : String(failure);
+      if (!disposed) termRef.current?.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
+      report("error", message);
+    });
     return () => {
       disposed = true;
       for (const off of cleanups) off();
-      if (sessionId) void bridge.ssh.close(sessionId);
-      term?.dispose();
+      if (sessionId) void bridge?.ssh.close(sessionId);
+      controls.current = null;
+      termRef.current?.dispose();
+      termRef.current = null;
+      fitRef.current = null;
+      followControl.current = null;
     };
-    // One session per host per open; re-running on every render would dial again.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server.id]);
-
+  }, [server.id, server.host, server.port, server.username, server.name, preview, controls]);
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    term.options.theme = palette.xterm;
+    term.options.fontFamily = palette.fontFamily;
+    term.options.fontSize = palette.fontSize;
+    term.options.cursorBlink = palette.cursorBlink;
+    term.options.cursorStyle = palette.cursorStyle;
+    term.options.scrollback = palette.scrollback;
+    fitRef.current?.fit();
+  }, [palette]);
+  useEffect(() => {
+    followControl.current?.(palette.autoFollow);
+  }, [palette.autoFollow]);
   return (
-    <div className="relative min-h-0 flex-1">
-      <div ref={host} className="absolute inset-0 px-3 py-2" />
-      {status === "error" && detail && (
-        <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg bg-crit/90 px-3 py-2 text-meta text-card">
-          {detail}
-        </div>
+    <div className="live-terminal-mount">
+      <div ref={host} className="live-terminal-content" />
+      {error && (
+        <p className="terminal-error" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );

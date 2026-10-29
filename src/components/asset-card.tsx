@@ -195,7 +195,6 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
           <div className="flex flex-wrap gap-2">
             <CopyBtn text={`${data.username}@${data.host} -p ${data.port}`} label={t("复制 SSH")} />
             <CopyBtn text={data.host} label={t("复制 IP")} />
-            {status !== "offline" && (
               <button
                 type="button"
                 className="btn btn-sm btn-primary gap-1.5"
@@ -207,7 +206,6 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
                 <SquareTerminal className="size-3.5" />
                 {t("玻璃终端")}
               </button>
-            )}
           </div>
         </div>
       )}

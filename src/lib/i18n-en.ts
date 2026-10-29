@@ -3001,4 +3001,52 @@ export const EN: Record<string, string> = {
   "邮箱的 OAuth 登录需要桌面版弹出的授权窗口，网页版请改用授权码登录。":
     "Mailbox OAuth sign-in needs the authorization window opened by the desktop app. In the web version, sign in with an app password.",
   "附件总大小不能超过 8 MiB": "Attachments can't exceed 8 MiB in total",
+  "{0} 行": "{0} lines",
+  "上翻历史或选择文字时暂停跟随，随时可回到最新输出。":
+    "Following pauses while you scroll back or select text. You can jump back to the latest output anytime.",
+  主机列表: "Hosts",
+  "仅在本机保存，不影响服务器或远程编辑器的配置。":
+    "Saved on this device only. Server and remote editor settings aren't affected.",
+  光标样式: "Cursor style",
+  光标闪烁: "Cursor blink",
+  "关闭后光标保持常亮，减少闪烁干扰。": "When off, the cursor stays solid to reduce distraction.",
+  历史输出行数: "Scrollback lines",
+  "只调整命令和输出文字，不影响其他界面。":
+    "Only changes command and output text, not the rest of the app.",
+  外观预览: "Appearance preview",
+  "字体与配色效果 · 未连接服务器": "Font and color preview · Not connected",
+  常亮: "Solid",
+  断开: "Disconnect",
+  "未安装所选字体时，自动使用系统等宽字体。":
+    "If the selected font isn't installed, the system monospace font is used.",
+  "正在连接 {0}@{1}:{2} …": "Connecting to {0}@{1}:{2}…",
+  "离开终端或关闭窗口到托盘会保留会话，并通过 SSH 心跳保活。显式断开、锁定密钥库或完全退出程序时结束连接。":
+    "Leaving the terminal or closing to the tray keeps sessions alive with SSH keepalives. Disconnecting, locking the vault, or quitting ends them.",
+  "终端失去焦点时光标会变暗，便于确认输入位置。":
+    "The cursor dims when the terminal loses focus, so you can tell where typing goes.",
+  终端字体: "Terminal font",
+  终端字号: "Terminal font size",
+  终端设置: "Terminal settings",
+  终端配色: "Terminal colors",
+  终端预览: "Terminal preview",
+  "统一调整所有终端会话的阅读外观，修改后即时生效。":
+    "Adjust how all terminal sessions look. Changes apply immediately.",
+  自动跟随: "Follow output",
+  输出跟随: "Output following",
+  "达到上限后仅移除最旧的输出，避免长时间运行占用过多内存。":
+    "Once the limit is reached, only the oldest output is dropped so long sessions don't use too much memory.",
+  返回会话: "Back to session",
+  "选择一台主机建立 SSH 连接。监控离线时也可尝试连接，连接结果会在终端中显示。":
+    "Pick a host to open an SSH connection. You can try even if monitoring shows it offline; the result appears in the terminal.",
+  重连: "Reconnect",
+  锁定滚动: "Lock scroll",
+  闪烁: "Blink",
+  "默认与软件主题保持一致，也可单独选择柔和配色。":
+    "Matches the app theme by default, or pick a softer palette.",
+  跟随软件: "Match app",
+  柔和暗色: "Soft dark",
+  暖纸护眼: "Warm paper",
+  竖线: "Bar",
+  方块: "Block",
+  下划线: "Underline",
 };

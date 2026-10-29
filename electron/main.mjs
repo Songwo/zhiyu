@@ -48,6 +48,7 @@ import { readFile, writeFile, rename, mkdir, stat, readdir, rm, open } from "nod
 import { basename, dirname, join, posix, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SshManager } from "./services/ssh.mjs";
+import { NativeTerminalManager, nativeTerminalUpdate } from "./services/native-terminal.mjs";
 import { probeCertificate, probeDomain } from "./services/net-probe.mjs";
 import { MAIL_PROVIDERS, providerForAddress, testMailbox } from "./services/mail.mjs";
 import { MailboxService, validateMailboxConnection } from "./services/mailbox-service.mjs";
@@ -117,6 +118,8 @@ try {
 }
 // 驱动不兼容时可显式启用软件渲染，默认保留硬件加速。
 if (process.env.NANPAD_DISABLE_GPU === "1") app.disableHardwareAcceleration();
+// 原生 HWND 需要参与裁剪；独立 DirectComposition 表面会覆盖子控件。
+if (process.platform === "win32") app.commandLine.appendSwitch("disable-direct-composition");
 
 /**
  * Our version, not Electron's.
@@ -142,6 +145,7 @@ const DEV_URL = process.env.SINAN_DEV_URL || null;
 let win = null;
 let vault = null;
 let ssh = null;
+let nativeTerminals = null;
 let metrics;
 let agent;
 let aiAccounts;
@@ -225,6 +229,7 @@ function savePreferences(patch) {
 }
 
 function stopPrivateTasks() {
+  nativeTerminals?.closeAll();
   browserPasswords?.clear();
   extensionBridge?.revoke();
   mailPush?.stop();
@@ -449,6 +454,10 @@ async function createWindow() {
     stepDisplayZoom(command);
   });
   win.webContents.on("zoom-changed", (_event, direction) => stepDisplayZoom(direction));
+  win.webContents.on("did-start-navigation", (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) nativeTerminals?.closeAll();
+  });
+  win.webContents.on("render-process-gone", () => nativeTerminals?.closeAll());
   win.webContents.on("did-finish-load", () => {
     win?.webContents.setZoomFactor(preferences.zoomPercent / 100);
   });
@@ -619,7 +628,14 @@ function registerIpc() {
       vault,
     },
   });
-  for (const method of ["status", "unpair", "syncNow", "setScope", "acceptServerState", "resolveVault"])
+  for (const method of [
+    "status",
+    "unpair",
+    "syncNow",
+    "setScope",
+    "acceptServerState",
+    "resolveVault",
+  ])
     handle("sync:" + method, (...args) => syncClient[method](...args));
   handle("sync:pair", (input) =>
     syncClient.pair({
@@ -1556,6 +1572,40 @@ function registerIpc() {
   handle("vault:list", () => vault.list());
 
   // ---- ssh ----------------------------------------------------------------
+  nativeTerminals = new NativeTerminalManager({
+    executable: app.isPackaged
+      ? join(process.resourcesPath, "native-terminal", "Zhiyu.Terminal.exe")
+      : join(here, "../release/native-terminal/Zhiyu.Terminal.exe"),
+    ssh,
+    onEvent: (event) => emit("ssh:native-event", event),
+    connect: async (id, size, sink) => {
+      if (!vault.unlocked) throw new Error("请先解锁密钥库。");
+      return ssh.openShell(savedServer(id), await vault.get(credentialId(id)), size, sink);
+    },
+  });
+  handle("ssh:native-open", (target, appearance, bounds) => {
+    if (process.platform !== "win32") throw new Error("此系统不支持 Windows 原生终端。");
+    const preview = target?.id === "__terminal_preview__";
+    const saved = preview ? { id: target.id, label: "终端外观预览" } : savedServer(target.id);
+    const handle = win.getNativeWindowHandle();
+    return nativeTerminals.open(saved, {
+      parentHandle: (handle.length === 8
+        ? handle.readBigUInt64LE()
+        : BigInt(handle.readUInt32LE())
+      ).toString(),
+      preview,
+      appearance: nativeTerminalUpdate({ ...appearance, type: "appearance" }),
+      bounds: nativeTerminalUpdate({ ...bounds, type: "bounds" }),
+    });
+  });
+  handle("ssh:native-update", (id, message) => {
+    nativeTerminals.update(id, nativeTerminalUpdate(message));
+    return true;
+  });
+  handle("ssh:native-close", (id) => {
+    nativeTerminals.close(id);
+    return true;
+  });
   handle("ssh:open", async (target, size) =>
     ssh.openShell(savedServer(target.id), await vault.get(credentialId(target.id)), size),
   );
