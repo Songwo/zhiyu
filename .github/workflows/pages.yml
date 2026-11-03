@@ -3,9 +3,8 @@ on:
   push:
     branches: [main]
     paths: ["site/**", "scripts/build-site*", ".github/workflows/pages.yml"]
-  release:
-    types: [published, edited]
-  # GITHUB_TOKEN 创建的 Release 不会再次触发 release 事件；等待正式版流水线成功。
+  # Pages 环境只允许 main；release 事件引用版本标签，会在运行前被保护规则拒绝。
+  # 正式发布通过 workflow_run 回到默认分支；单独编辑说明后手动从 main 运行。
   workflow_run:
     workflows: ["Windows 正式版"]
     types: [completed]
@@ -17,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     permissions:
       contents: read
