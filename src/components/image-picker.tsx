@@ -8,8 +8,18 @@ import { prepareImage } from "@/lib/user-images";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { Button } from "./ui/button";
+import { BrandIcon } from "./brand-icon";
+import type { BrandIdentity } from "@/lib/brand-icons.mjs";
 
-export function AssetImage({ value, fallback }: { value?: string; fallback: ReactNode }) {
+export function AssetImage({
+  value,
+  fallback,
+  brand,
+}: {
+  value?: string;
+  fallback: ReactNode;
+  brand?: BrandIdentity;
+}) {
   const image = useMemo(() => hostedImageUrl(value) || safeImageDataUrl(value), [value]);
   const [failed, setFailed] = useState<string | null>(null);
   return image && failed !== image ? (
@@ -20,6 +30,8 @@ export function AssetImage({ value, fallback }: { value?: string; fallback: Reac
       className="size-10 shrink-0 rounded-md object-cover"
       onError={() => setFailed(image)}
     />
+  ) : brand ? (
+    <BrandIcon identity={brand} fallback={fallback} />
   ) : (
     fallback
   );
@@ -32,6 +44,7 @@ export function ImagePicker({
   disabled = false,
   onBusyChange,
   label: customLabel,
+  brand,
 }: {
   value?: string;
   onChange: (value: string) => void;
@@ -39,6 +52,7 @@ export function ImagePicker({
   disabled?: boolean;
   onBusyChange?: (busy: boolean) => void;
   label?: string;
+  brand?: BrandIdentity;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const alive = useRef(true);
@@ -68,7 +82,7 @@ export function ImagePicker({
           ) : avatar ? (
             <UserRound className="size-6" />
           ) : (
-            <ImagePlus className="size-6" />
+            <BrandIcon identity={brand ?? {}} fallback={<ImagePlus className="size-6" />} />
           )}
         </div>
         <input
@@ -127,6 +141,11 @@ export function ImagePicker({
           </Button>
         )}
       </div>
+      {!avatar && brand && !image && (
+        <p className="text-meta text-muted">
+          {t("已识别的品牌使用内置图标，上传图片可自行替换。")}
+        </p>
+      )}
       {!avatar && <ImageBedSettings />}
       {error && (
         <p role="alert" className="text-meta text-crit">

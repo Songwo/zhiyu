@@ -10,7 +10,7 @@ export const OVERDUE_DAYS = 30;
  * @typedef {"month" | "year" | "once"} BillingCycle
  * @typedef {{ amount: number, currency: BillingCurrency, cycle: BillingCycle }} Billing
  * @typedef {"server" | "domain" | "cert" | "ai" | "service" | "phone"} RenewalKind
- * @typedef {{ key: string, kind: RenewalKind, id: string, name: string, date: string, days: number, billing?: Billing, demo?: boolean }} RenewalEntry
+ * @typedef {{ key: string, kind: RenewalKind, id: string, name: string, date: string, days: number, billing?: Billing, demo?: boolean, fixedExpiry?: boolean }} RenewalEntry
  * @typedef {{ kind: RenewalKind, id: string, name: string, billing: Billing }} BilledItem
  * @typedef {{ monthly: number, yearly: number, once: number, count: number }} CurrencyTotals
  * @typedef {{ byCurrency: Record<BillingCurrency, CurrencyTotals>, unpriced: number }} SpendSummary
@@ -96,10 +96,10 @@ function aiBilling(asset) {
 /**
  * 所有带续费或到期日期的资产，以及它们的费用（如果填写了）。
  * @param {any} snapshot
- * @returns {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean }[]}
+ * @returns {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean, fixedExpiry?: boolean }[]}
  */
 function renewableAssets(snapshot) {
-  /** @type {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean }[]} */
+  /** @type {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean, fixedExpiry?: boolean }[]} */
   const out = [];
   /** @param {RenewalKind} kind @param {any} x @param {string} name @param {unknown} date @param {Billing | undefined} billing */
   const add = (kind, x, name, date, billing) => {
@@ -111,6 +111,7 @@ function renewableAssets(snapshot) {
       date: calendarDay(date),
       ...(billing ? { billing } : {}),
       ...(x.demo ? { demo: true } : {}),
+      ...(x.card ? { fixedExpiry: true } : {}),
     });
   };
   for (const x of snapshot.servers ?? [])
@@ -163,7 +164,13 @@ export function renewalCalendar(snapshot, { from, to, now = new Date() }) {
   const out = [];
   for (const x of renewableAssets(snapshot)) {
     if (!x.date) continue;
-    const step = x.billing?.cycle === "month" ? 1 : x.billing?.cycle === "year" ? 12 : 0;
+    const step = x.fixedExpiry
+      ? 0
+      : x.billing?.cycle === "month"
+        ? 1
+        : x.billing?.cycle === "year"
+          ? 12
+          : 0;
     // 最多推算 50 年，避免很早以前的到期日在长区间里空转。
     for (let n = 0; n <= 600; n++) {
       const date = n === 0 ? x.date : addMonths(x.date, step * n);

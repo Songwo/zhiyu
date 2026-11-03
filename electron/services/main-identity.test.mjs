@@ -101,6 +101,31 @@ async function setup(t, overrides = {}) {
   return { service, options, calls, authorize, login: () => login };
 }
 
+test("重新发起使用新的 state 与 PKCE，旧监听失效，已绑定身份保持不变", async (t) => {
+  const f = await setup(t);
+  const authorized = await f.authorize();
+  await f.service.bind({ sessionId: authorized.id, syncName: false, syncAvatar: false });
+  const before = await f.service.get();
+  const first = await f.service.start();
+  const previous = structuredClone(f.login());
+  const second = await f.service.start();
+  const current = f.login();
+  assert.notEqual(second.id, first.id);
+  assert.notEqual(current.state, previous.state);
+  assert.notEqual(current.challenge, previous.challenge);
+  assert.equal((await f.service.status(first.id)).status, "cancelled");
+  assert.equal((await f.service.status(second.id)).status, "waiting");
+  const stale = new URL(current.redirectUri);
+  stale.search = new URLSearchParams({ state: previous.state, code: "stale-code" }).toString();
+  const rejected = await fetch(stale);
+  assert.equal(rejected.status, 400);
+  await rejected.text();
+  assert.equal((await f.service.status(second.id)).status, "waiting");
+  assert.deepEqual(await f.service.get(), before);
+  await f.service.cancel(second.id);
+  assert.deepEqual(await f.service.get(), before);
+});
+
 test("主身份首次授权只预览，确认后整体加密持久化，脱离密钥库重启可读取", async (t) => {
   const f = await setup(t);
   assert.equal(await f.service.get(), null);

@@ -193,6 +193,8 @@ export interface DesktopBridge {
   documentAccounts: import("./document-accounts").DocumentAccountsBridge;
   identities: import("./identities").IdentityBridge;
   mainIdentity: import("./main-identity").MainIdentityBridge;
+  documentAnalysis: import("./document-analysis").DocumentAnalysisBridge;
+  research: import("./research").ResearchBridge;
   totp: import("./totp").TotpBridge;
   passwords: {
     previewImport(): Promise<null | {

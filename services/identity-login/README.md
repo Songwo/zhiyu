@@ -1,5 +1,7 @@
 # 知屿主身份登录服务
 
+可选的 Exa 联网检索、Linux.do Credit 次数账本和 Jev 原文提示见 [联网检索与原文提示](../../docs/AI-RESEARCH.md)。未配置搜索时保留原登录服务行为；不能用 Connect 登录授权代替 LDC 商户配置。
+
 这个独立服务用于知屿的首次登录和个人资料绑定。普通用户使用各自的 Linux.do 账号授权，无需申请 Connect 应用。应用开发者的 Client Secret 只配置在服务器，不进入桌面安装包。
 
 运行环境为 Node.js 20.18.1 或更高版本。在本目录执行 `npm ci --omit=dev --ignore-scripts` 安装锁定的服务端依赖；这些依赖不进入桌面安装包。入口为 `main.mjs`，固定监听 `127.0.0.1`，默认端口 `49284`，通过现有 Cloudflare Tunnel 对外提供 HTTPS。

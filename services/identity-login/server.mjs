@@ -7,6 +7,7 @@ import {
 } from "node:crypto";
 import { createServer } from "node:http";
 import { isIP } from "node:net";
+import { ResearchError } from "./research-service.mjs";
 
 const ISSUER = "https://connect.linux.do";
 const CALLBACK = "/oauth/linuxdo/callback";
@@ -228,6 +229,7 @@ export function createIdentityLoginServer({
   now = Date.now,
   limits = {},
   onDiagnostic = () => {},
+  research = null,
 } = {}) {
   const settings = normalizeConfig(config);
   const pending = new Map();
@@ -527,8 +529,27 @@ export function createIdentityLoginServer({
       throw new LoginError(403, "origin_rejected", "不允许来自其他网站的登录请求。");
     if (req.method !== "GET" && req.headers["sec-fetch-site"] === "cross-site")
       throw new LoginError(403, "origin_rejected", "不允许跨站提交登录请求。");
-    const getPaths = ["/", "/healthz", CALLBACK];
-    const postPaths = ["/v1/login/start", "/v1/login/exchange", "/v1/session/profile"];
+    const getPaths = [
+      "/",
+      "/healthz",
+      CALLBACK,
+      "/v1/research/payment/notify",
+      "/v1/research/payment/return",
+    ];
+    const researchPaths = [
+      "/v1/research/quota",
+      "/v1/research/records",
+      "/v1/research/start",
+      "/v1/research/status",
+      "/v1/research/cancel",
+      "/v1/research/checkout",
+    ];
+    const postPaths = [
+      "/v1/login/start",
+      "/v1/login/exchange",
+      "/v1/session/profile",
+      ...researchPaths,
+    ];
     if (!getPaths.includes(url.pathname) && !postPaths.includes(url.pathname))
       throw new LoginError(404, "not_found", "请求的页面不存在。");
     if (
@@ -536,9 +557,18 @@ export function createIdentityLoginServer({
       (postPaths.includes(url.pathname) && req.method !== "POST")
     )
       throw new LoginError(405, "method_not_allowed", "该接口不支持此请求方式。");
-    if (url.pathname !== CALLBACK && url.search) throw invalid();
+    if (
+      url.pathname !== CALLBACK &&
+      !url.pathname.startsWith("/v1/research/payment/") &&
+      url.search
+    )
+      throw invalid();
     if (url.pathname === "/healthz") {
-      json(res, 200, { ok: true, configured: settings.configured });
+      json(res, 200, {
+        ok: true,
+        configured: settings.configured,
+        ...(research ? { researchConfigured: true } : {}),
+      });
       return;
     }
     if (url.pathname === "/") {
@@ -547,11 +577,47 @@ export function createIdentityLoginServer({
     }
     rate(req);
     requireConfiguration();
+    if (url.pathname === "/v1/research/payment/return") {
+      html(res, 200, "积分确认已返回。请回到知屿刷新检索结果；是否支付成功以服务端核实结果为准。");
+      return;
+    }
+    if (url.pathname === "/v1/research/payment/notify") {
+      if (!research) throw new LoginError(503, "research_unavailable", "联网检索尚未启用。");
+      const parameters = Object.fromEntries(url.searchParams);
+      if (Object.keys(parameters).length !== [...url.searchParams].length) throw invalid();
+      await research.notify(parameters);
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("success");
+      return;
+    }
     if (url.pathname === CALLBACK) {
       await completeAuthorization(url, res);
       return;
     }
     const body = await requestBody(req);
+    if (researchPaths.includes(url.pathname)) {
+      if (!research)
+        throw new LoginError(
+          503,
+          "research_unavailable",
+          "站点尚未配置 Exa 检索服务，未产生积分支付。",
+        );
+      const authorization = req.headers.authorization;
+      if (typeof authorization !== "string" || !authorization.startsWith("Bearer "))
+        throw expired();
+      const session = unseal(authorization.slice(7));
+      const method = url.pathname.split("/").at(-1);
+      const result =
+        method === "quota"
+          ? research.quota(session.subject)
+          : method === "records"
+            ? research.records(session.subject, body)
+            : method === "start"
+              ? research.start(session.subject, body)
+              : await research[method](session.subject, body.id);
+      json(res, 200, result);
+      return;
+    }
     if (url.pathname === "/v1/login/start") {
       const redirectUri = desktopRedirect(body.redirectUri);
       if (!identifier(body.state) || !identifier(body.challenge)) throw invalid();
@@ -654,7 +720,7 @@ export function createIdentityLoginServer({
       .catch((error) => {
         if (res.destroyed || res.headersSent) return;
         const safe =
-          error instanceof LoginError
+          error instanceof LoginError || error instanceof ResearchError
             ? error
             : new LoginError(500, "internal_error", "登录服务暂时不可用，请稍后重试。");
         if (safe.status === 429) res.setHeader("Retry-After", "60");

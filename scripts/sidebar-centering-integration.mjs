@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { _electron as electron } from "playwright";
 import { completeOnboarding } from "./onboarding-helper.mjs";
+import { expandNavigationGroups } from "./navigation-helper.mjs";
 
 const directory = await mkdtemp(join(tmpdir(), "zhiyu-sidebar-centering-"));
 const env = { ...process.env, NANPAD_TEST_DATA_DIR: directory };
@@ -31,6 +32,7 @@ try {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await completeOnboarding(page);
+  await expandNavigationGroups(page);
   await page.locator('[data-app-ready="true"]').waitFor();
   const sidebar = page.locator("#primary-navigation");
   assert.equal(await sidebar.getByRole("button", { name: "关系图", exact: true }).count(), 0);

@@ -109,7 +109,7 @@
 
         <section id="tour" class="guide-section">
           <h2>界面导览</h2>
-          <p>左侧导航按用途分成四组：<strong>工作台</strong>（资产总览、费用与续费、文档、AI 助手）、<strong>基础设施</strong>（服务器、节点、域名、证书、服务资产）、<strong>账号与订阅</strong>（AI 订阅、用量记录、邮箱、号码）和<strong>安全与整理</strong>（密钥库、标签）。</p>
+          <p>左侧导航按用途分成四组：<strong>工作台</strong>（资产总览、费用与续费、文档、AI 助手）、<strong>基础设施</strong>（服务器、节点、域名、证书、服务资产）、<strong>账号与订阅</strong>（AI 订阅、用量记录、邮箱、号码、支付卡与 eSIM）和<strong>安全与整理</strong>（密钥库、标签）。默认收起，点击组名展开；软件记住各组状态，当前页面入口仍保留。</p>
           <ul class="guide-list">
             <li><kbd>Ctrl</kbd> <kbd>K</kbd> 打开搜索：资产、页面、标签和常用操作（切换主题、订阅模板、续费日历）都能直接搜到。</li>
             <li>点任意资产，详情<strong>在页面里打开</strong>，面包屑显示所在位置；<kbd>Esc</kbd>、<kbd>Alt</kbd> <kbd>←</kbd> 或左上角「返回」回到原列表，筛选和滚动位置都还在。</li>
@@ -129,11 +129,13 @@
                 <tr><td>服务资产</td><td>Workers、博客、自建服务，以及任何按月或按年付费的在线服务。</td></tr>
                 <tr><td>AI 订阅</td><td>ChatGPT、Claude、Grok、Gemini 等。可授权订阅账号读取额度，也可只手动记录月费。</td></tr>
                 <tr><td>邮箱 · 号码</td><td>邮箱收件状态与写信；手机号码的服务商、到期日与绑定的订阅。</td></tr>
+                <tr><td>支付卡 · eSIM</td><td>国内银行离线辅助识别、地域分类、翻转卡面与解锁复制；分别记录卡片有效期、eSIM 套餐和保号期限，并关联其他资产。</td></tr>
                 <tr><td>密钥 · 网站账号</td><td>API Key、令牌、登录网址与密码，全部加密保存。</td></tr>
               </tbody>
             </table>
           </div>
           <p><strong>订阅模板</strong>：在同一个窗口下方的「从常用订阅开始」，选 ChatGPT Plus、Claude Pro、Cloudflare Workers、iCloud+、Netflix 等，名称、金额、周期和下次续费日都已经填好，保存前可以修改。也可以在 <kbd>Ctrl</kbd> <kbd>K</kbd> 里搜「模板」。</p>
+          <p>卡片列表支持地域筛选和自定义发行方；卡号辅助识别的结果可手动修正，不能推断余额或有效期。完整卡号、激活资料保存在加密密钥库，解锁后按需显示和复制。删除服务器等资产需输入完整名称确认，删除卡片同时清理加密私人资料。</p>
         </section>
 
         <section id="custom-types" class="guide-section">

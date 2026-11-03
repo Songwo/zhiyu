@@ -2,6 +2,8 @@ import { isWeb, webLogout } from "@/lib/web";
 import {
   FileText,
   Phone,
+  CreditCard,
+  Smartphone,
   ChartNoAxesCombined,
   Bot,
   CalendarClock,
@@ -23,7 +25,15 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type HTMLAttributes,
+} from "react";
 import { useShallow } from "zustand/react/shallow";
 import { isDesktop } from "@/lib/desktop";
 import { usePresence } from "@/lib/motion";
@@ -43,6 +53,7 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { SHORTCUTS_EVENT } from "./keyboard-shortcuts";
 
 export interface NavGroup {
+  id: string;
   title: string;
   items: {
     id: ViewId;
@@ -58,6 +69,7 @@ export interface NavGroup {
 // 按使用场景分组：日常入口在前，同类资产相邻，低频工具收进可折叠分组。
 export const NAV_GROUPS: NavGroup[] = [
   {
+    id: "workspace",
     title: "工作台",
     items: [
       { id: "overview", label: "资产总览", icon: House, badgeKey: "total" },
@@ -67,6 +79,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "infrastructure",
     title: "基础设施",
     items: [
       {
@@ -105,6 +118,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "accounts",
     title: "账号与订阅",
     items: [
       { id: "ai", label: "AI 订阅", icon: Bot, badgeKey: "ai", kind: "ai", countKey: "aiAssets" },
@@ -118,9 +132,12 @@ export const NAV_GROUPS: NavGroup[] = [
         countKey: "mailboxes",
       },
       { id: "phones", label: "号码管理", icon: Phone, badgeKey: "phones" },
+      { id: "cards", label: "U 卡与支付卡", icon: CreditCard },
+      { id: "esims", label: "eSIM 卡", icon: Smartphone },
     ],
   },
   {
+    id: "security",
     title: "安全与整理",
     items: [
       {
@@ -135,6 +152,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "tools",
     title: "工具",
     items: [{ id: "terminal", label: "终端", icon: SquareTerminal }],
   },
@@ -149,6 +167,7 @@ export function Sidebar({
   ...rest
 }: HTMLAttributes<HTMLElement> & { collapsible?: boolean }) {
   const preference = useSettings((s) => s.sidebarCollapsed);
+  const groupPrefix = useId();
   const collapsed = collapsible && preference;
   const [motionReady, setMotionReady] = useState(false);
   useEffect(() => {
@@ -174,6 +193,8 @@ export function Sidebar({
   const counts = useAppStore(useShallow(attentionOf));
   const toolsExpanded = useSettings((s) => s.toolsExpanded);
   const setToolsExpanded = useSettings((s) => s.setToolsExpanded);
+  const expandedGroups = useSettings((s) => s.sidebarExpandedGroups);
+  const setGroupExpanded = useSettings((s) => s.setSidebarGroupExpanded);
   useEffect(() => {
     if (view === "terminal") setToolsExpanded(true);
   }, [view, setToolsExpanded]);
@@ -246,7 +267,7 @@ export function Sidebar({
       observer.disconnect();
       nav.removeEventListener("scroll", fade);
     };
-  }, [view, toolsExpanded, collapsed]);
+  }, [view, toolsExpanded, collapsed, expandedGroups]);
 
   return (
     <Tooltip.Provider delayDuration={250} skipDelayDuration={100}>
@@ -308,82 +329,116 @@ export function Sidebar({
                 : undefined
             }
           />
-          {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="sidebar-section">
-              {group.title === "工具" ? (
-                <button
-                  type="button"
-                  aria-expanded={toolsExpanded}
-                  aria-label={t("更多工具")}
-                  title={collapsed ? t("更多工具") : undefined}
-                  onClick={() => setToolsExpanded(!toolsExpanded)}
-                  className="sidebar-tools-toggle flex w-full items-center justify-between"
-                >
-                  <Ellipsis className="sidebar-tools-icon size-5" aria-hidden="true" />
-                  <span className="sidebar-tools-label">{t("更多工具")}</span>
-                  <ChevronDown
-                    className={cn("sidebar-tools-chevron size-3.5", toolsExpanded && "rotate-180")}
-                  />
-                </button>
-              ) : (
-                <div className="sidebar-section-title">{t(group.title)}</div>
-              )}
-              {(group.title !== "工具" || toolsExpanded) &&
-                group.items.map((item) => {
-                  const active = view === item.id;
-                  const Icon = item.icon;
-                  const attentionCount = item.badgeKey ? counts[item.badgeKey] : 0;
-                  const totalCount = item.countKey ? assetCounts[item.countKey] : 0;
-
-                  return (
-                    <Tooltip.Root key={item.id}>
-                      <Tooltip.Trigger asChild>
-                        <button
-                          type="button"
-                          aria-label={t(item.label)}
-                          onClick={() => setView(item.id)}
-                          data-active={active}
-                          aria-current={active ? "page" : undefined}
-                          className="sidebar-nav-item group flex w-full items-center justify-between gap-2 text-left"
-                        >
-                          <span className="sidebar-item-content flex min-w-0 items-center gap-3">
-                            <Icon
-                              className="sidebar-item-icon size-[18px] shrink-0"
-                              strokeWidth={1.75}
-                            />
-                            <span className="sidebar-item-label truncate">{t(item.label)}</span>
-                          </span>
-                          <span className="sidebar-item-counts flex shrink-0 items-center gap-1.5">
-                            {attentionCount > 0 && (
-                              <span className="sidebar-badge-attention">{attentionCount}</span>
-                            )}
-                            {totalCount > 0 && (
-                              <span className="sidebar-badge-count">{totalCount}</span>
-                            )}
-                          </span>
-                          {attentionCount > 0 && (
-                            <span className="sidebar-attention-dot" aria-hidden="true" />
-                          )}
-                        </button>
-                      </Tooltip.Trigger>
-                      {collapsed && (
-                        <Tooltip.Portal>
-                          <Tooltip.Content side="right" sideOffset={10} className="sidebar-tooltip">
-                            {t(item.label)}
-                            {attentionCount > 0 && (
-                              <span className="ml-2 text-xs">
-                                {t("{0} 项待处理", attentionCount)}
-                              </span>
-                            )}
-                            <Tooltip.Arrow className="fill-ink" />
-                          </Tooltip.Content>
-                        </Tooltip.Portal>
+          {NAV_GROUPS.map((group) => {
+            const expanded =
+              group.id === "tools" ? toolsExpanded : expandedGroups[group.id] === true;
+            return (
+              <div key={group.id} className="sidebar-section" data-group={group.id}>
+                {group.id === "tools" ? (
+                  <button
+                    type="button"
+                    aria-expanded={toolsExpanded}
+                    aria-controls={`${groupPrefix}-sidebar-group-${group.id}`}
+                    aria-label={t("更多工具")}
+                    title={collapsed ? t("更多工具") : undefined}
+                    onClick={() => setToolsExpanded(!toolsExpanded)}
+                    className="sidebar-tools-toggle flex w-full items-center justify-between"
+                  >
+                    <Ellipsis className="sidebar-tools-icon size-5" aria-hidden="true" />
+                    <span className="sidebar-tools-label">{t("更多工具")}</span>
+                    <ChevronDown
+                      className={cn(
+                        "sidebar-tools-chevron size-3.5",
+                        toolsExpanded && "rotate-180",
                       )}
-                    </Tooltip.Root>
-                  );
-                })}
-            </div>
-          ))}
+                    />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="sidebar-group-toggle"
+                    aria-label={t(group.title)}
+                    aria-expanded={expanded}
+                    aria-controls={`${groupPrefix}-sidebar-group-${group.id}`}
+                    onClick={() => setGroupExpanded(group.id, !expanded)}
+                  >
+                    <span>{t(group.title)}</span>
+                    <span className="sidebar-group-meta">
+                      <span aria-hidden="true">{group.items.length}</span>
+                      <ChevronDown
+                        className={cn("sidebar-group-chevron", expanded && "is-expanded")}
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </button>
+                )}
+                <div id={`${groupPrefix}-sidebar-group-${group.id}`}>
+                  {group.items.map((item) => {
+                    const active = view === item.id;
+                    const Icon = item.icon;
+                    const attentionCount = item.badgeKey ? counts[item.badgeKey] : 0;
+                    const totalCount = item.countKey ? assetCounts[item.countKey] : 0;
+
+                    return (
+                      <div
+                        key={item.id}
+                        hidden={!expanded && !active && !(collapsed && group.id !== "tools")}
+                      >
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <button
+                              type="button"
+                              aria-label={t(item.label)}
+                              onClick={() => setView(item.id)}
+                              data-active={active}
+                              aria-current={active ? "page" : undefined}
+                              className="sidebar-nav-item group flex w-full items-center justify-between gap-2 text-left"
+                            >
+                              <span className="sidebar-item-content flex min-w-0 items-center gap-3">
+                                <Icon
+                                  className="sidebar-item-icon size-[18px] shrink-0"
+                                  strokeWidth={1.75}
+                                />
+                                <span className="sidebar-item-label truncate">{t(item.label)}</span>
+                              </span>
+                              <span className="sidebar-item-counts flex shrink-0 items-center gap-1.5">
+                                {attentionCount > 0 && (
+                                  <span className="sidebar-badge-attention">{attentionCount}</span>
+                                )}
+                                {totalCount > 0 && (
+                                  <span className="sidebar-badge-count">{totalCount}</span>
+                                )}
+                              </span>
+                              {attentionCount > 0 && (
+                                <span className="sidebar-attention-dot" aria-hidden="true" />
+                              )}
+                            </button>
+                          </Tooltip.Trigger>
+                          {collapsed && (
+                            <Tooltip.Portal>
+                              <Tooltip.Content
+                                side="right"
+                                sideOffset={10}
+                                className="sidebar-tooltip"
+                              >
+                                {t(item.label)}
+                                {attentionCount > 0 && (
+                                  <span className="ml-2 text-xs">
+                                    {t("{0} 项待处理", attentionCount)}
+                                  </span>
+                                )}
+                                <Tooltip.Arrow className="fill-ink" />
+                              </Tooltip.Content>
+                            </Tooltip.Portal>
+                          )}
+                        </Tooltip.Root>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
         {/* 密钥库入口固定在导航底部，收起后仍可直接操作。 */}

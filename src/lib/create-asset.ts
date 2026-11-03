@@ -3,9 +3,11 @@ import { useAppStore } from "./store";
 import { t } from "./i18n";
 import type { AssetKind, ViewId } from "./types";
 
-export type CreateTarget = AssetKind | "document" | "phone";
+export type CreateTarget = AssetKind | "document" | "phone" | "payment-card" | "esim";
 
 export const CREATE_LABELS: Record<CreateTarget, string> = {
+  "payment-card": "添加支付卡",
+  esim: "添加 eSIM",
   server: "添加服务器",
   service: "添加服务",
   domain: "添加域名",
@@ -18,6 +20,8 @@ export const CREATE_LABELS: Record<CreateTarget, string> = {
 };
 
 const VIEW_TARGETS: Partial<Record<ViewId, CreateTarget>> = {
+  cards: "payment-card",
+  esims: "esim",
   servers: "server",
   services: "service",
   domains: "domain",
@@ -37,7 +41,10 @@ export async function createAsset(target?: CreateTarget) {
     return;
   }
   state.setCreatePickerOpen(false);
-  if (target === "phone") {
+  if (target === "payment-card" || target === "esim") {
+    state.setView(target === "esim" ? "esims" : "cards");
+    state.openComposer("service", null, { _cardKind: target === "esim" ? "esim" : "payment" });
+  } else if (target === "phone") {
     state.openPhones({ create: true });
   } else if (target === "document") {
     if (creatingDocument) return;

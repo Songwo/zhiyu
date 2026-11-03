@@ -23,6 +23,22 @@ export function MarkRenewedButton({
       entry.kind === "ai" &&
       Boolean(s.aiAssets.find((item) => item.id === entry.id)?.oauthAccountId),
   );
+  const cardAsset = useAppStore((s) =>
+    entry.kind === "service"
+      ? s.services.find((item) => item.id === entry.id && item.card)
+      : undefined,
+  );
+  if (cardAsset)
+    return projected ? null : (
+      <button
+        type="button"
+        className="renewed-action"
+        onClick={() => useAppStore.getState().openComposer("service", cardAsset.id)}
+      >
+        <CalendarCheck aria-hidden="true" />
+        <span>{t("更新期限")}</span>
+      </button>
+    );
   if (!step || oauth) return null;
   return (
     <button

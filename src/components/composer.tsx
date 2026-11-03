@@ -31,6 +31,7 @@ import type {
   Snapshot,
 } from "@/lib/types";
 import { normalizeService } from "../../electron/services/service-assets.mjs";
+import { CardEditor } from "./managed-cards";
 import { ServiceTypeFields } from "./asset-type-fields";
 import { ServiceEndpointFields } from "./service-endpoint-fields";
 import { fieldKey, fieldsFromForm } from "@/lib/asset-type-form";
@@ -49,6 +50,25 @@ import {
 } from "@/lib/composer-draft.mjs";
 
 export function Composer() {
+  const open = useAppStore((s) => s.composerOpen);
+  const kind = useAppStore((s) => s.composerKind);
+  const editingId = useAppStore((s) => s.editingId);
+  const preset = useAppStore((s) => s.composerPreset);
+  const existing = useAppStore((s) => s.services.find((asset) => asset.id === editingId));
+  const cardKind = existing?.card?.kind ?? preset?._cardKind;
+  if (open && kind === "service" && (cardKind === "payment" || cardKind === "esim"))
+    return (
+      <CardEditor
+        key={editingId ?? cardKind}
+        kind={cardKind}
+        existing={existing}
+        onClose={() => useAppStore.getState().closeComposer()}
+      />
+    );
+  return <StandardComposer />;
+}
+
+function StandardComposer() {
   const open = useAppStore((s) => s.composerOpen);
   const kind = useAppStore((s) => s.composerKind);
   const editingId = useAppStore((s) => s.editingId);
@@ -483,6 +503,7 @@ function ComposerBody({
                   <ImagePicker
                     key={`${kind}:${editingId ?? "new"}`}
                     value={form.imageDataUrl}
+                    brand={form}
                     onChange={(value) => set("imageDataUrl", value)}
                     onBusyChange={setImageBusy}
                   />
@@ -657,6 +678,7 @@ function ServerFields({
             <ImagePicker
               key={`server:${editingId ?? "new"}`}
               value={form.imageDataUrl}
+              brand={form}
               onChange={(value) => set("imageDataUrl", value)}
               onBusyChange={onBusyChange}
             />

@@ -51,6 +51,9 @@ import { EditorDialog } from "./ui/editor-dialog";
 import { NAV } from "./sidebar";
 import { assetEntries } from "@/lib/operations";
 import { toast } from "sonner";
+import { TypedDeleteDialog } from "./typed-delete-dialog";
+import { cardPrivateId } from "@/lib/card-private.mjs";
+import { NetworkResearch } from "./network-research";
 
 /**
  * 资产详情是主内容区里的一页，而不是浮在列表上的弹窗：顶部返回原列表，
@@ -74,6 +77,9 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   const aiAssets = useAppStore((s) => s.aiAssets);
   const servers = useAppStore((s) => s.servers);
   const secrets = useAppStore((s) => s.secrets);
+  const managedCard = useAppStore((s) =>
+    asset.kind === "service" ? s.services.find((item) => item.id === asset.id)?.card : undefined,
+  );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [serverTab, setServerTab] = useState<ServerTab>("overview");
@@ -226,6 +232,30 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
         </EditorDialog>
       )}
 
+      {confirmDelete && !currentAccount && (
+        <TypedDeleteDialog
+          name={
+            assetEntries(useAppStore.getState()).find(
+              (entry) => entry.kind === asset.kind && entry.id === asset.id,
+            )?.label ?? ""
+          }
+          onClose={() => setConfirmDelete(false)}
+          description={
+            managedCard ? t("也会删除已保存的加密卡片资料，需要解锁密钥库。") : undefined
+          }
+          onConfirm={async () => {
+            const api = vaultApi();
+            if (managedCard && api) {
+              if (!(await useVault.getState().require(t("删除卡片及其加密资料需要解锁密钥库。"))))
+                return;
+              await api.remove(cardPrivateId(asset.id));
+            }
+            setConfirmDelete(false);
+            remove(asset.kind, asset.id);
+          }}
+        />
+      )}
+
       <div className="detail-bar">
         <button type="button" className="detail-back" onClick={close} aria-label={t("返回列表")}>
           <ArrowLeft aria-hidden="true" />
@@ -254,6 +284,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
             {t("问 AI")}
           </Button>
           {isProbeKind(asset.kind) && <RefreshOneButton kind={asset.kind} id={asset.id} />}
+          {asset.kind !== "secret" && <NetworkResearch asset={asset} />}
           <Button
             variant="outline"
             size="sm"
@@ -268,7 +299,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
             size="icon-sm"
             disabled={deleting}
             title={t("删除")}
-            onClick={() => (currentAccount ? setConfirmDelete(true) : remove(asset.kind, asset.id))}
+            onClick={() => setConfirmDelete(true)}
             aria-label={t("删除")}
           >
             <Trash2 className="size-4" />

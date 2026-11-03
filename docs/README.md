@@ -8,6 +8,8 @@
 | [桌面与网页同步](SYNC.md)          | ZSP 同步协议：配对、认证、合并与威胁模型        |
 | [AI 服务授权](AI-ACCOUNTS.md)      | OpenAI、Claude、Grok、Gemini 订阅账号与额度来源 |
 | [模型与本地 RAG](AGENT-RAG.md)     | 模型接入、本地知识库与可审阅的修改建议          |
+| [联网检索与原文提示](AI-RESEARCH.md) | Exa、免费与购买额度、LDC 记录、Jev 原文标记 |
+| [卡片与 eSIM](CARDS.md) | 银行识别、地域、3D 翻转、加密资料和内置图标 |
 | [主身份登录](MAIN-IDENTITY.md)     | Linux.do 主身份、资料同步与本人帖子             |
 | [邮箱工作台](MAIL-WORKSPACE.md)    | 文件夹收纳、IMAP 阅读、SMTP 写信                |
 | [浏览器插件](BROWSER-EXTENSION.md) | 密码迁移、账号建议与网页文档保存                |

@@ -1,0 +1,139 @@
+.ai-task-progress {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.ai-task-progress li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ai-task-progress li > svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 3px;
+  color: var(--color-muted);
+}
+.ai-task-progress li[data-status="done"] > svg {
+  color: var(--color-ok);
+}
+.ai-task-progress li[data-status="error"] > svg {
+  color: var(--color-danger);
+}
+.ai-task-progress li > div {
+  flex: 1;
+  min-width: 0;
+}
+.ai-task-progress p,
+.ai-task-progress small {
+  color: var(--color-muted);
+  font-size: 11px;
+  margin: 2px 0 0;
+}
+.ai-task-progress small {
+  white-space: nowrap;
+}
+.document-ai-panel {
+  margin: 14px 0 20px;
+  font: 13px/1.6 var(--font-sans);
+}
+.document-ai-body {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 16px;
+}
+.document-ai-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.document-ai-actions > p {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0;
+}
+.document-ai-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.document-ai-consent input {
+  margin-top: 4px;
+  flex: none;
+}
+.document-ai-results {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.document-ai-results button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.document-ai-results b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.document-ai-results span {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+.document-ai-progress {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line);
+}
+.document-ai-progress summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.document-ai-progress .ai-task-progress {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.document-ai-rule {
+  display: grid;
+  grid-template-columns: 1fr 44px 32px;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+.document-ai-rule textarea {
+  grid-column: 1 / -1;
+}
+.document-ai-rule input[type="color"] {
+  width: 44px;
+  height: 32px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 3px;
+}
+@media (max-width: 600px) {
+  .document-ai-actions {
+    flex-wrap: wrap;
+  }
+  .document-ai-panel .ui-button {
+    min-height: 44px;
+  }
+}

@@ -120,6 +120,7 @@ async function buildSite(releaseFile, outputDirectory) {
     "zsp-steps.json",
     "zsp-flow.svg",
     "services.png",
+    "cards.png",
   ];
   const hash = createHash("sha256");
   for (const file of files) hash.update(await readFile(join(source, file)));

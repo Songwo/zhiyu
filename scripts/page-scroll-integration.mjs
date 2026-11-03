@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { expandNavigationGroups } from "./navigation-helper.mjs";
 import { chromium } from "playwright";
 
 // 独立浏览器上下文与合成服务器，不读取桌面资料，也不连接远端主机。
@@ -27,6 +28,7 @@ try {
   });
   await page.goto(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:8080");
   await page.locator('[data-app-ready="true"]').waitFor();
+  await expandNavigationGroups(page);
   await page.evaluate(async () => {
     const { useAppStore } = await import(
       performance

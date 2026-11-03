@@ -14,7 +14,9 @@
 
 ## 版本准备
 
-更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.1.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
+更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.4.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
+
+1.17.4 在实际程序上额外运行 `sidebar-groups-integration.mjs`、`cards-desktop-integration.mjs`、`research-document-desktop-integration.mjs` 和 `document-editor-regression.mjs`，参数为本次 `win-unpacked/Zhiyu.exe`。单测包含浏览器渲染登录结果页、CSP、查询参数清理和关闭受限提示。独立登录服务升级保留原 Client Secret 与会话加密密钥；检索账本和独立结果加密密钥放入受保护持久目录。未配置 LDC 商户或可信 Exa 余额时不得开启积分购买。
 
 ## 必须验证
 

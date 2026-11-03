@@ -1,4 +1,16 @@
-import { Bot, FileText, Globe, KeyRound, Mail, Phone, Plus, Server, Shield } from "lucide-react";
+import {
+  Bot,
+  FileText,
+  Globe,
+  KeyRound,
+  Mail,
+  Phone,
+  Plus,
+  Server,
+  Shield,
+  CreditCard,
+  Smartphone,
+} from "lucide-react";
 import { useState } from "react";
 import { typeIcon } from "@/lib/asset-types";
 import type { AssetType } from "@/lib/types";
@@ -16,6 +28,8 @@ import { EditorDialog } from "./ui/editor-dialog";
 import { AssetTypeManager } from "./asset-type-manager";
 
 const targets = [
+  { target: "payment-card", Icon: CreditCard, detail: "管理 U 卡、信用卡与虚拟卡有效期" },
+  { target: "esim", Icon: Smartphone, detail: "管理套餐到期与保号期限" },
   { target: "document", Icon: FileText, detail: "记录图片、链接与资产说明" },
   { target: "phone", Icon: Phone, detail: "查看到期日与关联订阅" },
   { target: "ai", Icon: Bot, detail: "管理订阅与月度开支" },

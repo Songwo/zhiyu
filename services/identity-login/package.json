@@ -8,8 +8,8 @@
   },
   "scripts": {
     "start": "node main.mjs",
-    "check": "node --check main.mjs && node --check server.mjs && node --check outbound.mjs",
-    "test": "node --test ../../scripts/identity-login.test.mjs ../../scripts/identity-login-proxy.test.mjs ./outbound.test.mjs"
+    "check": "node --check main.mjs && node --check server.mjs && node --check outbound.mjs && node --check research-service.mjs",
+    "test": "node --test ../../scripts/identity-login.test.mjs ../../scripts/identity-login-proxy.test.mjs ../../scripts/research-service.test.mjs ../../scripts/research-auth.test.mjs ./outbound.test.mjs"
   },
   "dependencies": {
     "undici": "7.30.0"

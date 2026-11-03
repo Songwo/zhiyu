@@ -248,10 +248,17 @@ try {
   await page
     .getByText("请在浏览器完成 Linux.do 登录，授权后这里会显示资料预览。", { exact: true })
     .waitFor();
+  await page.getByRole("button", { name: "浏览器报错？重新发起", exact: true }).click();
+  await page.waitForFunction(() => window.__cancelled.includes("session-1"));
+  assert.equal(await page.evaluate(() => window.__binds.length), 0);
+  await page
+    .getByText("请在浏览器完成 Linux.do 登录，授权后这里会显示资料预览。", { exact: true })
+    .waitFor();
   await page.getByRole("button", { name: "取消本次授权", exact: true }).click();
-  assert.equal(await page.evaluate(() => window.__cancelled.length), 1);
+  assert.deepEqual(await page.evaluate(() => window.__cancelled), ["session-1", "session-2"]);
   assert.equal(await page.evaluate(() => window.__binds.length), 0);
   checks.push("首次设置原生弹窗内可启动与取消登录，取消不会创建主身份或账号资产");
+  checks.push("浏览器错误后重新发起会取消旧授权，不绑定身份或保留旧会话");
 
   await page.evaluate(() => {
     window.__ready = true;

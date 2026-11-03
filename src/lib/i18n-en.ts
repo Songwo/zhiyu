@@ -1,3 +1,5 @@
+import { CARDS_EN } from "./i18n-cards-en.ts";
+import { RESEARCH_EN } from "./i18n-research-en.ts";
 import { INTEGRATIONS_EN } from "./i18n-integrations-en.ts";
 import { SYNC_EN } from "./i18n-sync-en.ts";
 import { SERVICES_EN } from "./i18n-services-en.ts";
@@ -15,6 +17,8 @@ import { SECURITY_EN } from "./i18n-security-en.ts";
  * not agree on where a possessive or a count belongs.
  */
 export const EN: Record<string, string> = {
+  ...CARDS_EN,
+  ...RESEARCH_EN,
   ...INTEGRATIONS_EN,
   ...SYNC_EN,
   ...SERVICES_EN,
@@ -3049,4 +3053,17 @@ export const EN: Record<string, string> = {
   竖线: "Bar",
   方块: "Block",
   下划线: "Underline",
+  正文: "Body text",
+  "浏览器若显示 Invalid state，请关闭旧授权页后重新发起，不要刷新或重复使用回调链接。若 LINUX DO Connect 首页也无法登录，请先恢复社区登录后再试。":
+    "If the browser shows Invalid state, close the old authorization page and start again. Do not refresh or reuse the callback URL. If signing in on the LINUX DO Connect homepage also fails, restore your community sign-in before retrying.",
+  "浏览器报错？重新发起": "Browser error? Start again",
+  删除线: "Strikethrough",
+  行内代码: "Inline code",
+  分隔线: "Horizontal rule",
+  清除格式: "Clear formatting",
+  段落样式: "Paragraph style",
+  一级标题: "Heading 1",
+  二级标题: "Heading 2",
+  三级标题: "Heading 3",
+  移除链接: "Remove link",
 };

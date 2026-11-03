@@ -1,0 +1,969 @@
+.cards-workspace {
+  --card-metal: #d7c593;
+  --card-face: #243b59;
+  --card-light: #eff5ff;
+  padding: 24px 28px 40px;
+}
+.cards-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.cards-page-context {
+  color: var(--color-muted);
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+.cards-page-header h1 {
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.cards-page-header h1 + p {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin-top: 7px;
+  line-height: 1.6;
+}
+.cards-summary {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 14px 0 22px;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.cards-summary span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cards-summary svg {
+  width: 15px;
+  height: 15px;
+}
+.cards-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 0 24px;
+}
+.cards-controls > button {
+  flex: 0 1 170px;
+  width: 170px;
+  min-width: 150px;
+}
+.cards-search {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 390px;
+}
+.cards-search > svg {
+  width: 16px;
+  position: absolute;
+  left: 12px;
+  top: 9px;
+  color: var(--color-muted);
+}
+.cards-search input {
+  padding-left: 36px;
+}
+.managed-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 28px 24px;
+}
+.managed-card-entry {
+  min-width: 0;
+}
+.managed-card-face {
+  --card-metal: #d7c593;
+  --card-face: #243b59;
+  --card-light: #eff5ff;
+  --card-top: #384e6a;
+  --card-base: #0d1c32;
+  --card-accent: #a5c5e8;
+  --glare-x: 20%;
+  --glare-y: 0%;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 1.586;
+  min-height: 210px;
+  padding: 22px 24px;
+  overflow: hidden;
+  border-radius: 18px;
+  color: var(--card-light);
+  background: linear-gradient(
+    125deg,
+    var(--card-top) 0%,
+    var(--card-face) 46%,
+    var(--card-base) 100%
+  );
+  border: 1px solid #ffffff30;
+  box-shadow:
+    inset 0 1px 0 #ffffff45,
+    inset 0 -1px 0 #00000045,
+    0 5px 9px #111d3320,
+    0 17px 30px -15px #111d3360;
+  text-align: left;
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease;
+}
+.managed-card-face::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.18;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 2px,
+    #ffffff12 3px,
+    transparent 4px 6px
+  );
+  pointer-events: none;
+}
+/* 以发卡方建立辨识度，卡组织仅作为右下角标识。 */
+.managed-card-face[data-palette="ruby"] {
+  --card-top: #9e414b;
+  --card-face: #702637;
+  --card-base: #341321;
+  --card-accent: #efb4ab;
+}
+.managed-card-face[data-palette="garnet"] {
+  --card-top: #7e384c;
+  --card-face: #502439;
+  --card-base: #291326;
+  --card-accent: #e8b5c2;
+}
+.managed-card-face[data-palette="cobalt"] {
+  --card-top: #346a9e;
+  --card-face: #214977;
+  --card-base: #102744;
+  --card-accent: #b2d9f5;
+}
+.managed-card-face[data-palette="jade"] {
+  --card-top: #357f76;
+  --card-face: #22574f;
+  --card-base: #12312f;
+  --card-accent: #a8e0ca;
+}
+.managed-card-face[data-palette="forest"] {
+  --card-top: #53715a;
+  --card-face: #2d4d3a;
+  --card-base: #172a25;
+  --card-accent: #c8dec0;
+}
+.managed-card-face[data-palette="copper"] {
+  --card-top: #a5774d;
+  --card-face: #735039;
+  --card-base: #352728;
+  --card-accent: #f5d7b2;
+}
+.managed-card-face[data-palette="amethyst"] {
+  --card-top: #735d8d;
+  --card-face: #4a3a67;
+  --card-base: #262139;
+  --card-accent: #d7c5ed;
+}
+.managed-card-face[data-palette="graphite"] {
+  --card-top: #62646b;
+  --card-face: #353840;
+  --card-base: #1c1d25;
+  --card-accent: #e5c78f;
+}
+.card-engraving {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.28;
+  background: repeating-radial-gradient(
+    ellipse at 105% 120%,
+    transparent 0 15px,
+    var(--card-accent) 16px,
+    transparent 17px 25px
+  );
+  mask-image: linear-gradient(95deg, transparent 20%, #000 100%);
+}
+[data-motif="rings"] .card-engraving {
+  background: repeating-radial-gradient(
+    circle at 95% 12%,
+    transparent 0 26px,
+    var(--card-accent) 27px,
+    transparent 28px 42px
+  );
+}
+[data-motif="facets"] .card-engraving {
+  background:
+    repeating-linear-gradient(
+      138deg,
+      transparent 0 24px,
+      var(--card-accent) 25px,
+      transparent 26px 60px
+    ),
+    linear-gradient(40deg, transparent 50%, #ffffff28 50%, transparent 80%);
+}
+[data-motif="orbits"] .card-engraving {
+  background: repeating-radial-gradient(
+    ellipse at 105% -20%,
+    transparent 0 30px,
+    var(--card-accent) 31px,
+    transparent 32px 43px
+  );
+}
+.card-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.6;
+  background: radial-gradient(circle at var(--glare-x) var(--glare-y), #ffffff65, transparent 65%);
+  transition: opacity 200ms;
+}
+.managed-card-top,
+.managed-card-bottom,
+.managed-card-mid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.managed-card-provider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  max-width: 88%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.managed-card-form {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.managed-card-provider > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-issuer-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 32px;
+  min-width: 32px;
+  max-width: 64px;
+  padding: 0 5px;
+  border: 1px solid #ffffff66;
+  border-radius: 9px 3px 9px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--card-light);
+  background: #ffffff10;
+  box-shadow: inset 0 1px #ffffff35;
+}
+.card-issuer-mark:has(.builtin-brand-icon) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.card-issuer-mark .builtin-brand-icon {
+  width: 32px;
+  height: 32px;
+  padding: 3px;
+  border-radius: 8px;
+}
+.card-network-brand.builtin-brand-icon {
+  width: 32px;
+  height: 24px;
+  padding: 3px;
+  border-radius: 4px;
+}
+.card-network:has(.card-network-brand) .network-emblem {
+  display: none;
+}
+.card-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.card-face-region {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.card-face-region svg {
+  width: 10px;
+  height: 10px;
+}
+.card-face-format {
+  display: block;
+  margin-top: 5px;
+  font-size: 9px;
+  opacity: 0.75;
+}
+.card-entry-classification {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.card-entry-classification > span:first-child {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.card-bank-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.managed-card-name {
+  min-width: 0;
+  font-size: 12px;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.managed-card-mid {
+  margin: 15px 0 13px;
+  justify-content: flex-start;
+}
+.managed-card-number {
+  font-size: clamp(13px, 1.4vw, 19px);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.managed-card-face[data-kind="payment"] .managed-card-number {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-width: 0;
+}
+.card-number-mask {
+  min-width: 0;
+  overflow: hidden;
+}
+.card-number-last4 {
+  flex: none;
+  min-width: 4ch;
+}
+.card-chip {
+  flex-shrink: 0;
+  width: 36px;
+  height: 29px;
+  position: relative;
+  border-radius: 6px;
+  border: 1px solid #9c8c64;
+  background: linear-gradient(125deg, #e7dcba, var(--card-metal), #a39470);
+  opacity: 0.9;
+}
+.card-chip::before,
+.card-chip::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  top: 8px;
+  background: #7f765c80;
+}
+.card-chip::after {
+  top: 16px;
+}
+.card-chip span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 10px;
+  right: 10px;
+  border-inline: 1px solid #7f765c80;
+}
+.card-micro {
+  display: block;
+  font-size: 9px;
+  opacity: 0.8;
+  margin-bottom: 3px;
+}
+.card-validity {
+  display: block;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.card-network {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 17px;
+  letter-spacing: -0.03em;
+  max-width: 65%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.network-emblem {
+  display: none;
+}
+[data-network="Mastercard"] .network-emblem {
+  display: inline-block;
+  flex: none;
+  width: 30px;
+  height: 20px;
+  background:
+    radial-gradient(circle at 10px 10px, #f0ac55 0 10px, transparent 10.5px),
+    radial-gradient(circle at 20px 10px, #c96c5e 0 10px, transparent 10.5px);
+  opacity: 0.9;
+}
+.card-entry-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 15px 2px 10px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.card-deadline {
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.card-deadline[data-state="due"] {
+  color: var(--color-warning, #a9661b);
+}
+.card-deadline[data-state="expired"] {
+  color: var(--color-danger, #c74747);
+}
+.card-entry-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-line);
+  padding-top: 9px;
+}
+.card-entry-footer > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.card-entry-footer svg {
+  width: 14px;
+  height: 14px;
+}
+.card-entry-footer > div {
+  display: flex;
+  gap: 4px;
+}
+.esim-deadlines {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px 2px 13px;
+  gap: 10px;
+}
+.esim-deadlines span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--color-muted);
+}
+.esim-deadlines b {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+.cards-empty {
+  min-height: 300px;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+}
+.cards-empty > svg {
+  width: 42px;
+  height: 42px;
+  color: var(--color-subtle);
+  stroke-width: 1.2;
+}
+.cards-empty h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.cards-empty p {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.card-editor-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.card-editor-preview {
+  max-width: 320px;
+  margin: 0 auto 24px;
+}
+.card-editor-preview .managed-card-face {
+  min-height: 180px;
+}
+.card-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 18px;
+  flex-shrink: 0;
+}
+.card-recognition {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+.card-recognition p,
+.card-form-help {
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--color-muted);
+  margin-top: 8px;
+}
+.managed-card-detail {
+  padding: 20px;
+}
+.managed-card-detail > .managed-card-face {
+  max-width: 430px;
+}
+.managed-card-detail dl {
+  margin-top: 15px;
+}
+.managed-card-detail dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 13px;
+}
+.managed-card-detail dt {
+  color: var(--color-muted);
+}
+.managed-card-detail dd {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.card-manage-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 20px 0;
+  color: var(--color-link);
+  font-size: 13px;
+}
+.card-manage-link svg {
+  width: 15px;
+  height: 15px;
+}
+.delete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 6px 0 20px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.delete-warning svg {
+  color: var(--color-danger);
+  flex-shrink: 0;
+  width: 22px;
+  margin-top: 3px;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .managed-card-entry:hover .managed-card-face {
+    transform: perspective(800px) rotateX(2deg) translateY(-4px);
+    box-shadow:
+      inset 0 1px 0 #ffffff50,
+      0 22px 38px -16px #111d3370;
+  }
+}
+@media (max-width: 600px) {
+  .cards-workspace {
+    padding: 18px 16px 35px;
+  }
+  .cards-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cards-page-header h1 {
+    font-size: 23px;
+  }
+  .cards-summary {
+    gap: 12px;
+  }
+  .cards-summary span:last-child {
+    display: none;
+  }
+  .cards-controls {
+    flex-direction: column;
+  }
+  .cards-search {
+    flex: auto;
+    max-width: none;
+  }
+  .cards-controls > button {
+    flex: auto;
+    width: 100%;
+  }
+  .managed-cards-grid {
+    gap: 24px;
+  }
+  .managed-card-number {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .managed-card-face,
+  .card-sheen {
+    transition: none;
+  }
+}
+
+/* 卡片详情：居中展示，正反面共享同一个可翻转的实体。 */
+.detail-summary:has(.managed-card-detail)::before {
+  display: none;
+}
+.managed-card-detail {
+  padding: 24px;
+}
+.card-display-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0 6px;
+}
+.card-3d-scene {
+  --card-side: 0deg;
+  width: min(100%, 460px);
+  aspect-ratio: 1.586;
+  perspective: 1400px;
+}
+.card-3d-scene[data-flipped="true"] {
+  --card-side: 180deg;
+}
+.card-3d-object {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--card-tilt-x, 0deg))
+    rotateY(calc(var(--card-side) + var(--card-tilt-y, 0deg)));
+  transition: transform 680ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-flip-front,
+.card-flip-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.card-flip-front {
+  transform: rotateY(0deg) translateZ(1px);
+}
+.card-flip-front > .managed-card-face {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.card-flip-back {
+  transform: rotateY(180deg) translateZ(1px);
+  min-height: 0;
+  justify-content: flex-start;
+  cursor: default;
+}
+.card-magnetic-stripe {
+  height: 24px;
+  margin: -2px -25px 14px;
+  background: #111a24;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+.card-private-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.card-private-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.78;
+}
+.card-private-heading svg {
+  width: 14px;
+  height: 14px;
+}
+.card-private-heading > button,
+.card-private-rows button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: inherit;
+  flex-shrink: 0;
+}
+.card-private-heading > button:hover,
+.card-private-rows button:hover {
+  background: #ffffff20;
+}
+.card-private-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.card-private-rows > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.card-private-label {
+  font-size: 10px;
+  opacity: 0.65;
+  width: 64px;
+  flex-shrink: 0;
+}
+.card-private-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: text;
+}
+.card-private-rows button svg {
+  width: 14px;
+  height: 14px;
+}
+.card-private-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 8px 10px;
+  margin-top: auto;
+  border: 1px solid #ffffff35;
+  border-radius: 8px;
+  color: inherit;
+  background: #ffffff0d;
+}
+.card-private-edit svg {
+  width: 12px;
+  height: 12px;
+}
+.card-private-edit:hover {
+  background: #ffffff20;
+}
+.card-detail-tools {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+.card-flip-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--color-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+.managed-card-detail > .card-entry-meta {
+  max-width: 460px;
+  margin: 0 auto;
+  padding-top: 18px;
+}
+.managed-card-detail > dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+  max-width: 520px;
+  margin: 22px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line);
+}
+.managed-card-detail > dl > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+}
+.managed-card-detail > dl dt {
+  font-size: 11px;
+}
+.managed-card-detail > dl dd {
+  text-align: left;
+  font-weight: 550;
+  font-size: 13px;
+}
+.managed-card-detail > p {
+  max-width: 520px;
+  margin: 20px auto 0;
+  line-height: 1.7;
+}
+.managed-card-detail .card-manage-link {
+  display: flex;
+  width: fit-content;
+  margin: 22px auto 0;
+}
+.card-secrets-form {
+  padding: 0 24px 24px;
+  max-height: calc(80dvh - 70px);
+  overflow-y: auto;
+}
+.card-secrets-form > .card-form-help {
+  margin: 0 0 18px;
+}
+@media (max-width: 600px) {
+  .managed-card-detail {
+    padding: 18px 14px;
+  }
+  .card-flip-back {
+    padding: 14px 16px;
+  }
+  .card-magnetic-stripe {
+    margin: -1px -16px 7px;
+    height: 15px;
+  }
+  .card-private-heading {
+    margin-bottom: 3px;
+    font-size: 9px;
+  }
+  .card-private-rows {
+    gap: 1px;
+  }
+  .card-private-label {
+    width: 50px;
+    font-size: 9px;
+  }
+  .card-private-value {
+    font-size: 11px;
+  }
+  .card-private-edit {
+    font-size: 10px;
+    padding: 5px;
+  }
+  .card-detail-tools {
+    margin-top: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-3d-object {
+    transition: none;
+    transform: rotateY(var(--card-side));
+  }
+}
+
+.card-flip-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 550;
+  box-shadow: var(--shadow-card);
+}
+.card-flip-toggle:hover {
+  background: var(--color-surface);
+}
+
+/* 小屏采用更高的卡面，完整保留三个 44px 复制目标和编辑入口。 */
+@media (max-width: 600px) {
+  .card-3d-scene {
+    min-height: 280px;
+  }
+  .card-private-heading {
+    font-size: 11px;
+  }
+  .card-private-heading > button,
+  .card-private-rows button {
+    width: 44px;
+    height: 44px;
+  }
+  .card-private-label {
+    width: 62px;
+    font-size: 11px;
+  }
+  .card-private-value {
+    font-size: 13px;
+    overflow-x: auto;
+    text-overflow: clip;
+    scrollbar-width: none;
+  }
+  .card-private-edit {
+    min-height: 44px;
+    font-size: 11px;
+  }
+  .card-flip-toggle,
+  .card-detail-tools > .ui-button {
+    min-height: 44px;
+  }
+}

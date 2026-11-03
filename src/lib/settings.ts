@@ -31,6 +31,8 @@ interface SettingsState {
   monitorReady: boolean;
   setServerMonitorMinutes: (minutes: number) => Promise<void>;
   sidebarCollapsed: boolean;
+  sidebarExpandedGroups: Record<string, boolean>;
+  setSidebarGroupExpanded: (group: string, expanded: boolean) => void;
   /** 首页「快速开始」是否已被用户收起。 */
   quickStartHidden: boolean;
   setQuickStartHidden: (hidden: boolean) => void;
@@ -111,6 +113,11 @@ export const useSettings = create<SettingsState>()(
       },
       sidebarCollapsed: false,
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+      sidebarExpandedGroups: {},
+      setSidebarGroupExpanded: (group, expanded) =>
+        set((state) => ({
+          sidebarExpandedGroups: { ...state.sidebarExpandedGroups, [group]: expanded },
+        })),
       documentListCollapsed: false,
       setDocumentListCollapsed: (documentListCollapsed) => set({ documentListCollapsed }),
       toolsExpanded: false,
@@ -161,6 +168,7 @@ export const useSettings = create<SettingsState>()(
           zoomPercent: s.zoomPercent,
           toolsExpanded: s.toolsExpanded,
           sidebarCollapsed: s.sidebarCollapsed,
+          sidebarExpandedGroups: s.sidebarExpandedGroups,
           quickStartHidden: s.quickStartHidden,
           documentListCollapsed: s.documentListCollapsed,
         }) as SettingsState,
@@ -178,6 +186,12 @@ export const useSettings = create<SettingsState>()(
           serverMonitorMinutes: readMonitorMinutes(saved?.serverMonitorMinutes),
           toolsExpanded: saved?.toolsExpanded === true,
           sidebarCollapsed: saved?.sidebarCollapsed === true,
+          sidebarExpandedGroups: Object.fromEntries(
+            ["workspace", "infrastructure", "accounts", "security"].map((key) => [
+              key,
+              saved?.sidebarExpandedGroups?.[key] === true,
+            ]),
+          ),
           quickStartHidden: saved?.quickStartHidden === true,
           documentListCollapsed: saved?.documentListCollapsed === true,
           usdToCny: readRate(saved?.usdToCny),

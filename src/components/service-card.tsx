@@ -9,12 +9,22 @@ import { AssetImage } from "./image-picker";
 import { SERVICE_LABELS } from "@/lib/services";
 import { fieldRows, safeHref, typeIcon, typeOf } from "@/lib/asset-types";
 import { useAppStore } from "@/lib/store";
+import { lazy, Suspense } from "react";
+const ManagedCardDetail = lazy(() =>
+  import("./managed-cards").then((m) => ({ default: m.ManagedCardDetail })),
+);
 const ICONS = { worker: Zap, blog: Globe, mail: Mail, custom: Blocks };
 
 export function ServiceCard({ data, compact = true }: { data: ServiceAsset; compact?: boolean }) {
   const type = useAppStore((state) => typeOf(state.assetTypes, data));
   const Icon = type ? typeIcon(type.icon) : ICONS[data.category];
   const rows = fieldRows(type, data);
+  if (data.card && !compact)
+    return (
+      <Suspense fallback={<p role="status">{t("正在加载…")}</p>}>
+        <ManagedCardDetail data={data} />
+      </Suspense>
+    );
   return (
     <article
       className={cn(
@@ -41,6 +51,7 @@ export function ServiceCard({ data, compact = true }: { data: ServiceAsset; comp
       <header className="flex items-start gap-3">
         <AssetImage
           value={data.imageDataUrl}
+          brand={data}
           fallback={
             <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-ink">
               <Icon className="size-5" />

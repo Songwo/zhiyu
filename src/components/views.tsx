@@ -56,6 +56,9 @@ import type { AssetKind, Status, Taggable, ViewId } from "@/lib/types";
 import { cn, formatUsd } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { CREATE_LABELS } from "@/lib/create-asset";
+const ManagedCardsWorkspace = lazy(() =>
+  import("./managed-cards").then((m) => ({ default: m.ManagedCardsWorkspace })),
+);
 
 export function MainView() {
   const view = useAppStore((s) => s.view);
@@ -96,6 +99,10 @@ function ViewBody() {
   )
     return <AssetWorkspace />;
   switch (view) {
+    case "cards":
+      return <ManagedCardsWorkspace key="payment" kind="payment" />;
+    case "esims":
+      return <ManagedCardsWorkspace key="esim" kind="esim" />;
     case "relations":
       return <AssetWorkspace />;
     case "docs":
@@ -177,7 +184,7 @@ export function TopTabs() {
   const item = NAV.find((entry) => entry.id === view);
   const openComposer = useAppStore((s) => s.openComposer);
   // 文档有自己的标题栏；总览的标题在景深头图里。
-  if (view === "docs" || view === "overview" || view === "renewals") return null;
+  if (["docs", "overview", "renewals", "cards", "esims"].includes(view)) return null;
   const desc = PAGE_DESC[view];
   const meta = LIST_VIEWS.includes(view) ? <PageMeta view={view} /> : null;
   return (
@@ -340,6 +347,8 @@ function ListHeader() {
 
 /** Which live probe the refresh button in this view should run. */
 const PROBE_KIND: Record<ViewId, ProbeKind | null> = {
+  cards: null,
+  esims: null,
   relations: null,
   renewals: null,
   phones: null,
@@ -361,6 +370,8 @@ const PROBE_KIND: Record<ViewId, ProbeKind | null> = {
 };
 
 const BADGE_KEY: Record<ViewId, keyof ReturnType<typeof attentionOf>> = {
+  cards: "services",
+  esims: "services",
   relations: "total",
   renewals: "total",
   phones: "phones",
@@ -773,9 +784,7 @@ function TerminalView() {
             )
           : isDesktop()
             ? t("选择一台主机，打开真实 SSH 会话。需要先在密钥库中保存该主机的凭据。")
-            : t(
-                "选择一台主机建立 SSH 连接。监控离线时也可尝试连接，连接结果会在终端中显示。",
-              )}
+            : t("选择一台主机建立 SSH 连接。监控离线时也可尝试连接，连接结果会在终端中显示。")}
       </p>
       {items.length === 0 ? (
         <Empty text={t("没有匹配的主机。")} />

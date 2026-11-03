@@ -5,6 +5,8 @@ import { mkdir, readFile, readdir, writeFile, rename, unlink, lstat } from "node
 import { join } from "node:path";
 import { inspectRaster } from "./image-data.mjs";
 import { markdownContent } from "./document-markdown.mjs";
+import { documentLink } from "./document-links.mjs";
+export { documentLink } from "./document-links.mjs";
 
 const KINDS = new Set(["server", "domain", "mail", "ai", "secret", "cert", "service"]);
 export function documentRevision(doc) {
@@ -34,16 +36,6 @@ const TYPES = new Set([
   "horizontalRule",
   "image",
 ]);
-export function documentLink(value) {
-  try {
-    const url = new URL(value);
-    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password
-      ? url.href
-      : null;
-  } catch {
-    return null;
-  }
-}
 export function normalizeDocument(input) {
   if (!input || typeof input !== "object" || !/^doc-[a-zA-Z0-9-]{1,80}$/.test(input.id))
     throw new Error("文档标识无效");

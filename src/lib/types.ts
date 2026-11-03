@@ -1,6 +1,8 @@
 export type Status = "online" | "warning" | "offline";
 
 export type ViewId =
+  | "cards"
+  | "esims"
   | "phones"
   | "docs"
   | "relations"
@@ -35,6 +37,8 @@ export interface Billing {
 }
 
 export interface ServiceAsset extends Taggable {
+  /** 卡片复用服务资产的关联、文档、费用、备份与同步，只保存可公开的卡片元信息。 */
+  card?: ManagedCard;
   integration?: import("./integrations").IntegrationRef;
   id: string;
   name: string;
@@ -52,6 +56,25 @@ export interface ServiceAsset extends Taggable {
   fields?: Record<string, string>;
   /** 运行在哪台主机的哪个端口 / 容器，对外用哪个域名；绑定后状态由主机采集决定。 */
   endpoint?: import("./server-services").ServiceEndpoint;
+}
+
+export interface ManagedCard {
+  kind: "payment" | "esim";
+  network?: string;
+  funding?: string;
+  formFactor?: string;
+  last4?: string;
+  expiryMonth?: string;
+  region?: string;
+  regionGroup?: "mainland" | "hmt" | "overseas" | "global" | "unknown";
+  phone?: string;
+  plan?: string;
+  carrier?: string;
+  activatedAt?: string;
+  validityDays?: number;
+  dataGb?: number;
+  planExpiresAt?: string;
+  keepAliveAt?: string;
 }
 
 export type AssetTypeFieldKind = "text" | "url" | "date" | "number";

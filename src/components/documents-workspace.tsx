@@ -9,7 +9,12 @@ import Image from "@tiptap/extension-image";
 import {
   Bold,
   Italic,
-  Heading2,
+  Underline,
+  Strikethrough,
+  Code,
+  RemoveFormatting,
+  Minus,
+  Unlink,
   List,
   ListOrdered,
   Quote,
@@ -59,6 +64,9 @@ import { Markdown } from "./markdown";
 import { DocumentMarkdownEditor } from "./document-markdown-editor";
 import { documentMarkdown, markdownContent } from "@/lib/document-markdown.mjs";
 import { DocumentAccountExtract } from "./document-account-extract";
+import { DocumentAnalysisPanel } from "./document-analysis-panel";
+import { NetworkResearch } from "./network-research";
+import { documentLink } from "../../electron/services/document-links.mjs";
 import "./document-reading.css";
 import "./document-actions.css";
 
@@ -508,6 +516,7 @@ function DocumentEditor({
   const [finishing, setFinishing] = useState(false);
   const readerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const focusEpoch = useRef(0);
   useEffect(() => {
     if (initiallyEditing) setEditing(true);
   }, [initiallyEditing]);
@@ -560,7 +569,11 @@ function DocumentEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
-        link: { openOnClick: false, autolink: true, protocols: ["http", "https"] },
+        link: {
+          openOnClick: false,
+          autolink: true,
+          isAllowedUri: (url) => Boolean(documentLink(url)),
+        },
       }),
       Image.configure({
         allowBase64: true,
@@ -571,6 +584,24 @@ function DocumentEditor({
     editable: richEditing && !finishing,
     immediatelyRender: false,
     editorProps: {
+      handleKeyDown: (view, event): boolean => {
+        if (
+          view.editable &&
+          !event.isComposing &&
+          (event.ctrlKey || event.metaKey) &&
+          !event.altKey &&
+          !event.shiftKey &&
+          event.key.toLowerCase() === "a"
+        ) {
+          event.preventDefault();
+          editor?.commands.selectAll();
+          // 焦点切换后，模型可能仍是 AllSelection 而浏览器已折叠选区。
+          // 同步写回 DOM，避免 selectAll 的同值事务被跳过后被旧光标覆盖。
+          view.focus();
+          return true;
+        }
+        return false;
+      },
       attributes: {
         class: "document-prose",
         role: richEditing ? "textbox" : "region",
@@ -609,17 +640,30 @@ function DocumentEditor({
   }, [editor, richEditing, finishing]);
   useEffect(() => {
     // 切换文档期间完成的图片上传也需要同步到重新打开的正文。
-    if (editor && JSON.stringify(editor.getJSON()) !== JSON.stringify(doc.content))
+    if (
+      editor &&
+      typeof doc.markdown !== "string" &&
+      JSON.stringify(editor.getJSON()) !== JSON.stringify(doc.content)
+    )
       editor.commands.setContent(doc.content, { emitUpdate: false });
-  }, [editor, doc.content]);
+  }, [editor, doc.content, doc.markdown]);
   const finishEditing = async () => {
     if (uploadingRef.current || finishing) return;
+    const trigger = document.activeElement;
+    const epoch = ++focusEpoch.current;
     setFinishing(true);
     try {
       await flush(doc.id);
       setLink(null);
       setEditing(false);
-      requestAnimationFrame(() => readerRef.current?.focus({ preventScroll: true }));
+      requestAnimationFrame(() => {
+        // 保存期间若用户已经点到其他控件，不再用延迟回调抢回焦点。
+        if (
+          focusEpoch.current === epoch &&
+          (document.activeElement === trigger || document.activeElement === document.body)
+        )
+          readerRef.current?.focus({ preventScroll: true });
+      });
     } catch (cause) {
       fail(cause);
     } finally {
@@ -633,7 +677,11 @@ function DocumentEditor({
         ? {
             bold: editor.isActive("bold"),
             italic: editor.isActive("italic"),
-            heading: editor.isActive("heading"),
+            underline: editor.isActive("underline"),
+            strike: editor.isActive("strike"),
+            inlineCode: editor.isActive("code"),
+            link: editor.isActive("link"),
+            heading: editor.getAttributes("heading").level ?? 0,
             list: editor.isActive("bulletList"),
             ordered: editor.isActive("orderedList"),
             quote: editor.isActive("blockquote"),
@@ -659,10 +707,22 @@ function DocumentEditor({
       run: () => editor?.chain().focus().toggleItalic().run(),
     },
     {
-      label: "标题",
-      Icon: Heading2,
-      active: editor?.isActive("heading"),
-      run: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
+      label: "下划线",
+      Icon: Underline,
+      active: editor?.isActive("underline"),
+      run: () => editor?.chain().focus().toggleUnderline().run(),
+    },
+    {
+      label: "删除线",
+      Icon: Strikethrough,
+      active: editor?.isActive("strike"),
+      run: () => editor?.chain().focus().toggleStrike().run(),
+    },
+    {
+      label: "行内代码",
+      Icon: Code,
+      active: editor?.isActive("code"),
+      run: () => editor?.chain().focus().toggleCode().run(),
     },
     {
       label: "无序列表",
@@ -687,6 +747,18 @@ function DocumentEditor({
       Icon: Code2,
       active: editor?.isActive("codeBlock"),
       run: () => editor?.chain().focus().toggleCodeBlock().run(),
+    },
+    {
+      label: "分隔线",
+      Icon: Minus,
+      active: false,
+      run: () => editor?.chain().focus().setHorizontalRule().run(),
+    },
+    {
+      label: "清除格式",
+      Icon: RemoveFormatting,
+      active: false,
+      run: () => editor?.chain().focus().unsetAllMarks().clearNodes().run(),
     },
   ];
   const insertImages = async (files: File[]) => {
@@ -843,10 +915,19 @@ function DocumentEditor({
           <Button
             size="sm"
             disabled={!editor}
-            onClick={() => {
+            onClick={(event) => {
+              const trigger = event.currentTarget;
+              const epoch = ++focusEpoch.current;
               if (typeof doc.markdown === "string") setEditMode("source");
               setEditing(true);
-              requestAnimationFrame(() => titleRef.current?.focus({ preventScroll: true }));
+              requestAnimationFrame(() => {
+                // 用户可能在这一帧内已经点入正文，自动聚焦只处理尚未选择的焦点。
+                if (
+                  focusEpoch.current === epoch &&
+                  (document.activeElement === trigger || document.activeElement === document.body)
+                )
+                  titleRef.current?.focus({ preventScroll: true });
+              });
             }}
           >
             <Pencil />
@@ -913,8 +994,41 @@ function DocumentEditor({
         </div>
       )}
       {richEditing && (
-        <div className="document-toolbar" role="group" aria-label={t("文档格式")} inert={finishing}>
+        <div
+          className="document-toolbar"
+          role="group"
+          aria-label={t("文档格式")}
+          inert={finishing}
+          onMouseDown={(event) => {
+            // 点击工具时保留正文的选区；输入控件仍可正常获得焦点。
+            if ((event.target as HTMLElement).closest("button")) event.preventDefault();
+          }}
+        >
           <div className="flex flex-wrap items-center gap-1">
+            <select
+              className="document-block-select"
+              aria-label={t("段落样式")}
+              value={
+                editor?.isActive("heading")
+                  ? String(editor.getAttributes("heading").level)
+                  : "paragraph"
+              }
+              onChange={(event) => {
+                if (event.target.value === "paragraph")
+                  editor?.chain().focus().setParagraph().run();
+                else
+                  editor
+                    ?.chain()
+                    .focus()
+                    .setHeading({ level: Number(event.target.value) as 1 | 2 | 3 })
+                    .run();
+              }}
+            >
+              <option value="paragraph">{t("正文")}</option>
+              <option value="1">{t("一级标题")}</option>
+              <option value="2">{t("二级标题")}</option>
+              <option value="3">{t("三级标题")}</option>
+            </select>
             {toolbar.map(({ label, Icon, active, run }) => (
               <button
                 type="button"
@@ -935,6 +1049,15 @@ function DocumentEditor({
               onClick={() => setLink(editor?.getAttributes("link").href ?? "")}
             >
               <Link2 className="size-4" />
+            </button>
+            <button
+              type="button"
+              title={t("移除链接")}
+              aria-label={t("移除链接")}
+              disabled={!editor?.isActive("link")}
+              onClick={() => editor?.chain().focus().extendMarkRange("link").unsetLink().run()}
+            >
+              <Unlink className="size-4" />
             </button>
             <button
               type="button"
@@ -1102,6 +1225,13 @@ function DocumentEditor({
               {t("更新于")} {new Date(doc.updatedAt).toLocaleString()}
             </span>
           </div>
+          {!editing && <NetworkResearch />}
+          <DocumentAnalysisPanel
+            documentId={doc.id}
+            revision={doc.updatedAt}
+            disabled={editing}
+            readerRef={readerRef}
+          />
           {editing && editMode === "source" ? (
             <>
               {typeof doc.markdown !== "string" && (

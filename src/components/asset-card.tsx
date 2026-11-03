@@ -75,6 +75,7 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
       <header className="flex items-start gap-3">
         <AssetImage
           value={data.imageDataUrl}
+          brand={data}
           fallback={
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-ink border border-line-strong/60">
               <Server className="size-4.5" strokeWidth={1.8} />
@@ -195,17 +196,17 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
           <div className="flex flex-wrap gap-2">
             <CopyBtn text={`${data.username}@${data.host} -p ${data.port}`} label={t("复制 SSH")} />
             <CopyBtn text={data.host} label={t("复制 IP")} />
-              <button
-                type="button"
-                className="btn btn-sm btn-primary gap-1.5"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  useAppStore.getState().openSsh(data.id);
-                }}
-              >
-                <SquareTerminal className="size-3.5" />
-                {t("玻璃终端")}
-              </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary gap-1.5"
+              onClick={(e) => {
+                e.stopPropagation();
+                useAppStore.getState().openSsh(data.id);
+              }}
+            >
+              <SquareTerminal className="size-3.5" />
+              {t("玻璃终端")}
+            </button>
           </div>
         </div>
       )}
@@ -328,6 +329,7 @@ export function DomainCard({ data, compact = true }: { data: Domain; compact?: b
       <header className="flex items-start gap-3">
         <AssetImage
           value={data.imageDataUrl}
+          brand={data}
           fallback={
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-ink border border-line-strong/60">
               <Globe className="size-4.5" />
@@ -398,6 +400,7 @@ export function MailCard({ data, compact = true }: { data: Mailbox; compact?: bo
       <header className="flex items-start gap-3">
         <AssetImage
           value={data.imageDataUrl}
+          brand={data}
           fallback={
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-ink border border-line-strong/60">
               <Mail className="size-4.5" />
@@ -444,6 +447,7 @@ export function AiCard({ data, compact = true }: { data: AiAsset; compact?: bool
       <header className="flex items-start gap-3">
         <AssetImage
           value={data.imageDataUrl}
+          brand={data}
           fallback={
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-ink text-2xs font-semibold text-card shadow-sm">
               {data.provider.slice(0, 2).toUpperCase()}
@@ -534,6 +538,7 @@ export function SecretCard({ data, compact = true }: { data: Secret; compact?: b
       <header className="flex items-start gap-3">
         <AssetImage
           value={data.imageDataUrl}
+          brand={data}
           fallback={
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-ink border border-line-strong/60">
               <KeyRound className="size-4.5" />
@@ -604,6 +609,7 @@ export function CertCard({ data, compact = true }: { data: Certificate; compact?
       <header className="flex items-start gap-3">
         <AssetImage
           value={data.imageDataUrl}
+          brand={data}
           fallback={
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-ink border border-line-strong/60">
               <Shield className="size-4.5" />

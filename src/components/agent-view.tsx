@@ -1,4 +1,5 @@
 import { hostBridge } from "@/lib/web-bridge";
+import { NetworkResearch } from "./network-research";
 import { vaultApi } from "@/lib/vault-api";
 import {
   ArrowUp,
@@ -347,6 +348,7 @@ export function AgentView() {
     <div className="agent-workspace">
       <section className="agent-chat" aria-label={t("AI 问答")}>
         <header className="agent-header">
+          <NetworkResearch />
           <div className="min-w-0 flex-1">
             <p className="truncate text-meta font-medium">{active?.title ?? t("新对话")}</p>
             <p className="truncate text-2xs text-subtle">{model || t("尚未配置模型")}</p>

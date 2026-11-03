@@ -1,0 +1,1006 @@
+{
+  "sources": {
+    "lobe": {
+      "repo": "lobehub/lobe-icons",
+      "commit": "8064bdc847be0a94c956c00440eb67586af2871f",
+      "license": "MIT"
+    },
+    "simple": {
+      "repo": "simple-icons/simple-icons",
+      "commit": "90646e4bf7f3b89df6c37e65baf3e7bc759a517c",
+      "license": "CC0-1.0"
+    },
+    "payment": {
+      "repo": "orzFly/payment-webfont-cn",
+      "commit": "f699522215d4a22d58e728a663a2f8705588e1d1",
+      "license": "CC0-1.0"
+    }
+  },
+  "icons": [
+    {
+      "id": "1password",
+      "file": "1password.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/1password.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://1password.com/press",
+      "guidelines": "https://1password.com/press",
+      "sha256": "51716da44105a100e654dcc6b577436b2e48a4f922df19e4ca30a7db814100f9"
+    },
+    {
+      "id": "alibabacloud",
+      "file": "alibabacloud.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/alibabacloud.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.alibabagroup.com/en/ir/reports",
+      "sha256": "cb21fc53f968aa327c69a21965684e3d82f87a183683611d20743ff233e3930d"
+    },
+    {
+      "id": "almalinux",
+      "file": "almalinux.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/almalinux.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://almalinux.org",
+      "guidelines": "https://almalinux.org/p/the-almalinux-os-trademark-usage-policy/",
+      "sha256": "b43f215b8d4874ca51a2ffc35f48b53877f6f0ddada0d18d37277a9908afecf8"
+    },
+    {
+      "id": "americanexpress",
+      "file": "americanexpress.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/americanexpress.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://commons.wikimedia.org/wiki/File:American_Express_logo_(2018).svg",
+      "sha256": "f0d53a3d01a88f64539523cffce1c8d4c30399fe675bd31f86ccaa4ddc1cb1e5"
+    },
+    {
+      "id": "aws",
+      "file": "aws.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/aws-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "b23f044479fe5c80f7df0a9515f969e5ea710c5f40d26dffa08969a0151731f3"
+    },
+    {
+      "id": "azure",
+      "file": "azure.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/azure-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "abc639d094593943c1b201270f4903c74d02d2e26acf26abf592a29c222c5181"
+    },
+    {
+      "id": "bank-abc",
+      "file": "bank-abc.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=ABC",
+      "officialWebsite": "https://www.abchina.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "c850e0ae2e093ed92da7396248c11a83afbc7cef52d504e63bc2129a687a3b0a",
+      "sha256": "d6cde256ebc78a22cc6778640b98be83085a0701ab20ed8e6faab4243f58ccb7"
+    },
+    {
+      "id": "bank-bjbank",
+      "file": "bank-bjbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=BJBANK",
+      "officialWebsite": "https://www.bankofbeijing.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "7a28d600890ee2f20f7b277f2a68e86d9d88dc00f07f2a5da74e18929c37e6d8",
+      "sha256": "cf1976fec545d54c1f34486c6ab0864c157f7198f9295dce13b748c9d6d7db29"
+    },
+    {
+      "id": "bank-boc",
+      "file": "bank-boc.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=BOC",
+      "officialWebsite": "https://www.boc.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "fc3c8e71165fff433dc695b9dd712207e7ae62796b089e71977815541e3e44c1",
+      "sha256": "f9ed8eb107dd70828786b180931146601768424334051bc24ab862e8a8198b96"
+    },
+    {
+      "id": "bank-bohaib",
+      "file": "bank-bohaib.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=BOHAIB",
+      "officialWebsite": "https://www.cbhb.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 38px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "2a4cf890a2ecd7ab4c4ff089967e9af5f8fc52ca1f79d5ebc058232d80d58ab1",
+      "sha256": "51eb647af16ec750ce51cc4195df04d56da6c42994c664dde052703bc57e4c17"
+    },
+    {
+      "id": "bank-ccb",
+      "file": "bank-ccb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CCB",
+      "officialWebsite": "https://www.ccb.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "132ddd83094f7c692221f12cce13338c8dcc7574a8b8962565df892330561c36",
+      "sha256": "e07145df7f6ea43a9c92a60b197b1610f3cfcf20d33e14fa672b782607e8be44"
+    },
+    {
+      "id": "bank-cdcb",
+      "file": "bank-cdcb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CDCB",
+      "officialWebsite": "https://www.bocd.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "6eb787bddb82eb35f9698e8ff18cd3a24982f8bb457b8e92ba157dbe9abee3b2",
+      "sha256": "598b12fa998d731d5ae14b2604926c46176a50774361d919167fc9c437a8633a"
+    },
+    {
+      "id": "bank-ceb",
+      "file": "bank-ceb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CEB",
+      "officialWebsite": "https://www.cebbank.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 47px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "feb0ea8853586f04d9ddb9904623e1c476f95afb7aec006ecee556a5361dfbf4",
+      "sha256": "627e2e3f5afbc6a93007efbb1a776338f4399739c08e846f2091e425b6880e85"
+    },
+    {
+      "id": "bank-cib",
+      "file": "bank-cib.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CIB",
+      "officialWebsite": "https://www.cib.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "cc7a9a1fcacfb66631e98b01290a981c24923757e185cc33d5a4412bfde6e5f0",
+      "sha256": "21dc67770fd08161b3ede6b6af9c66fa4d6f1478c23de0330c1ba878bef1336b"
+    },
+    {
+      "id": "bank-citic",
+      "file": "bank-citic.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CITIC",
+      "officialWebsite": "https://www.citicbank.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "9756e88f95f937dc60476dc412f1411fb363c8da1a3d158f847eae97503b50ab",
+      "sha256": "7c1d17f3134a670c29c721f7c51feb3b017334afef262e1516a7c38831c1b041"
+    },
+    {
+      "id": "bank-cmb",
+      "file": "bank-cmb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CMB",
+      "officialWebsite": "https://www.cmbchina.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "d882973d10d82720c1c40a703c74a8e3a0afd1f96d401be01f8d07ca1c1c4fef",
+      "sha256": "1c191fe716704c7bac1bcbb06ecb19a85b301ddfb50917b1a7def3b8def43896"
+    },
+    {
+      "id": "bank-cmbc",
+      "file": "bank-cmbc.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CMBC",
+      "officialWebsite": "https://www.cmbc.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "087205d7cb64375c5d4ae267c24fce853d05ea0b8d0e1063edfb686caba4f1df",
+      "sha256": "a90cbd830ce3b09831388886d056ae21adc6956fe41238f846752cb79d14abe9"
+    },
+    {
+      "id": "bank-comm",
+      "file": "bank-comm.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=COMM",
+      "officialWebsite": "https://www.bankcomm.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "dbc2b6feb7ad473c56a76c3009418e8472660196e6920cb5a7661bf002bb67a7",
+      "sha256": "32bd4c5bee9a020ebd664ab7313d004295c23a19fab4d60f56ae2b93d76c89ff"
+    },
+    {
+      "id": "bank-cqbank",
+      "file": "bank-cqbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CQBANK",
+      "officialWebsite": "https://www.cqcbank.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "da138f579c7984ad8cb8cbcddba8f2b398f6596846f351445224decf8d9c31f3",
+      "sha256": "3fe95a1da0907ac3b76de75b3acbd319cb0facbbd753f4f893255cba00fe7674"
+    },
+    {
+      "id": "bank-cscb",
+      "file": "bank-cscb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CSCB",
+      "officialWebsite": "https://www.cscb.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 44px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "4f420cb7d2fb729731fab1e874a277f853b675c09e8eeff14fa821bacff3eee6",
+      "sha256": "215189a4c9a483d5d56add75c635be0ee7e58b2f44274dc7fdfaa57b48ba8b80"
+    },
+    {
+      "id": "bank-czbank",
+      "file": "bank-czbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=CZBANK",
+      "officialWebsite": "https://www.czbank.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "17d3bafb50c95bc6c66bfb785e04b86d2fff8a6c01f91fe0175c1b64a8eca91e",
+      "sha256": "22e2d033517236cd838bedd31bebfb42a5a9e638c4d8325ecb1119dae8e3e0d4"
+    },
+    {
+      "id": "bank-dlb",
+      "file": "bank-dlb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=DLB",
+      "officialWebsite": "https://www.bankofdl.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "16ff80006082672bd0b508feb0a53a080d20b43d6584d0915e1b75cf02f9b778",
+      "sha256": "8e2ec613c4125d12fe9c45603ad61eb4e75341c5619a104d8b7c6e9bff9e4a98"
+    },
+    {
+      "id": "bank-egbank",
+      "file": "bank-egbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=EGBANK",
+      "officialWebsite": "https://www.hfbank.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "226db68116ac8871031585d04beed9ebfdff05755317fc3f48275d5a012fd7a9",
+      "sha256": "da8385e2876ed52dbc709bbf3d661696795ea2dce6561cb673302dfbab42a7b1"
+    },
+    {
+      "id": "bank-gcb",
+      "file": "bank-gcb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=GCB",
+      "officialWebsite": "https://www.gzcb.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "875a4f153894aa75712474592ac8b79067cac30d8a6e7a102f9547e3d09351ed",
+      "sha256": "c742cbc0f1c7c20cbfe0f1781d589d64cc9e53f0a8b47d989623ccb2b3d6f574"
+    },
+    {
+      "id": "bank-gdb",
+      "file": "bank-gdb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=GDB",
+      "officialWebsite": "https://www.cgbchina.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "7c151d5fb4e37968133f59f368b2e05fc5e048d2ce6e5b69983d6f903cf6d31f",
+      "sha256": "03b1fce18fdbf4fb8d423701f007dd20472095851735c5a025c09b586bd59447"
+    },
+    {
+      "id": "bank-hsbank",
+      "file": "bank-hsbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=HSBANK",
+      "officialWebsite": "https://www.hsbank.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "cb1c2661132977a4bc12124876ff0ceb8039efa9f5ac4d8be336fe6adeaeff6e",
+      "sha256": "46fb1757ee068e0fe2125b3977d62284a51f29640c95f7c43ac4e0d0e7b09b79"
+    },
+    {
+      "id": "bank-hxbank",
+      "file": "bank-hxbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=HXBANK",
+      "officialWebsite": "https://www.hxb.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "edd34dc432461fec621b15eea7b0f3d76ba6016c043601161dd6ffc12fbdccbc",
+      "sha256": "c0a66e5c540e66300927a864d8522cf96b1dd39f30aa4d88ea3a6f12e1192ac3"
+    },
+    {
+      "id": "bank-hzcb",
+      "file": "bank-hzcb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=HZCB",
+      "officialWebsite": "https://www.hzbank.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "ce0067e1ef6a21cb1166183934c1625c8ffa8e985192d9643d341668fac585be",
+      "sha256": "dd849265aa420c504b9b8d233b7907927ab01ef11a7c222565f1bd491bbc02e2"
+    },
+    {
+      "id": "bank-icbc",
+      "file": "bank-icbc.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=ICBC",
+      "officialWebsite": "https://www.icbc.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "51bf244211b1b4d9e241c1fedc3aa7dd7091a8e1d7ed79d16cdf31721427a9f9",
+      "sha256": "5e30cefa4f3b2a46c716b7870a43ae5ec38fe5e6f4d06fafb82bcf36902c2eca"
+    },
+    {
+      "id": "bank-jsbank",
+      "file": "bank-jsbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=JSBANK",
+      "officialWebsite": "https://www.jsbchina.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "090d62bf7546290017e180cf5da90e41f864d83e2f6bea0b8648bd895dc15ffb",
+      "sha256": "8f30321fc834f4b0dd45cbdfd8aa58f690cd307cedb682902b89a096a19ae826"
+    },
+    {
+      "id": "bank-nbbank",
+      "file": "bank-nbbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=NBBANK",
+      "officialWebsite": "https://www.nbcb.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "a4fd2560bffcfddf0212d0c8a5ed4f788bcdcc6c35225e7635fe872c8561898a",
+      "sha256": "c0a7143fcdbb64a9a6b51956fa083c4c63fc4cf43b32d5193186efb14017b1dc"
+    },
+    {
+      "id": "bank-njcb",
+      "file": "bank-njcb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=NJCB",
+      "officialWebsite": "https://www.njcb.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "812e944ccf7a8067266b9b27c97e97b2084104b1244ed3779d9c59022acc40c5",
+      "sha256": "9f32b56342ddc098810cfd307a743f85acffa9ee7dbb38eabe42b7b39d6ad045"
+    },
+    {
+      "id": "bank-psbc",
+      "file": "bank-psbc.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=PSBC",
+      "officialWebsite": "https://www.psbc.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "816c788cdafe0185eee517e9f4c90a907631a334b0720f724b97a307a9826dbd",
+      "sha256": "e9483495ecdb4c8fadb1977f5716e465882260bea8ea9e1f8e8fc2c432b27c25"
+    },
+    {
+      "id": "bank-shbank",
+      "file": "bank-shbank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=SHBANK",
+      "officialWebsite": "https://www.bosc.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "d86b19774d872c4961b7075dd4eff28cbfeb7097f816aec4bea12a02d6b8d52e",
+      "sha256": "b2e790de2d285e6fe10f8dae3c78634ac37da9e2f79e1a346ca625e87010f93f"
+    },
+    {
+      "id": "bank-spabank",
+      "file": "bank-spabank.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=SPABANK",
+      "officialWebsite": "https://bank.pingan.com",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 38px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "c2d54c8ab7c302f717afaecd89dc82505db3523bb87c8d8cafa1cd0ab7701c8d",
+      "sha256": "cb5a3811fe7830711c2aabf878f00a3c8362cf128265691f42b3c84bba3fe56f"
+    },
+    {
+      "id": "bank-spdb",
+      "file": "bank-spdb.png",
+      "url": "https://apimg.alipay.com/combo.png?d=cashier&t=SPDB",
+      "officialWebsite": "https://www.spdb.com.cn",
+      "source": "alipay-bank-assets",
+      "license": "Bank trademark; identification only",
+      "transform": "Left symbol within 34px, trimmed at blank-column gap and ink bounds; white canvas 72px",
+      "sourceSha256": "bce013ceeedc3c5ae67c57d2c6081429f3875b177519fcb5ccc9f583f5f462af",
+      "sha256": "8a3127a43925bb02fd00028028ddece08cf67b6dda284c05a81938775b25b287"
+    },
+    {
+      "id": "bitwarden",
+      "file": "bitwarden.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/bitwarden.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://bitwarden.com/brand",
+      "guidelines": "https://bitwarden.com/brand",
+      "sha256": "d73cb5396a741e758eff06a28c57ded6ce154d6a5e8a5cdfb8f66abd05027d2c"
+    },
+    {
+      "id": "caddy",
+      "file": "caddy.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/caddy.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://caddyserver.com",
+      "sha256": "7d617204fa9f0e40362a20b900976f0d034078314a47b001ced09a6eecc6a21d"
+    },
+    {
+      "id": "centos",
+      "file": "centos.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/centos.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://wiki.centos.org/ArtWork/Brand/Logo",
+      "sha256": "a0e28a0ca3a08fdd08dc42e09c8b0b5860b2afdf8f413aff708bc3195bab0368"
+    },
+    {
+      "id": "claude",
+      "file": "claude.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/claude-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "a3101f3047a119aa11825ad9369510f0c472428c8c52d420e31bc62db44a8364"
+    },
+    {
+      "id": "cloudflare",
+      "file": "cloudflare.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/cloudflare.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.cloudflare.com/logo/",
+      "guidelines": "https://www.cloudflare.com/trademark/",
+      "sha256": "32876bda81542203316d67b9623818ac60986897cac79f70e03e8f31f7b7f160"
+    },
+    {
+      "id": "copilot",
+      "file": "copilot.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/copilot-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "50d59ef2ab0930de15d657dbd21628536b0fee1f2c88306cfb9970cc79b45b92"
+    },
+    {
+      "id": "cursor",
+      "file": "cursor.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/cursor.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "0cb51bddf264ae108926fd554c063ef40fc1aac3c5c921ddb39ad184e4e5d0ef"
+    },
+    {
+      "id": "debian",
+      "file": "debian.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/debian.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.debian.org/logos",
+      "guidelines": "https://www.debian.org/logos/",
+      "originalLicense": {
+        "type": "CC-BY-SA-3.0"
+      },
+      "sha256": "a4772536243ad46258a015be1fe6e8192a111c9301d2632a959daf6aea64191b"
+    },
+    {
+      "id": "deepseek",
+      "file": "deepseek.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/deepseek-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "deba5f98a5c1796e20fcac3149bcd7eb8a32f0bdd04d048819400b1f28bd1439"
+    },
+    {
+      "id": "digitalocean",
+      "file": "digitalocean.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/digitalocean.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.digitalocean.com/press/",
+      "guidelines": "https://www.digitalocean.com/press/",
+      "sha256": "a381454d22f05a4e7034c3e869c99bcac9a6f915ccc00577ed131b604baed489"
+    },
+    {
+      "id": "discord",
+      "file": "discord.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/discord.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://discord.com/branding",
+      "guidelines": "https://discord.com/branding",
+      "sha256": "79a8105c2fc15d8caa6ee7b87b58597432e171386d22a2cc2237f0eb3bbbe7dd"
+    },
+    {
+      "id": "discover",
+      "file": "discover.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/discover.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.discovernetwork.com/en-us/business-resources/free-signage-logos",
+      "sha256": "d903681ee03ab6f1ee7e0d4a742683ac27e37d356bc03324140bac5b9d10d453"
+    },
+    {
+      "id": "docker",
+      "file": "docker.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/docker.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.docker.com/company/newsroom/media-resources",
+      "sha256": "ba1fb157870b2ec02e054aed42154ac7418e25af91ec321fd328d17cad4023cd"
+    },
+    {
+      "id": "doubao",
+      "file": "doubao.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/doubao-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "3cd31ba03ae44b8c29561597a3b863809efecb13fcdfd08407a086df86a69b55"
+    },
+    {
+      "id": "dropbox",
+      "file": "dropbox.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/dropbox.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.dropbox.com/branding",
+      "sha256": "7dd6ef19801075e4132c8bee85c914da218248bf2fdc53a1c0ae5899ac9c151e"
+    },
+    {
+      "id": "gemini",
+      "file": "gemini.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/gemini-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "8ab0a9bafec11f7e69bcb9fc4ffd8f1bc927d1ddcbbb6ff36dee5ae8b5a9d602"
+    },
+    {
+      "id": "github",
+      "file": "github.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/github.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://github.com/logos",
+      "guidelines": "https://github.com/logos",
+      "sha256": "476ba7aa67b86da7d6e7567b08a4bf0eb1a2fd28da5fc243f8ee39a2f1ea6773"
+    },
+    {
+      "id": "githubcopilot",
+      "file": "githubcopilot.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/githubcopilot.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "bbc7fddc13448236e5edea8c399d2072dc40aa5da5bca07f7a2f412405c500a3"
+    },
+    {
+      "id": "gitlab",
+      "file": "gitlab.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/gitlab.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://about.gitlab.com/press/press-kit/",
+      "guidelines": "https://about.gitlab.com/handbook/marketing/corporate-marketing/brand-activation/trademark-guidelines/",
+      "sha256": "3bbfcd2707b9cd5bc6d68d561da605c520a707ceaecf3912aede560bb0990e27"
+    },
+    {
+      "id": "gmail",
+      "file": "gmail.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/gmail.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://fonts.gstatic.com/s/i/productlogos/gmail_2020q4/v8/192px.svg",
+      "sha256": "21b263638deb769267d610a85382792624bdae2fc47c1bc2f8ae6fb6a50413e9"
+    },
+    {
+      "id": "godaddy",
+      "file": "godaddy.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/godaddy.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://aboutus.godaddy.net/newsroom/media-resources/",
+      "guidelines": "https://aboutus.godaddy.net/newsroom/media-resources/",
+      "sha256": "796a2af71b168ca9410eb5148f2ab39d2082c4c470c4b6822b46d2dfa4a21d12"
+    },
+    {
+      "id": "google",
+      "file": "google.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/google-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "4e6aa8892ef15a6b431f40f2c9045979bf7e2357524e7bbb89b353cf4f32a5ac"
+    },
+    {
+      "id": "googlecloud",
+      "file": "googlecloud.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/googlecloud.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://cloud.google.com",
+      "sha256": "eb848405c6a1ed56510e7cc88ffe6e2e12cd8331be4b0c8c31048d0b0e6d53a9"
+    },
+    {
+      "id": "grok",
+      "file": "grok.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/grok.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "9175fc90c22655160231976c849f25a03b888d7cc0e04c5f1b987b659bb07c95"
+    },
+    {
+      "id": "hetzner",
+      "file": "hetzner.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/hetzner.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.hetzner.com",
+      "sha256": "d3a7dc7e55d0e9008587f1407af6c6fa197bb2b207b841a05a881d523a4c3dfb"
+    },
+    {
+      "id": "huawei",
+      "file": "huawei.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/huawei.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://e.huawei.com/ph/material/partner/0a72728b864949c48b22106454352483",
+      "guidelines": "https://e.huawei.com/ph/material/partner/0a72728b864949c48b22106454352483",
+      "sha256": "c5b0b049b2022d5b2391e34b7871d2580f97ad67dcae053499da49ff58ac27ac"
+    },
+    {
+      "id": "huggingface",
+      "file": "huggingface.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/huggingface-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "5d39d66bb6c9b026d3cb5de7bd9978dad3906570df2aca8f00078a6f8a3d0f5e"
+    },
+    {
+      "id": "icloud",
+      "file": "icloud.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/icloud.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://commons.wikimedia.org/wiki/File:ICloud_logo.svg",
+      "sha256": "6c2413dc3495390de55858ac5d0a868468411a5370e61c21f338010fee283d97"
+    },
+    {
+      "id": "jcb",
+      "file": "jcb.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/jcb.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.global.jcb/en/about-us/brand-concept/",
+      "sha256": "9de7e79d9f75c40c1fdeb5a1c1e23a6aeb3d0d8a8d4ae0a96e76c10e68be215e"
+    },
+    {
+      "id": "kimi",
+      "file": "kimi.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/kimi-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "0bdb95375d7c6e90a1850e91cd36770da2bc98fa33ec2d783f4a8fed027da85f"
+    },
+    {
+      "id": "letsencrypt",
+      "file": "letsencrypt.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/letsencrypt.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://letsencrypt.org/trademarks/",
+      "guidelines": "https://letsencrypt.org/trademarks/",
+      "originalLicense": {
+        "type": "CC-BY-NC-4.0"
+      },
+      "sha256": "3cb92caa79e5ab49ca2beb8622560be86cb4506d2fbfb2d8b5eb1d5a153381a0"
+    },
+    {
+      "id": "mastercard",
+      "file": "mastercard.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/mastercard.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.mastercard.com/brandcenter/us/en/download-artwork.html",
+      "guidelines": "https://www.mastercard.com/brandcenter/us/en/brand-requirements/mastercard.html",
+      "sha256": "de700f189a1f157df6611c4d30df55af602a093af364a4b667c17999e6e070db"
+    },
+    {
+      "id": "microsoft",
+      "file": "microsoft.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/microsoft-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "5cfb0ffa3231313c2968b5e3fedfcce8e2e96c61bde4572384c3889a77a80350"
+    },
+    {
+      "id": "minimax",
+      "file": "minimax.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/minimax-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "7f7187fa6d9b341ac5f22f6c5a970523afb439dc45566d64eb4f4b9b604d6b01"
+    },
+    {
+      "id": "mistral",
+      "file": "mistral.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/mistral-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "722f74b289d95486b43662fe24fa883b333701296f618406cd0ed502299170b6"
+    },
+    {
+      "id": "moonshot",
+      "file": "moonshot.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/moonshot.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "435f41b74e6a87639b6bf860e9628f20cbe7d6229bece412d548f4cea3081852"
+    },
+    {
+      "id": "namecheap",
+      "file": "namecheap.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/namecheap.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.namecheap.com",
+      "sha256": "86618befe2c5aa7c02b8e46c7794827d40602ad825716b95f46b188e43c0865c"
+    },
+    {
+      "id": "netflix",
+      "file": "netflix.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/netflix.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://brand.netflix.com/en/assets/logos",
+      "guidelines": "https://brand.netflix.com/en/assets/logos",
+      "sha256": "76b63a30adeb0eb51039fd6a4d783e806fb002aaa6a8ac9218afe8a620bff678"
+    },
+    {
+      "id": "netlify",
+      "file": "netlify.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/netlify.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.netlify.com/press/",
+      "guidelines": "https://www.netlify.com/press/",
+      "sha256": "f2d591c3a629c6ff7fa122646710526ed711584890dc1aeb9e864c2746f973f1"
+    },
+    {
+      "id": "nginx",
+      "file": "nginx.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/nginx.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.nginx.com/press/",
+      "guidelines": "https://www.nginx.com/press/",
+      "sha256": "14e77ea88f50ee3ebcf43919b91e545292673ec35b21bee32ad1f230ee5004bd"
+    },
+    {
+      "id": "notion",
+      "file": "notion.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/notion.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.notion.so",
+      "sha256": "fdddc8f06178df169036d3f5fc336eb98b15cad375afa04d0a5cd7aa61b65739"
+    },
+    {
+      "id": "ollama",
+      "file": "ollama.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/ollama.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "3a268218fb2e6e81fa31df70f70b51331625047794db81db21d35359428fae7a"
+    },
+    {
+      "id": "openai",
+      "file": "openai.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/openai.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "a595df6b423920c67a7f8f73c063e4bfb72d415948097b6cac063a2366bb5186"
+    },
+    {
+      "id": "openrouter",
+      "file": "openrouter.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/openrouter-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "17bede1b89166f824ee06753dc526a3f5e18b769706deaab09d04a3a98de1a78"
+    },
+    {
+      "id": "ovh",
+      "file": "ovh.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/ovh.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.ovh.com/ca/en/newsroom/",
+      "sha256": "94802e6cc133e7242730d7e4da4459de84d4e3f0c165571c966cea0ddd33ad68"
+    },
+    {
+      "id": "paypal",
+      "file": "paypal.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/paypal.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.paypal.com/us",
+      "guidelines": "https://newsroom.paypal-corp.com/media-resources",
+      "sha256": "fcca30a1996602ba4afb550174e2f3a44273194191a9476f16133c76f9028319"
+    },
+    {
+      "id": "perplexity",
+      "file": "perplexity.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/perplexity-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "8353f3ab20822f1a933224b0ea32cc39f0c32d5740f4af8c254b0f418e0a3a70"
+    },
+    {
+      "id": "porkbun",
+      "file": "porkbun.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/porkbun.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://porkbun.design",
+      "guidelines": "https://porkbun.design/guidelines.html",
+      "sha256": "ee4344727af8ebb2eebb8e3e85b7f9c0d664e4697337ad828c0c74459d91e724"
+    },
+    {
+      "id": "protonmail",
+      "file": "protonmail.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/protonmail.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://proton.me/media/kit",
+      "sha256": "46471528275e8a1e2658649c67b2b5517cc9d8fb9bf4f1215fe4b4e5c61bad38"
+    },
+    {
+      "id": "qwen",
+      "file": "qwen.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/qwen-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "a158a0e3ed5b541e4f91384ece02c3acf0a0d81b7b11a46d77bafb248b09e32c"
+    },
+    {
+      "id": "railway",
+      "file": "railway.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/railway.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://railway.app",
+      "sha256": "213044bcf6d0d1bbd9077ef5b98ce0a96b0c7c5a6aaccadfe6ffdaca13fe04b7"
+    },
+    {
+      "id": "render",
+      "file": "render.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/render.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://render.com",
+      "sha256": "b460719d5abfab2915ea2adb677ed725210207ff877d8765938c4d5a8b7c27f2"
+    },
+    {
+      "id": "revolut",
+      "file": "revolut.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/revolut.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://developer.revolut.com/docs/resources/marketing-assets-guidelines/marketing-guidelines",
+      "sha256": "44ca5d80af421f8cf86839f1fbd3f4841ad75c6eb3f81602ce044b29e036779f"
+    },
+    {
+      "id": "rockylinux",
+      "file": "rockylinux.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/rockylinux.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://github.com/rocky-linux/branding/blob/94e97dd30b87d909cc4f6a6838a2926f77f9ac47/logo/src/icon-black.svg",
+      "originalLicense": {
+        "type": "CC-BY-SA-4.0"
+      },
+      "sha256": "df497d30ad8eb310f1b991839a88d4bb27fefc21501c15bb58e3509fecef09b5"
+    },
+    {
+      "id": "spotify",
+      "file": "spotify.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/spotify.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://developer.spotify.com/documentation/general/design-and-branding/#using-our-logo",
+      "guidelines": "https://developer.spotify.com/documentation/general/design-and-branding/#using-our-logo",
+      "sha256": "366bb7f8086dd7c7e0d9edc4c54b0b47fd3b003f6d10a04d83c4ccff8e6f4bf5"
+    },
+    {
+      "id": "telegram",
+      "file": "telegram.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/telegram.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://telegram.org/tour/screenshots",
+      "sha256": "4435c9a57e165a1c3b7f27e0b5b11b82b10d674ea4fff7f6748cb67b7fcb994e"
+    },
+    {
+      "id": "tencentcloud",
+      "file": "tencentcloud.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/tencentcloud-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "f860dae064a3afd24970efd2bc5892f39438526bf52c3a9748f61fc05c1cfd58"
+    },
+    {
+      "id": "ubuntu",
+      "file": "ubuntu.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/ubuntu.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://design.ubuntu.com/resources",
+      "guidelines": "https://design.ubuntu.com/brand",
+      "sha256": "05908333dce000b0775603cdc3d14b4a7d315d3625c9fa0b374804d6753643c3"
+    },
+    {
+      "id": "unionpay",
+      "file": "unionpay.svg",
+      "url": "https://raw.githubusercontent.com/orzFly/payment-webfont-cn/f699522215d4a22d58e728a663a2f8705588e1d1/svg/unionpay.svg",
+      "source": "payment",
+      "license": "CC0-1.0",
+      "sha256": "eeda736cb2557aba01dc83888ff79cfac3f2c0b753f17c73667ab89207544c38"
+    },
+    {
+      "id": "vercel",
+      "file": "vercel.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/vercel.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://vercel.com/geist/brands",
+      "guidelines": "https://vercel.com/geist/brands",
+      "sha256": "075b9d221ef5a7ea63d85f140bd2d63007f31d3ed8ceec011abc3ffd529827e3"
+    },
+    {
+      "id": "visa",
+      "file": "visa.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/visa.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://merchantsignageeu.visa.com/product.asp?dptID=696",
+      "sha256": "e18ab17c449a0756e5a834f1f7da51197622e88b3aa1593f562462e3a49cbf2c"
+    },
+    {
+      "id": "volcengine",
+      "file": "volcengine.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/volcengine-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "84f9e2cd1da7e73dc6c9a0f2521745d39cae96c008752cdb1baf57a8c94393a1"
+    },
+    {
+      "id": "vultr",
+      "file": "vultr.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/vultr.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.vultr.com/company/brand-assets",
+      "guidelines": "https://www.vultr.com/company/brand-assets",
+      "sha256": "745a4ede10c9f21a20e7fb3695573a457eab1883c3fd39e971a0cb058ec357ae"
+    },
+    {
+      "id": "wise",
+      "file": "wise.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/wise.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://wise.design/foundations/logo",
+      "guidelines": "https://wise.design/foundations/logo",
+      "sha256": "882842c0a729e633e84fff24bf9edecec8216b8bf0b47f866e32f82d41fb6c18"
+    },
+    {
+      "id": "youtube",
+      "file": "youtube.svg",
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/youtube.svg",
+      "source": "simple",
+      "license": "CC0-1.0",
+      "originalSource": "https://www.youtube.com/howyoutubeworks/resources/brand-resources/#logos-icons-and-colors",
+      "guidelines": "https://www.youtube.com/howyoutubeworks/resources/brand-resources/#logos-icons-and-colors",
+      "sha256": "7f5156448b9c1b65156e34e4443f0eff8b85f5afa783fc8a8d09f49380fed424"
+    },
+    {
+      "id": "zhipu",
+      "file": "zhipu.svg",
+      "url": "https://raw.githubusercontent.com/lobehub/lobe-icons/8064bdc847be0a94c956c00440eb67586af2871f/packages/static-svg/icons/zhipu-color.svg",
+      "source": "lobe",
+      "license": "MIT",
+      "sha256": "8174e65ff71647d5c705c920c953a82bd723d9e3e42887bdd4ffc9dfe51207a0"
+    }
+  ]
+}

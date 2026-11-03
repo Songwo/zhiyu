@@ -139,7 +139,7 @@
     "vite": "^8.2.0"
   },
   "productName": "知屿 Zhiyu",
-  "version": "1.17.3",
+  "version": "1.17.4",
   "author": "Songwo",
   "homepage": "https://github.com/Songwo/zhiyu",
   "repository": {
@@ -148,6 +148,11 @@
   },
   "description": "知屿 Zhiyu — 连接文档、账号与数字资产的个人工作空间",
   "build": {
+    "electronLanguages": [
+      "en-US",
+      "zh-CN",
+      "zh-TW"
+    ],
     "protocols": [
       {
         "name": "Zhiyu website capture",

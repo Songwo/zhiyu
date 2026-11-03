@@ -277,4 +277,38 @@ await test("增量通知刷新已缓存正文，保护编辑草稿，并发旧�
   assert.equal(useDocuments.getState().drafts[initial.id], undefined);
 });
 
+await test("保存失败后保留最新草稿，重试只保存最新内容并清除错误", async () => {
+  const id = "doc-retry-latest";
+  reset([summary(id)]);
+  const initial = { ...summary(id), markdown: "# 合成原文", content: { type: "doc", content: [] } };
+  useDocuments.setState({ drafts: { [id]: initial }, status: { [id]: "saved" }, selected: id });
+  const first = deferred();
+  const writes = [];
+  globalThis.window = {
+    sinan: {
+      documents: {
+        save: async (doc) => {
+          writes.push(doc);
+          if (writes.length === 1) return first.promise;
+          return { ...doc, updatedAt: "2026-11-03T00:00:00Z" };
+        },
+      },
+    },
+  };
+  useDocuments.getState().change({ ...initial, markdown: "# 第一版" });
+  const saving = useDocuments.getState().flush(id);
+  const latest = { ...initial, markdown: "# 最终版\n\n保留失败期间的新修改" };
+  useDocuments.getState().change(latest);
+  first.reject(new Error("Synthetic disk write failure"));
+  await assert.rejects(saving, /Synthetic disk write failure/);
+  assert.equal(useDocuments.getState().drafts[id], latest);
+  assert.equal(useDocuments.getState().status[id], "error");
+  await useDocuments.getState().flush(id);
+  assert.equal(writes.length, 2);
+  assert.equal(writes[1], latest);
+  assert.equal(useDocuments.getState().drafts[id].markdown, latest.markdown);
+  assert.equal(useDocuments.getState().errors[id], "");
+  assert.equal(useDocuments.getState().status[id], "saved");
+});
+
 delete globalThis.window;

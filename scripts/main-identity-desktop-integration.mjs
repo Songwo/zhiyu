@@ -204,7 +204,12 @@ try {
     }).toString();
     const accepted = await fetch(callback);
     assert.equal(accepted.status, 200);
-    await accepted.text();
+    assert.match(accepted.headers.get("content-type"), /text\/html/);
+    const html = await accepted.text();
+    assert.match(html, /回到知屿，确认绑定/);
+    assert.match(html, /关闭此页/);
+    assert.ok(!html.includes(request.state));
+    assert.ok(!html.includes("synthetic-code"));
     await identity().getByText("登录成功，请确认主身份", { exact: true }).waitFor();
   }
   await onboarding().waitFor();
@@ -219,6 +224,23 @@ try {
     globalThis.mainIdentityFixture.configured = true;
   });
   await identity().getByRole("button", { name: "重新检查", exact: true }).click();
+  await identity().getByRole("button", { name: "使用 Linux.do 登录", exact: true }).click();
+  await identity().getByRole("button", { name: "浏览器报错？重新发起", exact: true }).waitFor();
+  const previousRequest = await instance.evaluate(() =>
+    globalThis.mainIdentityFixture.starts.at(-1),
+  );
+  await identity().getByRole("button", { name: "浏览器报错？重新发起", exact: true }).click();
+  await page.waitForFunction(() =>
+    Array.from(document.querySelectorAll(".primary-identity-actions button")).some(
+      (button) => button.textContent.includes("浏览器报错？重新发起") && !button.disabled,
+    ),
+  );
+  const nextRequest = await instance.evaluate(() => globalThis.mainIdentityFixture.starts.at(-1));
+  assert.notEqual(nextRequest.state, previousRequest.state);
+  assert.notEqual(nextRequest.challenge, previousRequest.challenge);
+  assert.equal(await page.evaluate(() => window.sinan.mainIdentity.get()), null);
+  await identity().getByRole("button", { name: "取消本次授权", exact: true }).click();
+  checks.push("浏览器错误恢复重新生成 state 与 PKCE，取消旧授权且不写入主身份");
   await authorize();
   assert.equal(await exists(join(directory, "main-identity.enc")), false);
   assert.equal(await exists(join(directory, "vault.enc")), false);

@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { Button } from "./ui/button";
 import { Field, Input, Select } from "./ui/input";
 import { AiAccountsPanel } from "./ai-accounts";
+import { DocumentAnalysisSettings } from "./document-analysis-settings";
 
 export function AgentSettings({
   onConfigChange,
@@ -330,6 +331,7 @@ export function AgentSettings({
         </ul>
       </section>
       <AiAccountsPanel />
+      <DocumentAnalysisSettings />
       {busy && (
         <p role="status" className="flex items-center gap-2 text-meta">
           <Loader2 className="size-4 animate-spin" />

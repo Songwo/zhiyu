@@ -3,19 +3,32 @@ import { ViewErrorBoundary } from "./view-error-boundary";
 import { isWeb } from "@/lib/web";
 import { startWebSync } from "@/lib/web-store";
 import { Bot, FileText, House, Phone, Server } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { Toaster, toast } from "sonner";
 import { CommandPalette } from "./command-palette";
-import { Composer } from "./composer";
-import { CreateAssetPicker } from "./create-asset-picker";
+const Composer = lazy(() => import("./composer").then((m) => ({ default: m.Composer })));
+const CreateAssetPicker = lazy(() =>
+  import("./create-asset-picker").then((m) => ({ default: m.CreateAssetPicker })),
+);
 import { createInCurrentView } from "@/lib/create-asset";
 import { CaptureInbox } from "./capture-inbox";
-import { AssetDetailPage } from "./expand-layer";
+const AssetDetailPage = lazy(() =>
+  import("./expand-layer").then((m) => ({ default: m.AssetDetailPage })),
+);
 import { RightRail } from "./right-rail";
 import { Sidebar } from "./sidebar";
 import { WebBottomNav, WebTopBar } from "./web-shell";
 import { GlobalMarkdownImport } from "./global-markdown-import";
-import { Settings, SettingsPage } from "./settings";
+const Settings = lazy(() => import("./settings").then((m) => ({ default: m.Settings })));
+const SettingsPage = lazy(() => import("./settings").then((m) => ({ default: m.SettingsPage })));
 import { SshTerminal } from "./ssh-terminal";
 import { TitleBar } from "./title-bar";
 import { VaultGate } from "./vault-gate";
@@ -44,6 +57,21 @@ import { useVault } from "@/lib/vault-state";
 import { useDocuments } from "@/lib/documents";
 import { t, subscribeLocale, getLocale } from "@/lib/i18n";
 import { useBrowserReminders } from "@/lib/browser-reminders";
+
+/** 首次打开才加载，之后保留挂载，使原有关闭动画与事件订阅继续工作。 */
+function DeferredOverlay({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: import("react").ReactNode;
+}) {
+  const [seen, setSeen] = useState(open);
+  useEffect(() => {
+    if (open) setSeen(true);
+  }, [open]);
+  return open || seen ? children : null;
+}
 
 export function AppShell() {
   const locale = useSyncExternalStore(subscribeLocale, getLocale, () => "zh" as const);
@@ -110,12 +138,36 @@ export function AppShell() {
     };
   }, []);
   const view = useAppStore((s) => s.view);
+  const composerOpen = useAppStore((s) => s.composerOpen);
+  const pickerOpen = useAppStore((s) => s.createPickerOpen);
+  const expanded = useAppStore((s) => Boolean(s.expanded));
+  const settingsOpen = useAppStore((s) => s.settingsOpen);
+  const settingsPage = useAppStore((s) => s.settingsPage);
   const terminalOpen = useAppStore(
     (s) =>
       s.view === "terminal" &&
       (s.sshServerId === "__terminal_preview__" ||
         s.servers.some((server) => server.id === s.sshServerId)),
   );
+  // 首次打开设置前也能响应轻量的快捷入口事件。
+  useEffect(() => {
+    const profile = () => {
+      const state = useAppStore.getState();
+      state.setSettingsTab("profile");
+      if (!state.settingsPage) state.setSettingsOpen(true);
+    };
+    const integrations = () => {
+      const state = useAppStore.getState();
+      state.setSettingsTab("integrations");
+      if (!state.settingsPage) state.setSettingsOpen(true);
+    };
+    window.addEventListener("settings:profile", profile);
+    window.addEventListener("settings:integrations", integrations);
+    return () => {
+      window.removeEventListener("settings:profile", profile);
+      window.removeEventListener("settings:integrations", integrations);
+    };
+  }, []);
   // 资产详情和系统设置页都占据主内容区，列表只隐藏不卸载。
   const detailOpen = useAppStore((s) => Boolean(s.expanded) || s.settingsPage);
   const workspaceScroll = useRef<HTMLDivElement>(null);
@@ -277,8 +329,16 @@ export function AppShell() {
               !detailOpen && !wideWorkspace && "2xl:border-r 2xl:border-line",
             )}
           >
-            <AssetDetailPage />
-            <SettingsPage />
+            <Suspense
+              fallback={
+                <div className="p-6 text-sm text-muted" role="status">
+                  {t("正在加载…")}
+                </div>
+              }
+            >
+              {expanded && <AssetDetailPage />}
+              {settingsPage && <SettingsPage />}
+            </Suspense>
             {/* 详情打开时列表只隐藏不卸载，返回时筛选、展开状态都还在。 */}
             <div className="workspace-view" hidden={detailOpen || terminalOpen}>
               <TopTabs />
@@ -297,9 +357,17 @@ export function AppShell() {
   );
   const overlays = (
     <>
-      <Settings />
-      <Composer />
-      <CreateAssetPicker />
+      <Suspense fallback={null}>
+        <DeferredOverlay open={settingsOpen}>
+          <Settings />
+        </DeferredOverlay>
+        <DeferredOverlay open={composerOpen}>
+          <Composer />
+        </DeferredOverlay>
+        <DeferredOverlay open={pickerOpen}>
+          <CreateAssetPicker />
+        </DeferredOverlay>
+      </Suspense>
       <CaptureInbox />
       <GlobalMarkdownImport />
       <CommandPalette />

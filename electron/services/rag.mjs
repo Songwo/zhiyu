@@ -157,6 +157,22 @@ export function assetDocuments(
               : asset[key],
         ]),
       );
+      if (kind === "service" && asset.card && typeof asset.card === "object") {
+        // 卡片仅索引类型和期限；尾号、绑定号码、激活资料不进入模型上下文。
+        for (const key of [
+          "kind",
+          "network",
+          "funding",
+          "formFactor",
+          "expiryMonth",
+          "plan",
+          "planExpiresAt",
+          "keepAliveAt",
+        ]) {
+          const value = asset.card[key];
+          if (typeof value === "string") fields[`card_${key}`] = value.slice(0, 160);
+        }
+      }
       if (kind === "service" && typeof asset.typeId === "string") {
         // 自定义类型：带上类型名与字段（名称 + 用户填写的值），字段提示里已要求不填凭据。
         const type = (snapshot.assetTypes ?? []).find((entry) => entry.id === asset.typeId);

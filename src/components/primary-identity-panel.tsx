@@ -313,9 +313,16 @@ export function PrimaryIdentityPanel({ initial = false }: { initial?: boolean })
             </label>
           )}
           {waiting && (
-            <div className="primary-identity-notice" role="status">
-              <Loader2 className="size-4 animate-spin" />
-              <p>{t("请在浏览器完成 Linux.do 登录，授权后这里会显示资料预览。")}</p>
+            <div className="space-y-2">
+              <div className="primary-identity-notice" role="status">
+                <Loader2 className="size-4 animate-spin" />
+                <p>{t("请在浏览器完成 Linux.do 登录，授权后这里会显示资料预览。")}</p>
+              </div>
+              <p className="primary-identity-note">
+                {t(
+                  "浏览器若显示 Invalid state，请关闭旧授权页后重新发起，不要刷新或重复使用回调链接。若 LINUX DO Connect 首页也无法登录，请先恢复社区登录后再试。",
+                )}
+              </p>
             </div>
           )}
           {!availability?.configured && !sessionId && (
@@ -370,6 +377,12 @@ export function PrimaryIdentityPanel({ initial = false }: { initial?: boolean })
             {(waiting || preview) && (
               <Button size="sm" variant="ghost" disabled={busy === "bind"} onClick={discard}>
                 {t("取消本次授权")}
+              </Button>
+            )}
+            {waiting && (
+              <Button size="sm" variant="outline" disabled={!!busy} onClick={() => void start()}>
+                <RefreshCw />
+                {t("浏览器报错？重新发起")}
               </Button>
             )}
             {identity?.connected && !sessionId && (

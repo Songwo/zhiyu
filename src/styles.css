@@ -1,6 +1,26 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 
+/* 本地品牌标识以白底保证黑色和彩色商标在明暗主题中都清晰。 */
+.builtin-brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 7px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #00000010;
+}
+.builtin-brand-icon > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 /* 终端沿用主工作区的表面、文字与边框，仅输出区允许选择独立配色。 */
 .terminal-workspace {
   display: flex;
@@ -3540,6 +3560,21 @@ p {
   overflow-x: auto;
   scrollbar-width: thin;
 }
+.document-block-select {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-body);
+}
+.document-block-select:focus-visible {
+  outline: 2px solid var(--color-muted);
+  outline-offset: 2px;
+}
 .document-toolbar button {
   flex-shrink: 0;
   transition:
@@ -3893,6 +3928,9 @@ p {
   background: transparent;
   transition: width var(--dur-slow) var(--ease-out-soft);
 }
+.app-sidebar.anim-drawer {
+  background: var(--color-sidebar);
+}
 .sidebar-brand {
   display: flex;
   height: 56px;
@@ -4054,6 +4092,53 @@ p {
 }
 .sidebar-tools-toggle:hover {
   color: var(--color-ink);
+}
+.sidebar-group-toggle {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 550;
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.sidebar-group-toggle:hover {
+  color: var(--color-ink);
+  background: var(--color-selected);
+}
+.sidebar-group-toggle:focus-visible {
+  outline: 2px solid var(--color-line-strong);
+  outline-offset: 2px;
+}
+.sidebar-group-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-subtle);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.sidebar-group-chevron {
+  width: 13px;
+  height: 13px;
+  transform: rotate(-90deg);
+  transition: transform var(--dur-base) var(--ease-out-soft);
+}
+.sidebar-group-chevron.is-expanded {
+  transform: rotate(0deg);
+}
+.app-sidebar[data-collapsed="true"] .sidebar-group-toggle {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-group-chevron { transition: none; }
 }
 .sidebar-tools-chevron {
   transition: transform var(--dur-base) var(--ease-out-soft);
@@ -7071,4 +7156,25 @@ p {
 }
 .upcoming-row[data-kind="reminder"] {
   --event: var(--color-link);
+}
+
+/* 删除确认始终可用，不依赖卡片页面是否已加载。 */
+.delete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 6px 0 20px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.delete-warning svg {
+  color: var(--color-danger);
+  flex-shrink: 0;
+  width: 22px;
+  margin-top: 3px;
+}
+
+.typed-delete-form {
+  padding: 20px 24px 24px;
 }

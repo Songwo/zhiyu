@@ -1,6 +1,7 @@
 import { normalizeIntegrationRef } from "./integration-ref.mjs";
 import { calendarDay, normalizeBilling } from "./renewals.mjs";
 import { normalizeFieldValues } from "./asset-types.mjs";
+import { normalizeManagedCard, managedCardExpiry, managedCardDue } from "./managed-cards.mjs";
 const CATEGORIES = new Set(["worker", "blog", "mail", "custom"]);
 const STATUSES = new Set(["online", "warning", "offline"]);
 
@@ -84,7 +85,9 @@ export function normalizeService(value) {
     tags.some((tag) => typeof tag !== "string" || tag.length > 100)
   )
     throw new Error("服务标签无效。");
-  const expiresAt = calendarDay(item.expiresAt);
+  const card = normalizeManagedCard(item.card);
+  const expiresAt = card ? managedCardExpiry(card) : calendarDay(item.expiresAt);
+  const due = managedCardDue(expiresAt);
   const typeId = text("typeId", 200);
   const fields = normalizeFieldValues(item.fields);
   const billing = normalizeBilling(item.billing);
@@ -95,9 +98,16 @@ export function normalizeService(value) {
     category: /** @type {import('../../src/lib/types').ServiceAsset['category']} */ (item.category),
     url: serviceUrl(item.url ?? ""),
     provider: text("provider", 160),
-    status: /** @type {import('../../src/lib/types').Status} */ (item.status),
+    status: card
+      ? due.state === "expired"
+        ? "offline"
+        : due.state === "due"
+          ? "warning"
+          : "online"
+      : /** @type {import('../../src/lib/types').Status} */ (item.status),
     notes: text("notes", 20000),
     tags: [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))],
+    ...(card ? { card } : {}),
     ...(typeof item.imageDataUrl === "string" ? { imageDataUrl: item.imageDataUrl } : {}),
     ...(item.demo === true ? { demo: true } : {}),
     ...(item.integration == null ? {} : { integration: normalizeIntegrationRef(item.integration) }),

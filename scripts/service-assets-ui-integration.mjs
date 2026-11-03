@@ -23,7 +23,7 @@ try {
       }),
     ),
   );
-  await page.goto("http://127.0.0.1:8080");
+  await page.goto(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:8080");
   await page.locator('[data-app-ready="true"]').waitFor();
   await page.evaluate(async () => {
     const { useAppStore, snapshotOf } = await import(
@@ -132,6 +132,11 @@ try {
   await page.getByRole("button", { name: "查看服务 合成博客服务", exact: true }).click();
   details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByRole("button", { name: "删除", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "确认删除资产", exact: true });
+  await confirmation.waitFor();
+  assert.equal(await page.evaluate(() => window.__serviceStore.getState().services.length), 1);
+  await confirmation.getByLabel("请输入完整名称以确认删除").fill("合成博客服务");
+  await confirmation.getByRole("button", { name: "永久删除", exact: true }).click();
   await details.waitFor({ state: "detached" });
   assert.equal(await page.evaluate(() => window.__serviceStore.getState().services.length), 0);
   assert.equal(await page.evaluate(() => window.__serviceStore.getState().links.length), 0);

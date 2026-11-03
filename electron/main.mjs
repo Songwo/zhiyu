@@ -64,6 +64,7 @@ import {
   NotificationTracker,
 } from "./services/notifications.mjs";
 import { AgentService } from "./services/agent-service.mjs";
+import { DocumentAnalysisService } from "./services/document-analysis.mjs";
 import { ProfileService } from "./services/profile.mjs";
 import {
   createImageNormalizer,
@@ -151,6 +152,7 @@ let agent;
 let aiAccounts;
 let identities;
 let mainIdentity;
+let documentAnalysis;
 let accountTotp;
 let documentAccounts;
 let mailboxes;
@@ -898,6 +900,8 @@ function registerIpc() {
     normalizeImage,
   );
   profile.setIdentitySource(mainIdentity);
+  for (const method of ["quota", "records", "start", "status", "cancel", "checkout"])
+    handle(`research:${method}`, (input) => mainIdentity.research(method,input??{}));
   handle("profile:get", () => profile.get());
   handle("profile:save", async (value) => {
     const result = await profile.save(value);
@@ -1203,6 +1207,14 @@ function registerIpc() {
     documents,
     mutateAssets: mutateWorkspaceAssets,
   });
+  documentAnalysis = new DocumentAnalysisService({
+    file: join(app.getPath("userData"), "document-analysis.json"),
+    secureStorage: safeStorage,
+    fetchImpl: (...args) => net.fetch(...args),
+    emit: (event) => emit("document-analysis:event", event),
+  });
+  for (const method of ["config", "saveConfig", "models", "run", "cancel"])
+    handle(`document-analysis:${method}`, (...args) => documentAnalysis[method](...args));
   agent = new AgentService({
     directory: app.getPath("userData"),
     secureStorage: safeStorage,
@@ -1839,6 +1851,7 @@ if (!app.requestSingleInstanceLock()) {
     stopPrivateTasks();
     identities?.stop();
     mainIdentity?.stop();
+    documentAnalysis?.stop();
     documentAccounts?.stop();
     void extensionBridge?.stop();
     quitting = true;

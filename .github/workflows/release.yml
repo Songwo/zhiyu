@@ -86,6 +86,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/markdown-import-integration.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 验证卡片、检索原文提示、编辑器与分组导航
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $app = "release/v$version/win-unpacked/Zhiyu.exe"
+          foreach ($script in @('sidebar-groups-integration', 'cards-desktop-integration', 'research-document-desktop-integration', 'document-editor-regression')) {
+            node "scripts/$script.mjs" $app
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: 验证文档关系与 Agent 修改的正式程序接口
         shell: pwsh
         run: |

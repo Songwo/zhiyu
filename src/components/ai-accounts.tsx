@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 import { barTone } from "@/lib/status";
 import { Button } from "./ui/button";
 import { Field, Input, Select } from "./ui/input";
+import { BrandIcon } from "./brand-icon";
 
 const date = (value: string | null) => (value ? new Date(value).toLocaleString() : t("未提供"));
 const labels: Record<string, string> = {
@@ -536,6 +537,7 @@ export function AiAccountsPanel({
           return (
             <li key={account.id} className="space-y-2 py-4">
               <div className="flex items-start gap-2">
+                <BrandIcon identity={{ provider: account.provider }} />
                 <div className="min-w-0 flex-1">
                   <strong className="block break-words text-meta">
                     {AI_PROVIDER_NAMES[account.provider]}

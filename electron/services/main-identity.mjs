@@ -5,6 +5,7 @@ import { renameSync } from "node:fs";
 import { dirname } from "node:path";
 import { IdentityAccounts } from "./identity-accounts.mjs";
 import { validateImageDataUrl } from "./image-data.mjs";
+import { loginResultPage } from "./login-result-page.mjs";
 
 const ISSUER = "https://connect.linux.do";
 const CALLBACK = "/oauth/zhiyu/callback";
@@ -313,10 +314,10 @@ export class MainIdentityService {
     return this.#dto();
   }
 
-  async #request(url, { body, credential, binary = false } = {}) {
+  async #request(url, { body, credential, binary = false, research = false } = {}) {
     const controller = new AbortController();
     this.#requests.add(controller);
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(() => controller.abort(), research ? 20000 : 15000);
     timer.unref?.();
     try {
       const response = await this.#fetch(url, {
@@ -333,6 +334,35 @@ export class MainIdentityService {
       });
       if (controller.signal.aborted) throw fail("身份操作已取消或请求超时。");
       if (!response.ok || response.redirected) {
+        if (research && response.status === 404)
+          throw fail("联网检索服务尚未升级或配置，未产生积分支付。");
+        if (research && response.body) {
+          const reader = response.body.getReader();
+          const chunks = [];
+          let size = 0;
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              size += value.length;
+              if (size > 16384) break;
+              chunks.push(value);
+            }
+          } finally {
+            await reader.cancel().catch(() => {});
+          }
+          if (size <= 16384) {
+            let result;
+            try {
+              result = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+            } catch {
+              result = null;
+            }
+            if (typeof result?.message === "string" && result.message.length <= 500)
+              throw fail(result.message);
+          }
+          throw fail("联网检索服务暂时不可用，未创建新的积分支付。");
+        }
         if (response.status === 401)
           throw fail("登录状态已过期，请重新使用 Linux.do 登录；本机资料仍然保留。");
         if (response.status === 503) throw fail("Linux.do 登录服务尚未配置完成，请稍后重试。");
@@ -377,6 +407,22 @@ export class MainIdentityService {
       this.#requests.delete(controller);
     }
   }
+  async research(method, input = {}) {
+    await this.#load();
+    if (!["quota", "records", "start", "status", "cancel", "checkout"].includes(method))
+      throw fail("未知的联网检索操作。");
+    if (!this.#record?.credential || this.#record.expiresAt <= Date.now())
+      throw fail("联网检索需要先在个人资料中使用 Linux.do 登录。");
+    const session = this.captureSession();
+    const result = await this.#request(`${this.#origin}/v1/research/${method}`, {
+      body: input,
+      credential: this.#record.credential,
+      research: true,
+    });
+    this.assertCurrent(session);
+    return result;
+  }
+
   async availability() {
     try {
       this.#secure();
@@ -444,15 +490,18 @@ export class MainIdentityService {
     };
     try {
       const server = createServer(async (request, response) => {
-        const reply = (status, message) => {
+        const reply = (status, message, success = false) => {
+          const page = loginResultPage({ message, success });
           response.writeHead(status, {
-            "Content-Type": "text/plain; charset=utf-8",
+            "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "no-store",
-            "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+            "Content-Security-Policy": page.csp,
             "Referrer-Policy": "no-referrer",
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
             Connection: "close",
           });
-          response.end(message);
+          response.end(page.html);
         };
         try {
           valid();
@@ -505,7 +554,7 @@ export class MainIdentityService {
           valid();
           session.envelope = result;
           session.status = "ready";
-          reply(200, "身份验证成功，请返回知屿确认绑定。此页面可以关闭。");
+          reply(200, "身份验证成功，请返回知屿确认绑定。此页面可以关闭。", true);
           // 保留预览过期计时，只关闭一次性回调监听。
           server.close();
           session.server = null;

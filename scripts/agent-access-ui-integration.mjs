@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 
 // 只挂载真实界面和合成桥接数据，不连接用户配置或外部模型。
-const origin = "http://127.0.0.1:8080";
+const origin = new URL(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:8080").origin;
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ locale: "zh-CN", viewport: { width: 1280, height: 900 } });

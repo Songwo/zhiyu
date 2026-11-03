@@ -213,6 +213,23 @@ contextBridge.exposeInMainWorld("sinan", {
     onEvent: (handler) => on("agent:event", handler),
   },
 
+  documentAnalysis: {
+    config: () => unwrap(ipcRenderer.invoke("document-analysis:config")),
+    saveConfig: (input) => unwrap(ipcRenderer.invoke("document-analysis:saveConfig", input)),
+    models: () => unwrap(ipcRenderer.invoke("document-analysis:models")),
+    run: (input) => unwrap(ipcRenderer.invoke("document-analysis:run", input)),
+    cancel: (id) => unwrap(ipcRenderer.invoke("document-analysis:cancel", id)),
+    onEvent: (handler) => on("document-analysis:event", handler),
+  },
+  research: {
+    quota: () => unwrap(ipcRenderer.invoke("research:quota")),
+    start: (input) => unwrap(ipcRenderer.invoke("research:start", input)),
+    status: (id) => unwrap(ipcRenderer.invoke("research:status", { id })),
+    records: (offset = 0) => unwrap(ipcRenderer.invoke("research:records", { offset })),
+    cancel: (id) => unwrap(ipcRenderer.invoke("research:cancel", { id })),
+    checkout: (id) => unwrap(ipcRenderer.invoke("research:checkout", { id })),
+  },
+
   info: () => unwrap(ipcRenderer.invoke("app:info")),
   checkUpdate: () => unwrap(ipcRenderer.invoke("app:check-update")),
   updates: {
