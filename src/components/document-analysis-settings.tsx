@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Save, Trash2 } from "lucide-react";
-import { desktop } from "@/lib/desktop";
+import { hostBridge } from "@/lib/web-bridge";
 import type { AnalysisConfig } from "@/lib/document-analysis";
 import { t } from "@/lib/i18n";
 import { Button } from "./ui/button";
@@ -8,7 +8,7 @@ import { Field, Input, Select, Textarea } from "./ui/input";
 import "./document-analysis.css";
 
 export function DocumentAnalysisSettings() {
-  const api = desktop()?.documentAnalysis;
+  const api = hostBridge()?.documentAnalysis;
   const [config, setConfig] = useState<AnalysisConfig | null>(null);
   const [key, setKey] = useState("");
   const [clearKey, setClearKey] = useState(false);

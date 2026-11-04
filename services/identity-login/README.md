@@ -43,6 +43,8 @@ Cloudflare Tunnel 的域名路由指向 `http://127.0.0.1:49284`，保留公网 
 5. 桌面以 verifier 调用 `POST /v1/login/exchange`，获取用户资料和 AES-256-GCM 加密凭据。
 6. `POST /v1/session/profile` 使用 Bearer 加密凭据获取更新的资料；必要时更新提供方 token，并验证稳定 subject 一致。
 
+自托管 Web 通过同一 `POST /v1/login/start` 传入 `transport: "poll"`、自己的 `state` 与 S256 `challenge`，不传 `redirectUri`。浏览器只打开官方授权 URL；回调完成后留在本站结果页，服务端不跳转到任意自托管域名。Web 服务端用 `{id, verifier}` 请求 `POST /v1/login/poll`，等待时返回 `waiting`，就绪返回绑定该 verifier 的一次性交接码，再沿用 `/v1/login/exchange`。在交换前重复轮询可得到相同交接码，成功交换后失效；`cancel: true` 使待授权和交接码作废。verifier 不进入浏览器、URL、Cookie 或日志。健康检查的 `webLoginConfigured: true` 用于区分支持该协议的服务。
+
 返回的加密凭据本身是访问凭证，桌面端应使用系统保护存储保存，不写入普通个人资料或日志。会话最长 30 天，资料刷新不会无限延长有效期。服务无账号数据库，重启保留会话密钥即可继续使用已有凭据；替换会话密钥会让所有已有凭据失效。退出登录删除本机凭据，不代表撤销 Linux.do 端授权。需要远端撤销时，应在 Linux.do 的授权管理操作。
 
 待授权状态最多 1024 项、有效五分钟；交接码最多 1024 项、有效一分钟；每个来源每分钟最多 120 次业务请求，最多 64 个同时处理的请求。超过容量会明确拒绝，不静默替换其他用户的有效状态。

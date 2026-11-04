@@ -157,6 +157,7 @@ export async function createWebServer({
   hostStats,
   syncLimits,
   allowedNets = process.env.ZHIYU_ALLOWED_NETS,
+  analysisBaseUrl,
 } = {}) {
   // 来源白名单写错时直接报错退出：不能因为手误把服务开放给所有人。
   const allowed = parseAllowedNets(allowedNets);
@@ -227,6 +228,16 @@ export async function createWebServer({
     secureStorage,
     fetchImpl,
     hostStats: monitor,
+    sessionActive: (key) => {
+      const entry = sessions.get(key);
+      return Boolean(
+        entry &&
+        entry.username === account?.username &&
+        entry.expires > Date.now() &&
+        Date.now() - (entry.seen ?? entry.created) <= SESSION_IDLE_DAYS * 86_400_000,
+      );
+    },
+    analysisBaseUrl,
   });
   await bridge.clearDownloads().catch(() => {});
   if (schedulePush) bridge.startSchedules();
@@ -790,11 +801,13 @@ export async function createWebServer({
     "GET /api/web/documents": async (req, res) => send(res, 200, await documents.list()),
 
     /** 与桌面版 preload 同名的频道；只放行 bridge.mjs 里列出的方法。 */
-    "POST /api/web/rpc": async (req, res) => {
+    "POST /api/web/rpc": async (req, res, session) => {
       const input = await json(req);
       if (typeof input?.channel !== "string") throw new HttpError(400, "请求格式不正确");
       try {
-        send(res, 200, { data: (await bridge.call(input.channel, input.args)) ?? null });
+        send(res, 200, {
+          data: (await bridge.call(input.channel, input.args, { sessionKey: session.key })) ?? null,
+        });
       } catch (error) {
         if (error instanceof HttpError) throw error;
         if (!(error instanceof BridgeError)) log.error("rpc", input.channel, error?.message);
@@ -863,6 +876,7 @@ export async function createWebServer({
 
   /** 退出登录或改密后，已失效会话的事件流也一并断开。 */
   function dropStreams() {
+    bridge.dropSessions();
     for (const stream of streams)
       if (!sessions.has(stream.key)) {
         streams.delete(stream);
@@ -892,10 +906,18 @@ export async function createWebServer({
     if (req.method === "PUT") {
       const doc = await json(req);
       if (!doc || doc.id !== id) throw new HttpError(400, "文档标识不一致");
-      return send(res, 200, await documents.save(doc));
+      if (
+        doc.expectedRevision !== undefined &&
+        (typeof doc.expectedRevision !== "string" || !/^[a-f0-9]{64}$/.test(doc.expectedRevision))
+      )
+        throw new HttpError(400, "文档版本无效");
+      const saved = await documents.save(doc, { expectedRevision: doc.expectedRevision });
+      emit("documents:changed", { document: saved });
+      return send(res, 200, saved);
     }
     if (req.method === "DELETE") {
       await documents.remove(id);
+      emit("documents:changed", { removedId: id });
       return send(res, 200, { ok: true });
     }
     throw new HttpError(405, "Method not allowed");

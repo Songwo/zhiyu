@@ -108,6 +108,7 @@ function envelopeFrom(value) {
 
 /** 主身份独立于资产密钥库，服务凭据和帖子缓存只写入系统加密文件。 */
 export class MainIdentityService {
+  #browser;
   #file;
   #storage;
   #fetch;
@@ -134,6 +135,7 @@ export class MainIdentityService {
     openExternal,
     normalizeImage = validateImageDataUrl,
     origin = "https://auth.allinsong.top",
+    browser = false,
   }) {
     const url = new URL(origin);
     if (url.href !== "https://auth.allinsong.top/") throw new Error("主身份登录服务地址无效。");
@@ -143,6 +145,7 @@ export class MainIdentityService {
     this.#open = openExternal;
     this.#normalize = normalizeImage;
     this.#origin = url.origin;
+    this.#browser = browser;
     const isUnlocked = () =>
       !this.#stopped && Boolean(this.#record?.credential && this.#record.expiresAt > Date.now());
     const currentGeneration = () => this.#generation;
@@ -430,10 +433,13 @@ export class MainIdentityService {
       if (!plain(result) || result.ok !== true || typeof result.configured !== "boolean")
         throw fail("登录服务状态无效。");
       return {
-        configured: result.configured,
-        message: result.configured
-          ? "可以使用 Linux.do 登录并绑定主身份。"
-          : "Linux.do 登录服务尚未配置完成，暂可使用本地账户。",
+        configured: result.configured && (!this.#browser || result.webLoginConfigured === true),
+        message:
+          this.#browser && result.webLoginConfigured !== true
+            ? "登录服务尚未启用网页授权，请联系维护者升级。"
+            : result.configured
+              ? "可以使用 Linux.do 登录并绑定主身份。"
+              : "Linux.do 登录服务尚未配置完成，暂可使用本地账户。",
       };
     } catch (error) {
       return { configured: false, message: safeError(error).message };
@@ -489,6 +495,37 @@ export class MainIdentityService {
         throw fail("本次登录已取消或失效。");
     };
     try {
+      if (this.#browser) {
+        const result = await this.#request(`${this.#origin}/v1/login/start`, {
+          body: {
+            transport: "poll",
+            state: session.state,
+            challenge: createHash("sha256").update(session.verifier).digest("base64url"),
+          },
+        });
+        valid();
+        const authorization = new URL(result.authorizationUrl);
+        if (
+          !/^[A-Za-z0-9_-]{43}$/.test(result.id) ||
+          !Number.isSafeInteger(result.expiresAt) ||
+          result.expiresAt <= Date.now() ||
+          result.expiresAt > Date.now() + TTL + 10000 ||
+          authorization.origin !== ISSUER ||
+          authorization.pathname !== "/oauth2/authorize" ||
+          authorization.username ||
+          authorization.password ||
+          authorization.hash ||
+          authorization.href.length > 8192
+        )
+          throw fail("登录服务返回的授权请求无效。");
+        session.remoteId = result.id;
+        session.expiresAt = Math.min(session.expiresAt, result.expiresAt);
+        return {
+          id: session.id,
+          expiresAt: session.expiresAt,
+          authorizationUrl: authorization.href,
+        };
+      }
       const server = createServer(async (request, response) => {
         const reply = (status, message, success = false) => {
           const page = loginResultPage({ message, success });
@@ -639,6 +676,45 @@ export class MainIdentityService {
       session.envelope = null;
       this.#close(session);
     }
+    if (this.#browser && session.status === "waiting") {
+      // 多个并发状态请求只交换一次交接码；取消、更换身份后禁止旧结果写回。
+      session.polling ??= (async () => {
+        const current = () =>
+          !this.#stopped &&
+          this.#sessions.get(id) === session &&
+          session.status === "waiting" &&
+          Date.now() < session.expiresAt;
+        try {
+          const result = await this.#request(`${this.#origin}/v1/login/poll`, {
+            body: { id: session.remoteId, verifier: session.verifier },
+          });
+          if (!current()) return;
+          if (result.status === "error") throw fail("Linux.do 授权未完成，请重新登录。");
+          if (result.status === "ready") {
+            if (!/^[A-Za-z0-9_-]{43}$/.test(result.code)) throw fail("登录交接码无效。");
+            const envelope = envelopeFrom(
+              await this.#request(`${this.#origin}/v1/login/exchange`, {
+                body: { code: result.code, verifier: session.verifier },
+              }),
+            );
+            if (!current()) return;
+            session.envelope = envelope;
+            session.status = "ready";
+            session.verifier = "";
+          } else if (result.status !== "waiting") throw fail("登录授权状态无效。");
+        } catch (error) {
+          if (current()) {
+            session.status = "error";
+            session.error = safeError(error).message;
+            session.envelope = null;
+            this.#close(session);
+          }
+        }
+      })().finally(() => {
+        session.polling = null;
+      });
+      await session.polling;
+    }
     return {
       id,
       status: session.status,
@@ -651,10 +727,16 @@ export class MainIdentityService {
   async cancel(id) {
     const session = this.#sessions.get(id);
     if (session) {
+      const remote =
+        this.#browser && session.remoteId && session.verifier
+          ? { id: session.remoteId, verifier: session.verifier, cancel: true }
+          : null;
       session.status = "cancelled";
       session.envelope = null;
       this.#close(session);
       this.#sessions.delete(id);
+      if (remote)
+        await this.#request(`${this.#origin}/v1/login/poll`, { body: remote }).catch(() => {});
     }
   }
 

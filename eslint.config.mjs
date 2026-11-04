@@ -14,6 +14,8 @@ export default tseslint.config(
       "dist-web/**",
       "zhiyu-data/**",
       "release/**",
+      // 本机验证日志、临时预览脚本不属于项目源码，也不会提交或打包。
+      ".claude/codex-handoff/**",
       ".output/**",
       ".vercel/**",
       ".nitro/**",

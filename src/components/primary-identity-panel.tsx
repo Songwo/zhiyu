@@ -9,7 +9,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { toast } from "sonner";
-import { desktop } from "@/lib/desktop";
+import { hostBridge, openExternal } from "@/lib/web-bridge";
 import { useDocuments } from "@/lib/documents";
 import type { IdentityAccount, IdentityProfile } from "@/lib/identities";
 import { t } from "@/lib/i18n";
@@ -22,7 +22,7 @@ import "./primary-identity-panel.css";
 
 /** 内嵌授权流程，也可用于首次设置的原生 dialog，不创建跨层级弹窗。 */
 export function PrimaryIdentityPanel({ initial = false }: { initial?: boolean }) {
-  const bridge = desktop()?.mainIdentity;
+  const bridge = hostBridge()?.mainIdentity;
   const identity = useProfile((state) => state.profile?.mainIdentity);
   const [availability, setAvailability] = useState<{ configured: boolean; message: string } | null>(
     null,
@@ -30,6 +30,7 @@ export function PrimaryIdentityPanel({ initial = false }: { initial?: boolean })
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [authorizationUrl, setAuthorizationUrl] = useState("");
   const [preview, setPreview] = useState<IdentityProfile | null>(null);
   const [previewAvatar, setPreviewAvatar] = useState("");
   const [syncName, setSyncName] = useState(false);
@@ -88,6 +89,7 @@ export function PrimaryIdentityPanel({ initial = false }: { initial?: boolean })
     const id = session.current;
     session.current = null;
     setSessionId(null);
+    setAuthorizationUrl("");
     setPreview(null);
     setPreviewAvatar("");
     setReplaceConfirmed(false);
@@ -150,6 +152,7 @@ export function PrimaryIdentityPanel({ initial = false }: { initial?: boolean })
       }
       session.current = value.id;
       setSessionId(value.id);
+      setAuthorizationUrl(value.authorizationUrl || "");
     } catch (caught) {
       if (alive.current && current === generation.current)
         setError(caught instanceof Error ? caught.message : t("无法启动登录，请重试。"));
@@ -318,6 +321,16 @@ export function PrimaryIdentityPanel({ initial = false }: { initial?: boolean })
                 <Loader2 className="size-4 animate-spin" />
                 <p>{t("请在浏览器完成 Linux.do 登录，授权后这里会显示资料预览。")}</p>
               </div>
+              {authorizationUrl && (
+                <a
+                  className="primary-identity-note"
+                  href={authorizationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("打开 Linux.do 授权页面")}
+                </a>
+              )}
               <p className="primary-identity-note">
                 {t(
                   "浏览器若显示 Invalid state，请关闭旧授权页后重新发起，不要刷新或重复使用回调链接。若 LINUX DO Connect 首页也无法登录，请先恢复社区登录后再试。",
@@ -483,9 +496,7 @@ function PrimaryProfile({ profile, avatar }: { profile: IdentityProfile; avatar?
             <button
               type="button"
               onClick={() =>
-                void desktop()
-                  ?.openExternal(profile.profileUrl)
-                  .catch(() => toast.error(t("无法打开链接")))
+                void openExternal(profile.profileUrl).catch(() => toast.error(t("无法打开链接")))
               }
             >
               {profile.profileUrl}
@@ -499,7 +510,7 @@ function PrimaryProfile({ profile, avatar }: { profile: IdentityProfile; avatar?
 }
 
 function PrimaryIdentityPosts() {
-  const bridge = desktop()?.mainIdentity;
+  const bridge = hostBridge()?.mainIdentity;
   const [account, setAccount] = useState<IdentityAccount | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

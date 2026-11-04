@@ -34,6 +34,9 @@ export type HostBridge = Pick<
   | "mail"
   | "mailboxes"
   | "mailClient"
+  | "mainIdentity"
+  | "research"
+  | "documentAnalysis"
 >;
 
 export async function webInvoke<T>(channel: string, ...args: unknown[]): Promise<T> {
@@ -155,7 +158,79 @@ const invoker =
   (...args: A) =>
     webInvoke<R>(channel, ...args);
 
+const analysisListeners = new Set<(event: import("./document-analysis").AnalysisEvent) => void>();
+
 export const webBridge: HostBridge = {
+  mainIdentity: {
+    get: invoker("main-identity:get"),
+    availability: invoker("main-identity:availability"),
+    start: async () => {
+      // 在点击的同步阶段预开窗口，避免等待接口后被浏览器当作弹窗拦截。
+      const popup = window.open("about:blank", "_blank");
+      if (popup) popup.opener = null;
+      try {
+        const result = await webInvoke<{ id: string; expiresAt: number; authorizationUrl: string }>(
+          "main-identity:start",
+        );
+        if (popup && !popup.closed) {
+          popup.location.replace(result.authorizationUrl);
+          return { id: result.id, expiresAt: result.expiresAt };
+        }
+        return result;
+      } catch (error) {
+        popup?.close();
+        throw error;
+      }
+    },
+    status: invoker("main-identity:status"),
+    cancel: invoker("main-identity:cancel"),
+    bind: invoker("main-identity:bind"),
+    preferences: invoker("main-identity:preferences"),
+    refresh: invoker("main-identity:refresh"),
+    disconnect: invoker("main-identity:disconnect"),
+    loadPosts: invoker("main-identity:loadPosts"),
+    savePosts: invoker("main-identity:save-posts"),
+  },
+  research: {
+    quota: invoker("research:quota"),
+    start: invoker("research:start"),
+    status: (id) => webInvoke("research:status", { id }),
+    records: (offset = 0) => webInvoke("research:records", { offset }),
+    cancel: (id) => webInvoke("research:cancel", { id }),
+    checkout: (id) => webInvoke("research:checkout", { id }),
+  },
+  documentAnalysis: {
+    config: invoker("document-analysis:config"),
+    saveConfig: invoker("document-analysis:saveConfig"),
+    models: invoker("document-analysis:models"),
+    cancel: invoker("document-analysis:cancel"),
+    onEvent: (handler) => {
+      analysisListeners.add(handler);
+      return () => {
+        analysisListeners.delete(handler);
+      };
+    },
+    run: async (input) => {
+      await webInvoke("document-analysis:start", input);
+      for (;;) {
+        const state = await webInvoke<
+          import("./document-analysis").AnalysisEvent & {
+            done: boolean;
+            error?: string;
+            result?: {
+              items: import("./task-progress").TaskProgressItem[];
+              results: import("./document-analysis").AnalysisResult[];
+              cancelled?: boolean;
+            };
+          }
+        >("document-analysis:status", input.id);
+        for (const handler of analysisListeners) handler(state);
+        if (state.error) throw new Error(state.error);
+        if (state.done && state.result) return state.result;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+    },
+  },
   info: () => webInvoke("app:info"),
   ssh: {
     open: async (target, size) =>

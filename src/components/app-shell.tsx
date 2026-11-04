@@ -1,4 +1,5 @@
-import { hostBridge } from "@/lib/web-bridge";
+import { hostBridge, onWebEvent } from "@/lib/web-bridge";
+import { useProfile } from "@/lib/profile";
 import { ViewErrorBoundary } from "./view-error-boundary";
 import { isWeb } from "@/lib/web";
 import { startWebSync } from "@/lib/web-store";
@@ -185,6 +186,18 @@ export function AppShell() {
       }),
     [],
   );
+  useEffect(() => {
+    if (!isWeb()) return;
+    const offProfile = onWebEvent("profile:changed", () => void useProfile.getState().refresh());
+    const offDocuments = onWebEvent<import("@/lib/documents").DocumentChange>(
+      "documents:changed",
+      (change) => useDocuments.getState().acceptChange(change),
+    );
+    return () => {
+      offProfile();
+      offDocuments();
+    };
+  }, []);
   useLayoutEffect(() => {
     workspaceScroll.current?.scrollTo({
       top: detailOpen ? 0 : listScroll.current,

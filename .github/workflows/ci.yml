@@ -89,6 +89,8 @@ jobs:
       # 自托管网页版：构建同一份界面代码，跑一遍首次设置、跨设备同步与退出登录。
       - run: npm run web:build
       - run: node scripts/web-selfhost-integration.mjs
+      - name: 验证 Web 主身份、检索与 Jev 原文提示
+        run: node scripts/web-research-ui-integration.mjs
 
   web-docker:
     runs-on: ubuntu-latest

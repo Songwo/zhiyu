@@ -1,5 +1,4 @@
-import { randomUUID } from "node:crypto";
-import { documentRevision } from "./documents.mjs";
+import { documentRevision } from "./document-revision.mjs";
 import { documentMarkdown } from "./document-markdown.mjs";
 
 function normalizeCandidate(value) {
@@ -54,13 +53,23 @@ export class DocumentAccountImports {
   #tickets = new Map();
   #queue = Promise.resolve();
   #off;
-  constructor({ vault, documents, getAssets, publishAssets, parse, now = Date.now }) {
+  #uuid;
+  constructor({
+    vault,
+    documents,
+    getAssets,
+    publishAssets,
+    parse,
+    now = Date.now,
+    uuid = () => globalThis.crypto.randomUUID(),
+  }) {
     this.#vault = vault;
     this.#documents = documents;
     this.#getAssets = getAssets;
     this.#publishAssets = publishAssets;
     this.#parse = parse;
     this.#now = now;
+    this.#uuid = uuid;
     this.#off = vault.onLock(() => this.#tickets.clear());
   }
   #run(action) {
@@ -82,7 +91,7 @@ export class DocumentAccountImports {
       guard();
       const parsed = this.#parse(documentMarkdown(doc));
       guard();
-      const ticket = randomUUID();
+      const ticket = this.#uuid();
       while (this.#tickets.size >= 4) this.#tickets.delete(this.#tickets.keys().next().value);
       this.#tickets.set(ticket, {
         documentId,
@@ -155,7 +164,7 @@ export class DocumentAccountImports {
         if (asset) existing++;
         else {
           asset = {
-            id: randomUUID(),
+            id: this.#uuid(),
             name: candidate.name,
             kind: "account",
             hint: "",

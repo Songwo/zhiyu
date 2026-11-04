@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Sparkles, Square, X } from "lucide-react";
-import { desktop } from "@/lib/desktop";
+import { hostBridge } from "@/lib/web-bridge";
 import type { AnalysisConfig, AnalysisResult } from "@/lib/document-analysis";
 import type { TaskProgressItem } from "@/lib/task-progress";
 import { t } from "@/lib/i18n";
@@ -20,7 +20,7 @@ export function DocumentAnalysisPanel({
   disabled: boolean;
   readerRef: RefObject<HTMLDivElement | null>;
 }) {
-  const api = desktop()?.documentAnalysis;
+  const api = hostBridge()?.documentAnalysis;
   const [config, setConfig] = useState<AnalysisConfig | null>(null);
   const configRef = useRef<AnalysisConfig | null>(null);
   const [open, setOpen] = useState(false);

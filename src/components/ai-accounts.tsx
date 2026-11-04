@@ -2,6 +2,7 @@ import { isWeb } from "@/lib/web";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCw, Trash2, Lock, Plus, Check, Loader2, Copy } from "lucide-react";
 import { desktop } from "@/lib/desktop";
+import { openExternal } from "@/lib/web-bridge";
 import { AI_PROVIDER_NAMES, type AiAccount, type AiProvider } from "@/lib/ai-accounts";
 import { useVault } from "@/lib/vault-state";
 import { useAppStore } from "@/lib/store";
@@ -182,11 +183,7 @@ function QuotaDetails({ account }: { account: AiAccount }) {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-2xs text-muted">
         <span>{usage ? `${t("查询时间")}: ${date(usage.checkedAt)}` : t("尚无成功查询")}</span>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void desktop()?.openExternal(service.url)}
-        >
+        <Button type="button" variant="outline" onClick={() => void openExternal(service.url)}>
           <ExternalLink className="size-4" />
           {t("查看官网权益")}
         </Button>

@@ -1,5 +1,6 @@
 import { hostedImageUrl } from "./hosted-image.mjs";
-import { createHash } from "node:crypto";
+import { documentRevision } from "./document-revision.mjs";
+export { documentRevision } from "./document-revision.mjs";
 import { renameSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile, rename, unlink, lstat } from "node:fs/promises";
 import { join } from "node:path";
@@ -9,19 +10,6 @@ import { documentLink } from "./document-links.mjs";
 export { documentLink } from "./document-links.mjs";
 
 const KINDS = new Set(["server", "domain", "mail", "ai", "secret", "cert", "service"]);
-export function documentRevision(doc) {
-  return createHash("sha256")
-    .update(
-      JSON.stringify({
-        title: doc.title,
-        content: doc.content,
-        markdown: doc.markdown,
-        bindings: doc.bindings,
-        updatedAt: doc.updatedAt,
-      }),
-    )
-    .digest("hex");
-}
 const TYPES = new Set([
   "doc",
   "paragraph",

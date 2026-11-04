@@ -82,7 +82,7 @@ function unwrap(value) {
  * @returns {{candidates: Array<{id:string,name:string,url:string,username:string,password:string,note:string}>, warnings:string[]}}
  */
 export function parseDocumentAccounts(source) {
-  if (typeof source !== "string" || Buffer.byteLength(source, "utf8") > MAX_BYTES)
+  if (typeof source !== "string" || new TextEncoder().encode(source).byteLength > MAX_BYTES)
     throw new Error("用于提取账号的文档不能超过 1 MiB。");
   const ast = unified().use(remarkParse).use(remarkGfm).parse(source);
   const candidates = [],

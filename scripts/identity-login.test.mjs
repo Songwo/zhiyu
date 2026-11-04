@@ -7,6 +7,67 @@ import { createIdentityLoginServer } from "../services/identity-login/server.mjs
 
 const nonce = () => randomBytes(32).toString("base64url");
 const challenge = (value) => createHash("sha256").update(value).digest("base64url");
+
+test("Web 轮询只接受原始 PKCE，拒绝任意回跳、错误验证器、取消、过期和交接码重放", async (t) => {
+  const f = await fixture(t);
+  const verifier = nonce();
+  const start = () =>
+    f.request("/v1/login/start", {
+      transport: "poll",
+      state: nonce(),
+      challenge: challenge(verifier),
+    });
+  assert.equal(
+    (
+      await f.request("/v1/login/start", {
+        transport: "poll",
+        redirectUri: "https://evil.test",
+        state: nonce(),
+        challenge: challenge(verifier),
+      })
+    ).status,
+    400,
+  );
+  const session = await (await start()).json();
+  assert.equal(
+    (await f.request("/v1/login/poll", { id: session.id, verifier: nonce() })).status,
+    400,
+  );
+  assert.equal(
+    (await (await f.request("/v1/login/poll", { id: session.id, verifier })).json()).status,
+    "waiting",
+  );
+  const callback = `/oauth/linuxdo/callback?code=synthetic-code&state=${new URL(session.authorizationUrl).searchParams.get("state")}`;
+  const result = await f.request(callback);
+  assert.equal(result.status, 200);
+  assert.equal(result.headers.get("location"), null);
+  assert.equal((await result.text()).includes("private-access"), false);
+  assert.equal((await f.request(callback)).status, 400);
+  const ready = await (await f.request("/v1/login/poll", { id: session.id, verifier })).json();
+  assert.equal(ready.status, "ready");
+  assert.equal(
+    (await f.request("/v1/login/exchange", { code: ready.code, verifier: nonce() })).status,
+    400,
+  );
+  assert.equal((await f.request("/v1/login/exchange", { code: ready.code, verifier })).status, 200);
+  assert.equal((await f.request("/v1/login/exchange", { code: ready.code, verifier })).status, 400);
+  const cancelled = await (await start()).json();
+  assert.equal(
+    (await f.request("/v1/login/poll", { id: cancelled.id, verifier, cancel: true })).status,
+    200,
+  );
+  assert.equal(
+    (
+      await f.request(
+        `/oauth/linuxdo/callback?code=x&state=${new URL(cancelled.authorizationUrl).searchParams.get("state")}`,
+      )
+    ).status,
+    400,
+  );
+  const expired = await (await start()).json();
+  f.advance(300001);
+  assert.equal((await f.request("/v1/login/poll", { id: expired.id, verifier })).status, 400);
+});
 const profile = {
   id: 73,
   username: "sample",

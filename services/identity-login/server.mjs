@@ -8,6 +8,7 @@ import {
 import { createServer } from "node:http";
 import { isIP } from "node:net";
 import { ResearchError } from "./research-service.mjs";
+import { loginPage } from "./login-page.mjs";
 
 const ISSUER = "https://connect.linux.do";
 const CALLBACK = "/oauth/linuxdo/callback";
@@ -214,12 +215,12 @@ function json(res, status, data) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(data));
 }
-function html(res, status, message) {
+function html(res, status, message, success = false) {
   // message 仅由服务端固定文案组成，不插入请求、令牌、用户资料或上游错误。
+  const page = loginPage(message, success);
+  res.setHeader("Content-Security-Policy", page.csp);
   res.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
-  res.end(
-    `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>知屿 · Linux.do 登录</title><style>body{margin:0;background:#f2f6f8;color:#183c43;font:16px/1.8 system-ui,sans-serif;min-height:100vh;display:grid;place-items:center}main{max-width:520px;margin:24px;padding:40px;border:1px solid #dae4e8;border-radius:24px;background:white;box-shadow:0 16px 50px #173a4412}h1{margin:0 0 16px;font-size:28px}p{margin:0;color:#52676d}</style><main><h1>知屿 Zhiyu</h1><p>${message}</p></main></html>`,
-  );
+  res.end(page.html);
 }
 
 /** 独立登录中转服务；外部令牌仅存在服务端内存或经过认证加密的凭据中。 */
@@ -244,10 +245,12 @@ export function createIdentityLoginServer({
   let active = 0;
   const aad = Buffer.from(`${PURPOSE}\n${settings.publicOrigin}`);
   const callback = `${settings.publicOrigin}${CALLBACK}`;
+  // Web 的授权结果只交给持有 PKCE verifier 的服务器，不跳转到任意自托管域名。
+  const browserSessions = new Map();
 
   function clean() {
     const stamp = now();
-    for (const map of [pending, handoffs, rates])
+    for (const map of [pending, handoffs, browserSessions, rates])
       for (const [key, entry] of map) if (entry.expiresAt <= stamp) map.delete(key);
   }
   function requireConfiguration() {
@@ -436,6 +439,18 @@ export function createIdentityLoginServer({
       await provider("/api/user", { headers: { Authorization: `Bearer ${tokens.accessToken}` } }),
     );
   function redirect(res, session, fields) {
+    if (session.transport === "poll") {
+      session.result = fields;
+      html(
+        res,
+        200,
+        fields.error
+          ? "授权未完成，请回到知屿网页重试。此页面可以关闭。"
+          : "身份验证成功，请回到知屿网页确认绑定。此页面可以关闭。",
+        !fields.error,
+      );
+      return;
+    }
     const target = new URL(session.redirectUri);
     target.search = new URLSearchParams({ ...fields, state: session.state }).toString();
     res.setHeader("Location", target.href);
@@ -471,13 +486,19 @@ export function createIdentityLoginServer({
       stage = "profile";
       const profile = await user(tokens);
       stage = "handoff";
-      if (session.expiresAt <= now() || handoffs.size >= maxHandoffs) throw invalid();
+      if (
+        session.expiresAt <= now() ||
+        handoffs.size >= maxHandoffs ||
+        (session.transport === "poll" && browserSessions.get(session.id) !== session)
+      )
+        throw invalid();
       const handoff = nonce();
       handoffs.set(handoff, {
         challenge: session.challenge,
         profile,
         tokens,
         expiresAt: now() + HANDOFF_TTL,
+        ...(session.transport === "poll" ? { browserSessionId: session.id } : {}),
       });
       redirect(res, session, { code: handoff });
     } catch (error) {
@@ -547,6 +568,7 @@ export function createIdentityLoginServer({
     const postPaths = [
       "/v1/login/start",
       "/v1/login/exchange",
+      "/v1/login/poll",
       "/v1/session/profile",
       ...researchPaths,
     ];
@@ -567,6 +589,7 @@ export function createIdentityLoginServer({
       json(res, 200, {
         ok: true,
         configured: settings.configured,
+        ...(settings.configured ? { webLoginConfigured: true } : {}),
         ...(research ? { researchConfigured: true } : {}),
       });
       return;
@@ -619,22 +642,28 @@ export function createIdentityLoginServer({
       return;
     }
     if (url.pathname === "/v1/login/start") {
-      const redirectUri = desktopRedirect(body.redirectUri);
+      const browser = body.transport === "poll";
+      if (body.transport !== undefined && !browser) throw invalid();
+      if (browser && body.redirectUri !== undefined) throw invalid();
+      const redirectUri = browser ? null : desktopRedirect(body.redirectUri);
       if (!identifier(body.state) || !identifier(body.challenge)) throw invalid();
-      if (pending.size >= maxPending)
+      if (pending.size >= maxPending || browserSessions.size >= maxPending)
         throw new LoginError(503, "service_busy", "登录服务繁忙，请稍后重试。");
       const state = nonce();
       const verifier = nonce();
       const id = nonce();
       const expiresAt = now() + AUTH_TTL;
-      pending.set(state, {
+      const session = {
         id,
         state: body.state,
         challenge: body.challenge,
         redirectUri,
         verifier,
         expiresAt,
-      });
+        ...(browser ? { transport: "poll", providerState: state } : {}),
+      };
+      pending.set(state, session);
+      if (browser) browserSessions.set(id, session);
       const authorize = new URL(`${ISSUER}/oauth2/authorize`);
       authorize.search = new URLSearchParams({
         client_id: settings.clientId,
@@ -646,6 +675,31 @@ export function createIdentityLoginServer({
         code_challenge_method: "S256",
       }).toString();
       json(res, 200, { id, authorizationUrl: authorize.href, expiresAt });
+      return;
+    }
+    if (url.pathname === "/v1/login/poll") {
+      if (!identifier(body.id) || !identifier(body.verifier)) throw invalid();
+      const session = browserSessions.get(body.id);
+      if (
+        !session ||
+        session.expiresAt <= now() ||
+        !timingSafeEqual(Buffer.from(session.challenge), Buffer.from(sha256(body.verifier)))
+      )
+        throw invalid();
+      if (body.cancel === true) {
+        pending.delete(session.providerState);
+        if (session.result?.code) handoffs.delete(session.result.code);
+        browserSessions.delete(body.id);
+        json(res, 200, { status: "cancelled" });
+      } else if (session.result) {
+        json(
+          res,
+          200,
+          session.result.error
+            ? { status: "error", error: session.result.error }
+            : { status: "ready", code: session.result.code },
+        );
+      } else json(res, 200, { status: "waiting" });
       return;
     }
     if (url.pathname === "/v1/login/exchange") {
@@ -663,6 +717,7 @@ export function createIdentityLoginServer({
       )
         throw invalid();
       handoffs.delete(body.code);
+      if (handoff.browserSessionId) browserSessions.delete(handoff.browserSessionId);
       const expiresAt = now() + SESSION_TTL;
       const payload = {
         purpose: PURPOSE,

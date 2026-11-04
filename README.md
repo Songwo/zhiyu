@@ -28,7 +28,14 @@
 
 [社区友链 · LINUX DO](https://linux.do/) · 真诚、友善、团结、专业。
 
-## 最新版本：1.17.4
+## 最新版本：1.17.5
+
+- **Web 功能同步**：Linux.do 主身份、Exa 检索、免费/已购额度及记录、Jev 原文提示接入自托管 Web；Jev 逐段展示真实进度，不另建提取文档。
+- **安全授权与密钥**：服务器持有 PKCE，原会话确认绑定；Key 与主身份加密保存，不下发浏览器。未配置 LDC 或可信 Exa 余额时继续禁止积分购买。
+- **文档体验**：Web 支持本地解析账号并批量加密保存，修复文档更新、保存位置与图床状态提示。
+- **检查范围**：[Web/桌面功能对照](docs/WEB-PARITY.md)列出共用能力及系统限制；[1.17.5 发布说明](docs/releases/v1.17.5.md)记录本次改动与验证边界。
+
+### 1.17.4
 
 - **支付卡与 eSIM**：国内银行离线辅助识别、地域分类、内置图标、3D 翻转、加密资料与快速复制，独立记录套餐和保号期限，关联其他资产与文档。
 - **文档与导航**：补充常用格式工具，修复长 Markdown 编辑时视口偏移、焦点抢占和邮箱链接粘贴导致的保存失败；侧栏默认按组收起，点击展开并记住状态。
@@ -176,7 +183,7 @@
 
 ## 安装与首次使用
 
-1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.17.4-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.17.4-portable-x64.zip`。
+1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.17.5-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.17.5-portable-x64.zip`。
 2. 运行安装程序，选择安装位置。当前安装包未做代码签名，请核对发布者、下载地址和 Release 中的 SHA256 校验文件。
 3. 首次启动可选择「使用 Linux.do 登录」绑定主身份，也可直接使用默认工作区名称。创建 10 至 256 位本地主密码并再次确认，头像可稍后设置；Linux.do 登录不代替主密码，也不能找回主密码。
 4. 已有密钥库的用户确认工作区名称及原主密码即可继续，升级不会自动删除资产或演示记录。
@@ -387,7 +394,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-安装包输出到 `release/v版本号/`，本版为 `release/v1.17.4/`。`npm run desktop:online` 在离线包完成后生成原生在线安装器，`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及验证要求见 [发布说明](docs/RELEASING.md)，本版变化见 [v1.17.4 发布说明](docs/releases/v1.17.4.md)。原生终端需单独编译时运行 `npm run terminal:build`。
+安装包输出到 `release/v版本号/`，本版为 `release/v1.17.5/`。`npm run desktop:online` 在离线包完成后生成原生在线安装器，`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及验证要求见 [发布说明](docs/RELEASING.md)，本版变化见 [v1.17.5 发布说明](docs/releases/v1.17.5.md)。原生终端需单独编译时运行 `npm run terminal:build`。
 
 ## 项目结构
 

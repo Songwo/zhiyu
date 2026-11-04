@@ -27,6 +27,7 @@ import { checkNode } from "../electron/services/node-check.mjs";
 import { ImageBed } from "../electron/services/image-bed.mjs";
 import { MailClient, validateSmtp } from "../electron/services/mail-client.mjs";
 import { MailboxService } from "../electron/services/mailbox-service.mjs";
+import { createWebResearch } from "./research.mjs";
 import {
   MAIL_PROVIDERS,
   providerForAddress,
@@ -153,6 +154,8 @@ export function createWebBridge({
   hostStats,
   version,
   root,
+  sessionActive = () => false,
+  analysisBaseUrl,
 }) {
   const hostKeysFile = join(serverDir, "ssh-known-hosts.json");
   const downloadsDir = join(serverDir, "downloads");
@@ -302,6 +305,15 @@ export function createWebBridge({
     emit: (event) => emit("agent:event", event),
     fetchImpl,
   });
+  const research = createWebResearch({
+    serverDir,
+    secureStorage,
+    fetchImpl,
+    documents,
+    emit,
+    sessionActive,
+    analysisBaseUrl,
+  });
 
   function savedServer(id) {
     const server = getSnapshot()?.servers?.find((x) => x.id === id);
@@ -324,11 +336,20 @@ export function createWebBridge({
       // 损坏的旧头像不影响其他资料。
     }
     const vaultExists = Boolean(await stat(join(workspace, "vault.enc")).catch(() => null));
+    const mainIdentity = await research.identity.get().catch(() => null);
     return {
-      name: typeof saved.name === "string" ? saved.name : "",
-      avatarDataUrl,
+      name: mainIdentity?.syncName
+        ? (mainIdentity.profile.name || mainIdentity.profile.username).slice(0, 40)
+        : typeof saved.name === "string"
+          ? saved.name
+          : "",
+      avatarDataUrl:
+        mainIdentity?.syncAvatar && mainIdentity.avatarDataUrl
+          ? mainIdentity.avatarDataUrl
+          : avatarDataUrl,
       ready: true,
       vaultExists,
+      mainIdentity,
     };
   }
 
@@ -372,13 +393,34 @@ export function createWebBridge({
       const name = typeof value?.name === "string" ? value.name.trim() : "";
       if (!name || name.length > 40) throw new BridgeError("姓名需要 1 至 40 个字符。");
       const current = await profile();
+      const local = JSON.parse(await readFile(profileFile, "utf8").catch(() => "{}"));
       const avatar =
         value.avatarDataUrl === undefined
           ? current.avatarDataUrl
           : validateImageDataUrl(value.avatarDataUrl);
       const tmp = `${profileFile}.${randomBytes(4).toString("hex")}.tmp`;
-      await writeFile(tmp, JSON.stringify({ name, avatarDataUrl: avatar }), "utf8");
+      const identity = current.mainIdentity;
+      const nameChanged = name !== current.name;
+      const avatarChanged = value.avatarDataUrl !== undefined && avatar !== current.avatarDataUrl;
+      await writeFile(
+        tmp,
+        JSON.stringify({
+          name: identity?.syncName && !nameChanged ? local.name || name : name,
+          avatarDataUrl:
+            identity?.syncAvatar && !avatarChanged ? local.avatarDataUrl || "" : avatar,
+        }),
+        { encoding: "utf8", mode: 0o600 },
+      );
       await rename(tmp, profileFile);
+      if (
+        identity &&
+        ((identity.syncName && nameChanged) || (identity.syncAvatar && avatarChanged))
+      )
+        await research.identity.preferences({
+          syncName: identity.syncName && !nameChanged,
+          syncAvatar: identity.syncAvatar && !avatarChanged,
+        });
+      emit("profile:changed", {});
       return profile();
     },
 
@@ -599,13 +641,15 @@ export function createWebBridge({
   }
 
   return {
-    channels: Object.keys(handlers),
-    async call(channel, args) {
+    channels: [...Object.keys(handlers), ...research.channels],
+    async call(channel, args, context) {
+      if (research.channels.includes(channel)) return research.call(channel, args, context);
       const fn = Object.hasOwn(handlers, channel) ? handlers[channel] : null;
       if (!fn) throw new BridgeError("网页版不支持这个操作");
       return fn(...(Array.isArray(args) ? args : []));
     },
     takeDownload,
+    dropSessions: research.dropSessions,
     /** 与桌面版相同的节奏：本机日志 1 分钟扫一次，用量来源 5 分钟刷新一次。 */
     startSchedules() {
       void refreshLocalUsage().catch(() => {});
@@ -622,6 +666,7 @@ export function createWebBridge({
       mailboxes.stop();
       ssh.closeAll();
       integrations.stop?.();
+      research.stop();
     },
   };
 }

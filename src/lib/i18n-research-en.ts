@@ -1,4 +1,7 @@
 export const RESEARCH_EN: Record<string, string> = {
+  自动保存到服务器: "Saved automatically to the server",
+  图片嵌入服务器文档: "Images are embedded in documents on the server",
+  "打开 Linux.do 授权页面": "Open Linux.do authorization",
   "这是站点服务配置问题，无需重新登录。维护者需升级登录服务并配置 Exa；配置完成后点击刷新检索额度。":
     "This is a server configuration issue; signing in again is unnecessary. The operator must upgrade the login service and configure Exa. Refresh the search quota after setup.",
   实时分析进度: "Live analysis progress",

@@ -245,6 +245,7 @@ function SettingsBody({ header }: { header?: ReactNode }) {
               </div>
             ) : (
               <div className="space-y-6">
+                {isWeb() && <PrimaryIdentityPanel />}
                 <ProfileForm />
                 {isWeb() && <WebAccountSettings />}
                 {isWeb() && <WebSecuritySettings />}

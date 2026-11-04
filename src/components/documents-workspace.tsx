@@ -64,6 +64,9 @@ import { Markdown } from "./markdown";
 import { DocumentMarkdownEditor } from "./document-markdown-editor";
 import { documentMarkdown, markdownContent } from "@/lib/document-markdown.mjs";
 import { DocumentAccountExtract } from "./document-account-extract";
+import { documentAccountsApi } from "@/lib/web-document-accounts";
+import { hostBridge } from "@/lib/web-bridge";
+import { isWeb } from "@/lib/web";
 import { DocumentAnalysisPanel } from "./document-analysis-panel";
 import { NetworkResearch } from "./network-research";
 import { documentLink } from "../../electron/services/document-links.mjs";
@@ -552,7 +555,7 @@ function DocumentEditor({
     setImageStatusError("");
   }, []);
   useEffect(() => {
-    const api = desktop()?.images;
+    const api = hostBridge()?.images;
     if (api)
       void api
         .status()
@@ -809,7 +812,7 @@ function DocumentEditor({
     setUploadProgress("");
   };
   const migrateImages = async () => {
-    const api = desktop()?.images;
+    const api = hostBridge()?.images;
     if (!api) return;
     if (!(await api.status()).enabled) {
       fail(new Error("请先启用图床上传"));
@@ -934,7 +937,7 @@ function DocumentEditor({
             {t("编辑文档")}
           </Button>
         )}
-        {desktop() && (
+        {documentAccountsApi() && (
           <Button
             variant="ghost"
             size="sm"
@@ -1219,7 +1222,17 @@ function DocumentEditor({
             </h2>
           )}
           <div className="document-meta">
-            {editing && <span>{t(desktop() ? "自动保存到本机" : "自动保存到当前浏览器")}</span>}
+            {editing && (
+              <span>
+                {t(
+                  desktop()
+                    ? "自动保存到本机"
+                    : isWeb()
+                      ? "自动保存到服务器"
+                      : "自动保存到当前浏览器",
+                )}
+              </span>
+            )}
             {!editing && <ReadingMeta doc={doc} />}
             <span>
               {t("更新于")} {new Date(doc.updatedAt).toLocaleString()}
@@ -1376,7 +1389,7 @@ function DocumentEditor({
               <div className="mt-6 space-y-3 border-t border-line pt-4">
                 <h3 className="text-sm font-semibold">{t("图片设置与已有图片迁移")}</h3>
                 <p className="break-words text-xs text-muted" role="status">
-                  {!desktop()
+                  {!hostBridge()
                     ? t("图片保存在当前浏览器的本地文档")
                     : imageStatusError
                       ? t("图片保存位置读取失败，可在图片设置中重试。")
@@ -1384,7 +1397,7 @@ function DocumentEditor({
                         ? t("正在读取图片保存位置…")
                         : imageStatus.enabled
                           ? t("图片保存到图床：{0}", imageStatus.origin)
-                          : t("图片嵌入本机文档")}
+                          : t(isWeb() ? "图片嵌入服务器文档" : "图片嵌入本机文档")}
                 </p>
                 <p className="text-xs text-muted">
                   {t("支持多选、粘贴截图或拖入照片。删除图片只移除文档引用。")}
@@ -1427,7 +1440,7 @@ function DocumentEditor({
                 )}
               </div>
               <div className="mt-6 grid gap-2 border-t border-line pt-4">
-                {desktop() && (
+                {documentAccountsApi() && (
                   <Button
                     variant="outline"
                     size="sm"

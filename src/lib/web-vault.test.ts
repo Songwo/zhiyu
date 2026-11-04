@@ -66,6 +66,53 @@ test("网页版密钥库与桌面版同一文件格式，双向可读", async (t
   assert.equal((await webVault.get("account:cf"))?.password, "from-desktop");
   assert.deepEqual((await webVault.list()).sort(), ["account:cf", "account:gh"]);
 
+  // 文档批量提取必须一次写入；确认中途失败或密钥库锁定不能留下部分账号。
+  let checks = 0;
+  await assert.rejects(
+    webVault.batch(
+      [
+        { id: "account:batch1", secret: { password: "first" } },
+        { id: "account:batch2", secret: { password: "second" } },
+      ],
+      {
+        beforeCommit: () => {
+          if (++checks === 2) throw new Error("preview expired");
+        },
+      },
+    ),
+    /preview expired/,
+  );
+  assert.equal(await webVault.get("account:batch1"), null);
+  await webVault.batch([
+    { id: "account:batch1", secret: { password: "first" } },
+    { id: "account:batch2", secret: { password: "second" } },
+  ]);
+  assert.deepEqual(Object.keys(await webVault.readAll("account:batch")).sort(), [
+    "account:batch1",
+    "account:batch2",
+  ]);
+  checks = 0;
+  await assert.rejects(
+    webVault.batch([{ id: "account:locked", secret: { password: "private" } }], {
+      beforeCommit: () => {
+        if (++checks === 2) void webVault.lock();
+      },
+    }),
+    /已锁定/,
+  );
+  await webVault.unlock(MASTER);
+  assert.equal(await webVault.get("account:locked"), null);
+  await webVault.remove("account:batch1");
+  await webVault.remove("account:batch2");
+  await Promise.all([
+    webVault.batch([{ id: "account:parallel1", secret: { password: "one" } }]),
+    webVault.set("account:parallel2", { password: "two", updatedAt: new Date().toISOString() }),
+  ]);
+  assert.equal((await webVault.get("account:parallel1"))?.password, "one");
+  assert.equal((await webVault.get("account:parallel2"))?.password, "two");
+  await webVault.remove("account:parallel1");
+  await webVault.remove("account:parallel2");
+
   // 改主密码后两边都只认新密码
   const changed = await webVault.changePassword(MASTER, "a whole new master pw");
   assert.equal(changed.count, 2);

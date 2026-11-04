@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Eye, EyeOff, Fingerprint, Loader2, LockKeyhole, ScanText } from "lucide-react";
 import { toast } from "sonner";
 import { desktop } from "@/lib/desktop";
+import { documentAccountsApi } from "@/lib/web-document-accounts";
 import { useDocuments } from "@/lib/documents";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
@@ -11,12 +12,12 @@ import { EditorDialog } from "./ui/editor-dialog";
 import { Field, Input, Textarea } from "./ui/input";
 import "./document-account-extract.css";
 
-type ExtractBridge = NonNullable<ReturnType<typeof desktop>>["documentAccounts"];
+type ExtractBridge = NonNullable<ReturnType<typeof documentAccountsApi>>;
 type Preview = Awaited<ReturnType<ExtractBridge["preview"]>>;
 type Candidate = Preview["candidates"][number];
 type Result = Awaited<ReturnType<ExtractBridge["commit"]>>;
 
-/** 文本解析只在本机主进程执行；预览中的密码只存在当前弹窗内。 */
+/** 文本解析在桌面主进程或浏览器本地执行；预览密码只存在当前弹窗内。 */
 export function DocumentAccountExtract({
   documentId,
   close,
@@ -24,7 +25,7 @@ export function DocumentAccountExtract({
   documentId: string;
   close: () => void;
 }) {
-  const bridge = desktop()?.documentAccounts;
+  const bridge = documentAccountsApi();
   const unlocked = useVault((state) => state.unlocked);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -203,13 +204,11 @@ export function DocumentAccountExtract({
               <Button
                 variant="outline"
                 onClick={() => {
-                  useAppStore
-                    .getState()
-                    .setExpanded({
-                      kind: "secret",
-                      id: result.firstAssetId!,
-                      origin: { x: window.innerWidth / 2, y: window.innerHeight / 2, w: 0, h: 0 },
-                    });
+                  useAppStore.getState().setExpanded({
+                    kind: "secret",
+                    id: result.firstAssetId!,
+                    origin: { x: window.innerWidth / 2, y: window.innerHeight / 2, w: 0, h: 0 },
+                  });
                   dismiss();
                 }}
               >

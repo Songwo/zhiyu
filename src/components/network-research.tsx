@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Globe2, ExternalLink, RefreshCw, Square } from "lucide-react";
-import { desktop } from "@/lib/desktop";
+import { hostBridge } from "@/lib/web-bridge";
 import { openExternal } from "@/lib/web-bridge";
 import { useAppStore } from "@/lib/store";
 import type { AssetKind } from "@/lib/types";
@@ -18,7 +18,7 @@ import "./network-research.css";
 export function NetworkResearch({ asset }: { asset?: { kind: AssetKind; id: string } }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  if (!desktop()?.research) return null;
+  if (!hostBridge()?.research) return null;
   return (
     <>
       <Button
@@ -56,7 +56,7 @@ export function NetworkResearch({ asset }: { asset?: { kind: AssetKind; id: stri
 }
 
 function ResearchDialog({ initialQuery, onClose }: { initialQuery: string; onClose: () => void }) {
-  const api = desktop()!.research;
+  const api = hostBridge()!.research;
   const [query, setQuery] = useState(initialQuery);
   const [quota, setQuota] = useState<ResearchQuota | null>(null);
   const [records, setRecords] = useState<ResearchRecords | null>(null);

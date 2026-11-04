@@ -34,6 +34,7 @@ let keyContext = "";
 let doc: VaultDoc | null = null;
 let revision: string | null = null;
 let loaded = false;
+let mutationQueue: Promise<void> = Promise.resolve();
 
 const toB64 = (bytes: Uint8Array) => {
   let binary = "";
@@ -136,12 +137,23 @@ function requireKey() {
   return key;
 }
 /** 读-改-写；别的设备刚写过时重新读取再试一次。 */
-async function mutate(change: (current: VaultDoc, k: VaultKey) => Promise<VaultDoc>) {
+function mutate(change: (current: VaultDoc, k: VaultKey) => Promise<VaultDoc>) {
+  const task = mutationQueue.then(() => mutateCurrent(change));
+  mutationQueue = task.then(
+    () => undefined,
+    () => undefined,
+  );
+  return task;
+}
+async function mutateCurrent(change: (current: VaultDoc, k: VaultKey) => Promise<VaultDoc>) {
   for (let attempt = 0; ; attempt++) {
     if (!loaded || attempt > 0) await load();
     if (!doc) throw new Error("密钥库尚未创建");
     try {
-      return await put(await change(doc, requireKey()));
+      const currentKey = requireKey();
+      const next = await change(doc, currentKey);
+      if (key !== currentKey) throw new Error("密钥库已锁定，请解锁后重试。");
+      return await put(next);
     } catch (error) {
       if (!(error instanceof WebConflictError) || attempt >= 2) throw error;
     }
@@ -155,6 +167,31 @@ function lock() {
 }
 
 export const webVault = {
+  async readAll(prefix: string): Promise<Record<string, Secret>> {
+    const currentKey = requireKey();
+    if (!loaded) await load();
+    const records: Record<string, Secret> = {};
+    for (const [id, record] of Object.entries(doc?.records ?? {})) {
+      if (key !== currentKey) throw new Error("密钥库已锁定");
+      if (id.startsWith(prefix))
+        records[id] = JSON.parse(decoder.decode(await open(currentKey, record)));
+    }
+    if (key !== currentKey) throw new Error("密钥库已锁定");
+    return records;
+  },
+  async batch(
+    items: Array<{ id: string; secret: unknown }>,
+    { beforeCommit }: { beforeCommit?: () => void } = {},
+  ) {
+    await mutate(async (current, k) => {
+      beforeCommit?.();
+      const records = { ...current.records };
+      for (const item of items)
+        records[item.id] = await seal(k, encoder.encode(JSON.stringify(item.secret)));
+      beforeCommit?.();
+      return { ...current, records };
+    });
+  },
   async status() {
     if (!loaded) await load();
     return { exists: Boolean(doc), unlocked: key !== null };

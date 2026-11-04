@@ -14,7 +14,7 @@ export interface MainIdentity {
 export interface MainIdentityBridge {
   get(): Promise<MainIdentity | null>;
   availability(): Promise<{ configured: boolean; message: string }>;
-  start(): Promise<{ id: string; expiresAt: number }>;
+  start(): Promise<{ id: string; expiresAt: number; authorizationUrl?: string }>;
   status(id: string): Promise<IdentitySession & { avatarDataUrl?: string }>;
   cancel(id: string): Promise<void>;
   bind(options: {
