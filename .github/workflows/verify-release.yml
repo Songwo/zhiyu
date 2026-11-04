@@ -1,0 +1,64 @@
+name: 发布后下载与 Web 镜像验收
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 当前正式标签（须与 latest 一致），例如 v1.17.5
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: 安装验收工具依赖
+        run: npm ci --omit=dev --ignore-scripts
+      - name: 下载正式附件并核对大小与两种摘要
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          mkdir -p "$RUNNER_TEMP/release-download"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/release.json"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/release-download" --pattern '*'
+          node scripts/verify-published-release.mjs "$RUNNER_TEMP/release.json" "$RUNNER_TEMP/release-download" "$RUNNER_TEMP/release-receipt.json"
+      - uses: docker/setup-buildx-action@v3
+      - name: 核对多架构索引和 latest 标签并启动实际公开镜像
+        run: |
+          version="${RELEASE_TAG#v}"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/zhiyu-web"
+          docker buildx imagetools inspect "$image:$version" > "$RUNNER_TEMP/image-version.txt"
+          docker buildx imagetools inspect "$image:latest" > "$RUNNER_TEMP/image-latest.txt"
+          test "$(awk '/^Digest:/ { print $2; exit }' "$RUNNER_TEMP/image-version.txt")" = "$(awk '/^Digest:/ { print $2; exit }' "$RUNNER_TEMP/image-latest.txt")"
+          docker buildx imagetools inspect "$image:$version" --raw > "$RUNNER_TEMP/image-manifest.json"
+          node --input-type=module -e "import fs from 'node:fs';import assert from 'node:assert/strict';const m=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/image-manifest.json'));assert.deepEqual(m.manifests.filter(x=>x.platform.os==='linux').map(x=>x.platform.architecture).sort(),['amd64','arm64']);"
+          docker pull "$image:$version"
+          docker run -d --name zhiyu-release-check --tmpfs /data -p 127.0.0.1:8848:8848 "$image:$version"
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8848/api/web/state > "$RUNNER_TEMP/web-state.json" && break
+            sleep 1
+          done
+          node --input-type=module -e "import fs from 'node:fs';import assert from 'node:assert/strict';assert.equal(JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/web-state.json')).setup,true)"
+          container_version=$(docker exec zhiyu-release-check node -p "require('./package.json').version")
+          test "$container_version" = "$version"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8848/)" = "302"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-verification-${{ inputs.tag }}
+          path: |
+            ${{ runner.temp }}/release-receipt.json
+            ${{ runner.temp }}/image-manifest.json
+            ${{ runner.temp }}/image-version.txt
+            ${{ runner.temp }}/image-latest.txt
+            ${{ runner.temp }}/web-state.json
+      - name: 清理验收容器
+        if: always()
+        run: docker rm -f zhiyu-release-check 2>/dev/null || true

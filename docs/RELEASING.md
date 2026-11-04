@@ -14,6 +14,12 @@
 
 ## 版本准备
 
+## 发布后验收
+
+正式版与镜像推送后，可执行 `gh workflow run verify-release.yml --ref main -f tag=v1.17.5`（替换为当前正式版本）。此只读流程从公开 Release 下载七个实际附件，核对大小、GitHub SHA256、校验清单与更新清单 SHA512；再检查 Web 的 amd64/arm64 索引、latest 一致性并拉取和启动实际公开镜像。验收小型 JSON 凭据保存在 Actions 附件，不上传下载包，不触碰用户部署或数据。它仅适用于当前 latest 所指的稳定版本；本机网络下载中断时也不能把半包当作通过。
+
+## 版本准备
+
 更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.5.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
 
 1.17.5 还需运行 `node scripts/web-research-ui-integration.mjs`，验证真实 Web 构建中的主身份、弹窗受限回退、Exa 余额与记录、Jev 逐段进度及不改原文、文档账号本地提取与密钥库兼容。该回归只用本机合成供应商，不冒充真实付费 API 验收。升级独立身份服务后健康检查需包含 `webLoginConfigured: true`，实际 `/v1/login/start` 的 `transport: "poll"`、等待状态及取消请求均需核实；同时保留桌面回环协议、会话密钥及检索账本。
