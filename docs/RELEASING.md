@@ -12,11 +12,9 @@
 
 界面改动后，在开发预览已启动时运行 `node scripts/capture-site.mjs`，重新生成资产总览、文档阅读、用量图表与浏览器密码迁移四张展示图。只更新迁移界面可使用 `--passwords-only`。脚本只使用独立浏览器上下文和示例资料，不连接真实桌面数据或外部账号。检查图片后随 `site/` 一起提交；截图不会在每次发布时自动重拍。
 
-## 版本准备
-
 ## 发布后验收
 
-正式版与镜像推送后，可执行 `gh workflow run verify-release.yml --ref main -f tag=v1.17.5`（替换为当前正式版本）。此只读流程从公开 Release 下载七个实际附件，核对大小、GitHub SHA256、校验清单与更新清单 SHA512；再检查 Web 的 amd64/arm64 索引、latest 一致性并拉取和启动实际公开镜像。验收小型 JSON 凭据保存在 Actions 附件，不上传下载包，不触碰用户部署或数据。它仅适用于当前 latest 所指的稳定版本；本机网络下载中断时也不能把半包当作通过。
+正式版与镜像推送后，可执行 `gh workflow run verify-release.yml --ref main -f tag=v1.17.5`（替换为当前正式版本）。此只读流程从公开 Release 下载七个实际附件，核对大小、GitHub SHA256、校验清单与更新清单 SHA512；再检查 Web 的 amd64/arm64 索引、latest 一致性并拉取和启动实际公开镜像。验收 JSON 记录保存在 Actions 附件，不上传下载包，不触碰用户部署或数据。它仅适用于当前 latest 所指的稳定版本；本机网络下载中断时也不能把半包当作通过。
 
 ## 版本准备
 
