@@ -54,7 +54,7 @@ export function WebPushSettings() {
     setNotice("");
   };
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" aria-label={t("服务器提醒推送")}>
       <h3 className="flex items-center gap-2 text-lg font-semibold">
         <BellRing className="size-5" />
         {t("提醒推送")}

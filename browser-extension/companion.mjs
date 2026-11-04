@@ -4,7 +4,9 @@
   globalThis.__zhiyuCompanion = true;
   const chrome = globalThis.chrome;
   const fields = globalThis.__zhiyuFields;
-  const documentKey = crypto.randomUUID();
+  const documentKey = Array.from(crypto.getRandomValues(new Uint8Array(16)), (v) =>
+    v.toString(16).padStart(2, "0"),
+  ).join("");
   const secure =
     location.protocol === "https:" ||
     ["127.0.0.1", "localhost", "[::1]"].includes(location.hostname);
@@ -222,6 +224,10 @@
     );
   }
   async function suggest() {
+    if (document.documentElement.dataset.zhiyuWebWorkspace === "true") {
+      remove();
+      return;
+    }
     if (lastUrl !== location.href) {
       lastUrl = location.href;
       listed = false;

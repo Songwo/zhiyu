@@ -182,6 +182,16 @@ try {
   assert.equal(await website.evaluate(() => window.loginCount || 0), 0);
   assert.deepEqual(fills, ["personal"]);
   await website.getByLabel("网站密码").fill("");
+  if (!(await popup.locator(".saved-account").count())) {
+    console.error({
+      stage: "after-native-choice",
+      popup: await popup.locator("body").innerText(),
+      connectionKeys: Object.keys(
+        await popup.evaluate(() => globalThis.chrome.storage.session.get(null)),
+      ),
+      pageErrors,
+    });
+  }
   await popup.locator(".saved-account").first().click();
   await popup.getByRole("status").filter({ hasText: "已填写到当前登录表单" }).waitFor();
   assert.equal(await website.getByLabel("网站密码").inputValue(), " work-secret ");

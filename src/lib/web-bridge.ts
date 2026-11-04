@@ -37,6 +37,9 @@ export type HostBridge = Pick<
   | "mainIdentity"
   | "research"
   | "documentAnalysis"
+  | "aiAccounts"
+  | "mailPush"
+  | "identities"
 >;
 
 export async function webInvoke<T>(channel: string, ...args: unknown[]): Promise<T> {
@@ -161,6 +164,69 @@ const invoker =
 const analysisListeners = new Set<(event: import("./document-analysis").AnalysisEvent) => void>();
 
 export const webBridge: HostBridge = {
+  identities: {
+    config: invoker("identities:config"),
+    configure: invoker("identities:configure"),
+    start: invoker("identities:start"),
+    finish: invoker("identities:finish"),
+    status: invoker("identities:status"),
+    cancel: invoker("identities:cancel"),
+    commit: invoker("identities:commit"),
+    get: invoker("identities:get"),
+    refresh: invoker("identities:refresh"),
+    loadPosts: invoker("identities:loadPosts"),
+    disconnect: invoker("identities:disconnect"),
+    savePosts: invoker("identities:save-posts"),
+  },
+  mailPush: {
+    config: () => webInvoke("mail-push:config"),
+    save: async (input) => {
+      const credentials: Record<string, { username: string; password: string }> = {};
+      if (input.enabled) {
+        if (input.serverConsent !== true) throw new Error(t("请先同意服务器保管后台检查凭据。"));
+        for (const id of input.mailboxIds) credentials[id] = await mailCredential(id);
+      }
+      return webInvoke("mail-push:save", input, credentials);
+    },
+    test: () => webInvoke("mail-push:test"),
+  },
+  aiAccounts: {
+    list: invoker("ai-accounts:list"),
+    start: async (provider, options) => {
+      const popup = window.open("about:blank", "_blank");
+      if (popup) popup.opener = null;
+      try {
+        const value = await webInvoke<Awaited<ReturnType<HostBridge["aiAccounts"]["start"]>>>(
+          "ai-accounts:start",
+          provider,
+          options,
+        );
+        const url = new URL(value.authorizationUrl!);
+        if (
+          ![
+            "https://auth.openai.com",
+            "https://auth.x.ai",
+            "https://accounts.google.com",
+            "https://claude.com",
+          ].includes(url.origin)
+        )
+          throw new Error("授权地址无效，已阻止打开。");
+        if (popup && !popup.closed) {
+          popup.location.replace(url.href);
+          return { ...value, authorizationUrl: undefined };
+        }
+        return value;
+      } catch (error) {
+        popup?.close();
+        throw error;
+      }
+    },
+    status: invoker("ai-accounts:status"),
+    finish: invoker("ai-accounts:finish"),
+    cancel: invoker("ai-accounts:cancel"),
+    refresh: invoker("ai-accounts:refresh"),
+    remove: invoker("ai-accounts:remove"),
+  },
   mainIdentity: {
     get: invoker("main-identity:get"),
     availability: invoker("main-identity:availability"),
@@ -331,9 +397,9 @@ export const webBridge: HostBridge = {
     providers: invoker("mail:providers"),
     guess: invoker("mail:guess"),
     test: invoker("mail:test"),
-    oauthProviders: async () => ({}),
+    oauthProviders: invoker("mail:oauth-providers"),
     oauthSignIn: async () => {
-      throw new Error(t("邮箱的 OAuth 登录需要桌面版弹出的授权窗口，网页版请改用授权码登录。"));
+      throw new Error(t("请使用邮箱授权面板完成 Web 手动回调。"));
     },
   },
   mailboxes: {

@@ -30,6 +30,25 @@
           ><strong id="connection-state">正在连接桌面端</strong
           ><button class="text-button" id="disconnect" hidden>断开</button>
         </div>
+        <details class="workspace-choice">
+          <summary>连接方式</summary>
+          <form id="workspace-form" autocomplete="off">
+            <label for="workspace-mode">连接方式</label>
+            <select id="workspace-mode">
+              <option value="desktop">本机桌面端</option>
+              <option value="web">Web 工作区标签页</option>
+            </select>
+            <label for="workspace-url">Web 工作区地址</label>
+            <input
+              id="workspace-url"
+              type="url"
+              placeholder="https://zhiyu.example.com"
+              autocomplete="off"
+            />
+            <button class="secondary-button" type="submit">保存连接方式</button>
+            <p class="section-hint">Web 方式需保持工作区页面打开并解锁，刷新或锁库后重新配对。</p>
+          </form>
+        </details>
         <details id="pairing">
           <summary>连接桌面端<img src="icons/chevron-down.svg" alt="" /></summary>
           <form id="pair-form" autocomplete="off">
@@ -43,7 +62,9 @@
                 autocomplete="off"
                 spellcheck="false"
                 required
-              /><button class="secondary-button" id="pair-button" type="submit">连接</button>
+              /><button class="secondary-button" id="pair-button" type="submit" disabled>
+                连接
+              </button>
             </div>
           </form>
         </details>

@@ -9,6 +9,8 @@ export interface MailPushConfig {
   intervalMinutes: number;
   /** 续费与备忘提醒也推送到这个渠道。 */
   reminders?: boolean;
+  /** Web 独立授权服务器保管所选邮箱的后台检查凭据。 */
+  serverConsent?: boolean;
 }
 
 export interface MailPushInput extends Omit<MailPushConfig, "hasToken"> {

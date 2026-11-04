@@ -252,12 +252,14 @@ export class AiAccounts {
     fetchImpl = fetch,
     providers = AI_PROVIDERS,
     timeoutMs = 300000,
+    manualLoopback = false,
   }) {
     this.vault = vault;
     this.openExternal = openExternal;
     this.fetch = fetchImpl;
     this.providers = providers;
     this.timeoutMs = timeoutMs;
+    this.manualLoopback = manualLoopback;
     this.sessions = new Map();
     this.queue = Promise.resolve();
   }
@@ -329,7 +331,12 @@ export class AiAccounts {
     session.timer = setTimeout(() => this.close(session, "expired"), this.timeoutMs);
     session.timer.unref?.();
     try {
-      if (p.mode === "loopback") {
+      if (p.mode === "loopback" && this.manualLoopback) {
+        const redirect = new URL(p.redirect);
+        if (redirect.port === "0") redirect.port = "53147";
+        session.redirect = redirect.href;
+        session.manualCallback = true;
+      } else if (p.mode === "loopback") {
         const redirect = new URL(p.redirect);
         session.server = createServer((req, res) => {
           res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -548,10 +555,14 @@ export class AiAccounts {
         if (session.controller.signal.aborted) throw new Error("授权已取消。");
         account.usage = previous?.usage ?? null;
         if (previous?.usageRefresh) account.usageRefresh = previous.usageRefresh;
-        await this.vault.set(key, account);
+        await this.vault.set(key, account, {
+          beforeCommit: () => {
+            if (session.controller.signal.aborted) throw new Error("授权已取消。");
+          },
+        });
         if (session.controller.signal.aborted) {
-          if (previous) await this.vault.set(key, previous);
-          else await this.vault.remove(key);
+          if (previous) await this.vault.set(key, previous, { rollback: true });
+          else await this.vault.remove(key, { rollback: true });
           throw new Error("授权已取消。");
         }
         session.accountId = key;

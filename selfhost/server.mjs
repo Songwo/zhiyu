@@ -158,6 +158,7 @@ export async function createWebServer({
   syncLimits,
   allowedNets = process.env.ZHIYU_ALLOWED_NETS,
   analysisBaseUrl,
+  queryMailbox,
 } = {}) {
   // 来源白名单写错时直接报错退出：不能因为手误把服务开放给所有人。
   const allowed = parseAllowedNets(allowedNets);
@@ -204,7 +205,7 @@ export async function createWebServer({
     serial(async () => {
       const raw = await readJson(files.store);
       const before = raw?.state && typeof raw.state === "object" ? raw.state : (raw ?? {});
-      const next = mutate(before);
+      const next = await mutate(before);
       await writeAtomic(
         files.store,
         JSON.stringify({ ...(raw ?? {}), state: next, version: raw?.version ?? 0 }),
@@ -238,6 +239,7 @@ export async function createWebServer({
       );
     },
     analysisBaseUrl,
+    queryMailbox,
   });
   await bridge.clearDownloads().catch(() => {});
   if (schedulePush) bridge.startSchedules();
@@ -770,6 +772,7 @@ export async function createWebServer({
         await writeAtomic(files.store, text);
         currentSnapshot =
           normalized?.state && typeof normalized.state === "object" ? normalized.state : normalized;
+        await bridge.pruneAssets(currentSnapshot);
         send(res, 200, { revision: sha256(text) });
       });
     },

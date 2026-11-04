@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { desktop } from "@/lib/desktop";
+import { hostBridge, openExternal } from "@/lib/web-bridge";
+import { isWeb } from "@/lib/web";
 import { useDocuments } from "@/lib/documents";
 import type { IdentityAccount } from "@/lib/identities";
 import { t } from "@/lib/i18n";
@@ -24,7 +26,7 @@ import { DocumentAccountExtract } from "./document-account-extract";
 import "./identity-workspace.css";
 
 export function IdentityPanel({ assetId }: { assetId: string }) {
-  const bridge = desktop()?.identities;
+  const bridge = hostBridge()?.identities;
   const unlocked = useVault((state) => state.unlocked);
   const folderId = useAppStore(
     (state) => state.secrets.find((item) => item.id === assetId)?.folderId,
@@ -127,7 +129,7 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
       );
       if (action === "disconnect") {
         setDisconnecting(false);
-        toast.success(t("本机授权已断开，已导入资料已保留"));
+        toast.success(t(isWeb() ? "服务器授权已断开，已导入资料已保留" : "本机授权已断开，已导入资料已保留"));
       }
     } catch (caught) {
       if (alive.current && current === generation.current)
@@ -201,6 +203,9 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
       ) : !account ? (
         <div className="identity-notice">
           <p>{t("暂时无法读取此身份资料。")}</p>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            {t("重新连接身份")}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
             {t("重新读取")}
           </Button>
@@ -221,9 +226,9 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
               variant="outline"
               size="sm"
               onClick={() =>
-                void desktop()
-                  ?.openExternal(account.profile.profileUrl)
-                  .catch(() => toast.error(t("无法打开链接")))
+                void openExternal(account.profile.profileUrl).catch(() =>
+                  toast.error(t("无法打开链接")),
+                )
               }
             >
               <ExternalLink />
@@ -247,7 +252,7 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
           </div>
           {!account.connected && (
             <p className="identity-footnote">
-              {t("本机已停止使用此授权。已导入的身份资料与关联文档仍然保留。")}
+              {t(isWeb() ? "服务器已删除此授权令牌，已导入资料与关联文档仍然保留。" : "本机已停止使用此授权。已导入的身份资料与关联文档仍然保留。")}
             </p>
           )}
           <div className="identity-posts">
@@ -334,9 +339,7 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
                           type="button"
                           className="identity-post-title"
                           onClick={() =>
-                            void desktop()
-                              ?.openExternal(post.url)
-                              .catch(() => toast.error(t("无法打开链接")))
+                            void openExternal(post.url).catch(() => toast.error(t("无法打开链接")))
                           }
                         >
                           {post.title}
@@ -418,7 +421,7 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
                 <>
                   <p>
                     {t(
-                      "断开后会删除本机授权凭据，保留已导入的身份资料与文档。平台侧授权可在 Linux.do Connect 中撤销。",
+                      isWeb() ? "断开后删除服务器保存的身份令牌，保留身份资料与文档。平台侧授权需前往 Linux.do Connect 撤销。" : "断开后会删除本机授权凭据，保留已导入的身份资料与文档。平台侧授权可在 Linux.do Connect 中撤销。",
                     )}
                   </p>
                   <div className="identity-actions">
@@ -437,7 +440,7 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
                       onClick={() => void update("disconnect")}
                     >
                       {busy === "disconnect" && <Loader2 className="animate-spin" />}
-                      {t("确认断开本机授权")}
+                      {t(isWeb() ? "确认断开服务器授权" : "确认断开本机授权")}
                     </Button>
                   </div>
                 </>
@@ -449,7 +452,7 @@ export function IdentityPanel({ assetId }: { assetId: string }) {
                   onClick={() => setDisconnecting(true)}
                 >
                   <Unplug />
-                  {t("断开本机授权")}
+                  {t(isWeb() ? "断开服务器授权" : "断开本机授权")}
                 </Button>
               )}
             </div>

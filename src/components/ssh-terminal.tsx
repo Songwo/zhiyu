@@ -274,12 +274,25 @@ function TerminalWorkspace({ server, active }: { server: Server; active: boolean
         </span>
       </header>
       {status === "error" && (
-        <p
+        <div
           role="alert"
           className="mb-3 rounded-lg border border-line bg-card px-4 py-3 text-sm text-crit"
         >
           {detail || "连接失败，请检查服务器地址、网络与 SSH 凭据后重试。"}
-        </p>
+          {!preview && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() =>
+                useAppStore.getState().openComposer("server", server.id, { _sshRecovery: "true" })
+              }
+            >
+              {t("编辑 SSH 凭据与指纹")}
+            </Button>
+          )}
+        </div>
       )}
       <div
         className="terminal-surface"

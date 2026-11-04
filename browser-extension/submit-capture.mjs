@@ -15,7 +15,15 @@
     ["127.0.0.1", "localhost", "[::1]"].includes(location.hostname);
   const SUBMIT = /^(登录|登陆|立即登录|登\s*录|sign\s?in|log\s?in|login|continue)$/i;
   async function deliver(pair) {
-    if (!enabled || !secure || sending || !pair || Date.now() - lastSentAt < 1000) return;
+    if (
+      !enabled ||
+      !secure ||
+      sending ||
+      !pair ||
+      Date.now() - lastSentAt < 1000 ||
+      document.documentElement.dataset.zhiyuWebWorkspace === "true"
+    )
+      return;
     const username = pair.username.value.trim(),
       password = pair.password.value;
     if (

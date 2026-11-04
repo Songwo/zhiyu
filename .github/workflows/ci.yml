@@ -91,6 +91,13 @@ jobs:
       - run: node scripts/web-selfhost-integration.mjs
       - name: 验证 Web 主身份、检索与 Jev 原文提示
         run: node scripts/web-research-ui-integration.mjs
+      - name: 验证 Web SSH 指纹、授权同意与邮件设置
+        run: |
+          node scripts/web-ssh-recovery-integration.mjs
+          node scripts/web-oauth-ui-integration.mjs
+      - run: npm run extension:build
+      - name: 验证真实 MV3 扩展与 Web 本地密码迁移
+        run: node scripts/web-passwords-extension-integration.mjs
 
   web-docker:
     runs-on: ubuntu-latest

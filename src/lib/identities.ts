@@ -53,8 +53,18 @@ export interface IdentityBridge {
     clientId: string;
     clientSecret?: string;
     redirectUri: string;
+    allowServerStorage?: boolean;
   }): Promise<IdentityConfig>;
-  start(): Promise<{ id: string; expiresAt: number }>;
+  start(options?: {
+    allowServerStorage?: boolean;
+  }): Promise<{
+    id: string;
+    expiresAt: number;
+    authorizationUrl?: string;
+    redirectUri?: string;
+    manualCallback?: boolean;
+  }>;
+  finish?(id: string, callback: string): Promise<IdentitySession>;
   status(id: string): Promise<IdentitySession>;
   cancel(id: string): Promise<void>;
   commit(options: {
@@ -68,11 +78,7 @@ export interface IdentityBridge {
     options?: { force?: boolean; more?: boolean },
   ): Promise<IdentityAccount>;
   disconnect(assetId: string): Promise<IdentityAccount>;
-  savePosts(options: {
-    assetId: string;
-    postIds: string[];
-    force?: boolean;
-  }): Promise<{
+  savePosts(options: { assetId: string; postIds: string[]; force?: boolean }): Promise<{
     documentId: string | null;
     imported: number;
     errors: Array<{ id: string; message: string }>;

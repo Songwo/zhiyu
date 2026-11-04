@@ -1,8 +1,8 @@
 import { isWeb } from "@/lib/web";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCw, Trash2, Lock, Plus, Check, Loader2, Copy } from "lucide-react";
-import { desktop } from "@/lib/desktop";
-import { openExternal } from "@/lib/web-bridge";
+
+import { openExternal, hostBridge } from "@/lib/web-bridge";
 import { AI_PROVIDER_NAMES, type AiAccount, type AiProvider } from "@/lib/ai-accounts";
 import { useVault } from "@/lib/vault-state";
 import { useAppStore } from "@/lib/store";
@@ -64,7 +64,7 @@ function QuotaDetails({ account }: { account: AiAccount }) {
     <div className="space-y-3">
       <p className="flex items-center gap-2 text-meta text-ok">
         <Check className="size-4 shrink-0" />
-        {t("本机已保存授权")}
+        {t(isWeb() ? "部署服务器已加密保存授权" : "本机已保存授权")}
       </p>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-meta">
         <div>
@@ -219,7 +219,8 @@ export function AiAccountsPanel({
   linkedAccountId?: string;
   initialProvider?: AiProvider;
 }) {
-  const api = desktop()?.aiAccounts;
+  const api = hostBridge()?.aiAccounts;
+  const [serverConsent, setServerConsent] = useState(false);
   const unlocked = useVault((s) => s.unlocked);
   const subscriptions = useAppStore((s) => s.aiAssets);
   const [provider, setProvider] = useState<AiProvider>(initialProvider);
@@ -229,6 +230,7 @@ export function AiAccountsPanel({
     mode: string;
     redirectUri?: string;
     manualCallback?: boolean;
+    authorizationUrl?: string;
   } | null>(null);
   const currentSession = useRef<string | null>(null);
   const alive = useRef(false);
@@ -371,6 +373,7 @@ export function AiAccountsPanel({
           disabled={busy || Boolean(session) || Boolean(linkedAccountId)}
           onValueChange={(value) => {
             setProvider(value as AiProvider);
+            setServerConsent(false);
             setError("");
             setNotice("");
           }}
@@ -382,10 +385,30 @@ export function AiAccountsPanel({
         />
       </Field>
       <p className="mt-2 text-meta leading-relaxed text-muted">{t(services[provider].boundary)}</p>
+      {isWeb() && !session && (
+        <label className="my-3 flex items-start gap-2 rounded-lg bg-canvas p-3 text-meta leading-relaxed">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={serverConsent}
+            onChange={(event) => setServerConsent(event.target.checked)}
+          />
+          {t(
+            "我允许服务器加密保存本次 AI 授权凭据，用于授权和定时刷新额度；移除账号会删除服务器凭据。此配置不随密钥库同步。",
+          )}
+        </label>
+      )}
+      {isWeb() && (
+        <p className="text-2xs leading-relaxed text-warn">
+          {t(
+            "服务器加密保存仍允许部署管理员访问授权令牌。请仅在可信的自托管服务使用；敏感账号建议通过桌面端授权。",
+          )}
+        </p>
+      )}
       <div className="my-3 flex flex-wrap gap-2">
         <Button
           type="button"
-          disabled={!api || busy || Boolean(session)}
+          disabled={!api || busy || Boolean(session) || (isWeb() && !serverConsent)}
           onClick={() =>
             void task(async () => {
               if (
@@ -394,7 +417,9 @@ export function AiAccountsPanel({
                 !alive.current
               )
                 return;
-              const value = await api.start(provider);
+              const value = await api.start(provider, {
+                allowServerStorage: isWeb() && serverConsent,
+              });
               if (!alive.current) {
                 await api.cancel(value.id);
                 return;
@@ -447,6 +472,18 @@ export function AiAccountsPanel({
       )}
       {session && (
         <div className="mb-3 space-y-2">
+          {isWeb() && (
+            <p className="text-meta leading-relaxed text-muted">
+              {t(
+                "请在官方页面完成授权。返回本机地址若无法打开，复制完整地址栏链接或官方显示的 code#state，粘贴到下方；不要粘贴账号密码。",
+              )}
+            </p>
+          )}
+          {session.authorizationUrl && (
+            <a href={session.authorizationUrl} target="_blank" rel="noopener noreferrer">
+              {t("打开官方授权页面")}
+            </a>
+          )}
           <p role="status" className="flex items-center gap-2 text-meta text-muted">
             <Loader2 className="size-4 shrink-0 animate-spin" />
             {t(
@@ -582,7 +619,15 @@ export function AiAccountsPanel({
                   aria-label={t("断开账号")}
                   disabled={busy || Boolean(session)}
                   onClick={() => {
-                    if (window.confirm(t("删除本机授权令牌？服务器授权需要在服务商账号中撤销。")))
+                    if (
+                      window.confirm(
+                        t(
+                          isWeb()
+                            ? "删除部署服务器保存的授权令牌？服务商侧授权还需前往服务商账号撤销。"
+                            : "删除本机授权令牌？服务器授权需要在服务商账号中撤销。",
+                        ),
+                      )
+                    )
                       void task(async () => {
                         await api!.remove(account.id);
                         useAppStore.getState().disconnectAiAccount(account.id);

@@ -11,7 +11,7 @@ import { ImagePicker } from "./image-picker";
 import { BillingFields } from "./billing-fields";
 import { Button } from "./ui/button";
 import { Field, Input, Select, Textarea } from "./ui/input";
-import { accountId, credentialId, desktop, isDesktop } from "@/lib/desktop";
+import { accountId, credentialId } from "@/lib/desktop";
 import { usePresence } from "@/lib/motion";
 import { KIND_LABEL } from "@/lib/status";
 import { parseTags } from "@/lib/tags";

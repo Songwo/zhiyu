@@ -1,4 +1,5 @@
-import { createHash } from "node:crypto";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 
 /** 网页正文只作为文字保存，链接仅保留公开文档定位字段。 */
 export function browserDocument(input) {
@@ -35,7 +36,7 @@ export function browserDocument(input) {
     : ["此页面未提供可读取正文，已保存来源链接。"];
   const blocks = lines.length > 1000 ? [text] : lines;
   return {
-    id: "doc-web-" + createHash("sha256").update(url).digest("hex").slice(0, 40),
+    id: "doc-web-" + bytesToHex(sha256(new TextEncoder().encode(url))).slice(0, 40),
     title: input.title.trim().slice(0, 160) || source.hostname,
     content: {
       type: "doc",

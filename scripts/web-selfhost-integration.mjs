@@ -110,11 +110,13 @@ try {
   await b.keyboard.press("Control+,");
   const settings = b.getByRole("dialog", { name: "设置", exact: true });
   await settings.getByRole("button", { name: "提醒推送", exact: true }).click();
-  await settings.getByLabel("开启服务器提醒推送").check();
-  await settings.getByRole("textbox", { name: "Chat ID" }).fill("42");
-  await settings.getByLabel("推送凭据").fill(`123456789:${"A".repeat(35)}`);
-  await settings.getByRole("button", { name: "保存", exact: true }).click();
-  await settings.getByText("提醒推送配置已保存。").waitFor();
+  // 两个独立推送渠道并列显示时，定位到续费/登录提醒，避免误选后台邮件设置。
+  const reminderPush = settings.getByRole("region", { name: "服务器提醒推送", exact: true });
+  await reminderPush.getByLabel("开启服务器提醒推送").check();
+  await reminderPush.getByRole("textbox", { name: "Chat ID" }).fill("42");
+  await reminderPush.getByLabel("推送凭据").fill(`123456789:${"A".repeat(35)}`);
+  await reminderPush.getByRole("button", { name: "保存", exact: true }).click();
+  await reminderPush.getByText("提醒推送配置已保存。").waitFor();
   await b.screenshot({ path: "screenshots/web-push.png" });
   const pushConfig = await (await b.request.get(`${base}/api/web/push`)).json();
   result.pushSaved = pushConfig.enabled && pushConfig.hasToken && !("token" in pushConfig);

@@ -215,17 +215,20 @@ export class IdentityAccounts {
   #sessions = new Map();
   #requests = new Set();
   #unsubscribe;
+  #manualLoopback;
 
   constructor({
     vault,
     fetchImpl = globalThis.fetch,
     openExternal,
     getAssets = () => ({ secrets: [] }),
+    manualLoopback = false,
   }) {
     this.#vault = vault;
     this.#fetch = fetchImpl;
     this.#openExternal = openExternal;
     this.#getAssets = getAssets;
+    this.#manualLoopback = manualLoopback;
     this.#unsubscribe = vault.onLock(() => this.#clear());
   }
 
@@ -472,26 +475,30 @@ export class IdentityAccounts {
         tokens: null,
         claimed: false,
       };
-      const server = createServer((req, res) => {
-        void this.#callback(session, req, res);
-      });
-      session.server = server;
-      server.requestTimeout = 10000;
-      server.headersTimeout = 10000;
-      server.keepAliveTimeout = 1000;
-      await new Promise((resolve, reject) => {
-        server.once("error", () =>
-          reject(
-            fail(
-              `本机回调端口 ${redirect.port} 已被占用或无法监听。请在应用和 Linux.do Connect 中同时修改登记地址。`,
+      const server =
+        !this.#manualLoopback &&
+        createServer((req, res) => {
+          void this.#callback(session, req, res);
+        });
+      session.server = server || null;
+      if (server) {
+        server.requestTimeout = 10000;
+        server.headersTimeout = 10000;
+        server.keepAliveTimeout = 1000;
+        await new Promise((resolve, reject) => {
+          server.once("error", () =>
+            reject(
+              fail(
+                `本机回调端口 ${redirect.port} 已被占用或无法监听。请在应用和 Linux.do Connect 中同时修改登记地址。`,
+              ),
             ),
-          ),
-        );
-        server.listen(Number(redirect.port), "127.0.0.1", resolve);
-      }).catch((error) => {
-        this.#close(session);
-        throw error;
-      });
+          );
+          server.listen(Number(redirect.port), "127.0.0.1", resolve);
+        }).catch((error) => {
+          this.#close(session);
+          throw error;
+        });
+      }
       try {
         this.#assert(generation);
         this.#sessions.set(session.id, session);
@@ -517,13 +524,58 @@ export class IdentityAccounts {
         }).toString();
         await this.#openExternal(authorization.href);
         this.#assert(generation);
-        return { id: session.id, expiresAt: session.expiresAt };
+        return {
+          id: session.id,
+          expiresAt: session.expiresAt,
+          ...(this.#manualLoopback
+            ? {
+                manualCallback: true,
+                authorizationUrl: authorization.href,
+                redirectUri: config.redirectUri,
+              }
+            : {}),
+        };
       } catch (error) {
         this.#close(session);
         this.#sessions.delete(session.id);
         throw error;
       }
     });
+  }
+
+  async finish(id, input) {
+    if (!this.#manualLoopback) throw fail("当前环境不支持手动回调。");
+    const session = this.#sessions.get(id);
+    if (!session?.config || typeof input !== "string" || input.length > 8192)
+      throw fail("授权回调已失效。");
+    let url;
+    try {
+      url = new URL(input);
+    } catch {
+      throw fail("请粘贴完整回调地址。");
+    }
+    const redirect = new URL(session.config.redirectUri);
+    if (
+      url.origin !== redirect.origin ||
+      url.pathname !== redirect.pathname ||
+      url.username ||
+      url.password ||
+      url.hash
+    )
+      throw fail("授权回调地址不匹配。");
+    let status;
+    await this.#callback(
+      session,
+      { method: "GET", url: url.pathname + url.search, headers: { host: redirect.host } },
+      {
+        writeHead(value) {
+          status = value;
+        },
+        end() {},
+      },
+    );
+    if (status !== 200) throw fail(session.error || "登录回调校验失败。");
+    return this.status(id);
   }
 
   async #callback(session, req, res) {

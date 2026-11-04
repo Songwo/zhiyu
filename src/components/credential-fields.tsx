@@ -59,12 +59,11 @@ export function CredentialFields({
     state: "idle",
   });
   const [resettingKey, setResettingKey] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetTyped, setResetTyped] = useState("");
+  const targetLabel = `${target.host}:${Number(target.port) || 22}`;
 
   const kind = (form._authKind as CredentialKind) || "password";
-  // The main process builds this phrase when TOFU refuses a changed host key;
-  // matching on it is what offers the reset affordance.
-  const fingerprintChanged =
-    test.state === "fail" && (test.message ?? "").includes("主机指纹已变更");
 
   // Only the kind is read back, so the panel can say "已保存" without
   // putting a decrypted password into the DOM.
@@ -87,16 +86,27 @@ export function CredentialFields({
     };
   }, [vault, serverId, unlocked]);
 
+  useEffect(() => {
+    setResetOpen(false);
+    setResetTyped("");
+    setTest({ state: "idle" });
+  }, [target.host, target.port, target.username]);
+
   if (!bridge || !vault) return null;
 
   async function runTest() {
-    const credential = credentialFromForm(form);
-    if (!credential) {
-      setTest({ state: "fail", message: t("请先填写密码或私钥") });
-      return;
-    }
     setTest({ state: "busy" });
     try {
+      let credential = credentialFromForm(form);
+      if (!credential && serverId) {
+        if (!(await requireVault(t("测试连接需要解锁已保存的 SSH 凭据。")))) {
+          setTest({ state: "idle" });
+          return;
+        }
+        const saved = await vault!.get(credentialId(serverId));
+        if (saved?.kind === kind) credential = saved;
+      }
+      if (!credential) throw new Error(t("请先填写密码或私钥"));
       const res = await bridge!.ssh.test(
         {
           id: serverId ?? "draft",
@@ -112,14 +122,21 @@ export function CredentialFields({
     }
   }
 
-  async function resetHostKeyAndRetest() {
+  async function resetHostKey() {
+    if (resetTyped !== targetLabel || !target.host || resettingKey) return;
+    if (!(await requireVault(t("重置主机指纹需要先解锁密钥库。")))) return;
     setResettingKey(true);
     try {
       await bridge!.ssh.resetHostKey({
         host: target.host,
         port: Number(target.port) || 22,
       });
-      await runTest();
+      setResetOpen(false);
+      setResetTyped("");
+      setTest({
+        state: "ok",
+        message: t("已清除旧指纹。下次连接会记录新指纹，请核对后再测试连接。"),
+      });
     } catch (err) {
       setTest({ state: "fail", message: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -211,8 +228,14 @@ export function CredentialFields({
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-3">
-          <Button type="button" variant="outline" size="sm" onClick={runTest}>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={test.state === "busy" || resettingKey}
+            onClick={runTest}
+          >
             {test.state === "busy" ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
@@ -247,23 +270,75 @@ export function CredentialFields({
               {test.message}
             </span>
           )}
-          {fingerprintChanged && (
+          {target.host && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={resettingKey || !target.host}
-              onClick={() => void resetHostKeyAndRetest()}
+              disabled={resettingKey || test.state === "busy"}
+              onClick={() => {
+                setResetOpen(true);
+                setResetTyped("");
+              }}
             >
               {resettingKey ? <Loader2 className="size-3.5 animate-spin" /> : null}
-              {t("重置指纹并重试")}
+              {t("重置主机指纹")}
             </Button>
           )}
         </div>
 
+        {resetOpen && (
+          <fieldset className="mt-3 space-y-3 rounded-lg border border-warn/40 bg-warn/5 p-3">
+            <legend className="px-1 text-meta font-semibold">{t("确认重置主机指纹")}</legend>
+            <p className="break-words text-meta text-muted">
+              {t(
+                "指纹变化可能来自服务器重装，也可能是连接劫持。请通过云控制台等可信渠道核对新指纹；仅在确认服务器密钥已更换后清除旧记录。此操作不会自动重连。",
+              )}
+            </p>
+            <p className="break-all font-mono text-meta">{targetLabel}</p>
+            <Field label={t("输入完整主机地址和端口以确认")}>
+              <Input
+                aria-label={t("输入完整主机地址和端口以确认")}
+                value={resetTyped}
+                autoComplete="off"
+                spellCheck={false}
+                disabled={resettingKey}
+                onChange={(event) => setResetTyped(event.target.value)}
+              />
+            </Field>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={resettingKey}
+                onClick={() => setResetOpen(false)}
+              >
+                {t("取消")}
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                disabled={resettingKey || resetTyped !== targetLabel}
+                onClick={() => void resetHostKey()}
+              >
+                {t("确认清除旧指纹")}
+              </Button>
+            </div>
+          </fieldset>
+        )}
+
         <p className="mt-3 text-2xs leading-relaxed text-subtle">
           {t("凭据用主密码派生的密钥加密后单独存放，不写入资产文件，导出 JSON 时也不会带出去。")}
         </p>
+        {isWeb() && (
+          <p className="mt-2 text-2xs leading-relaxed text-warn">
+            {t(
+              "Web 端连接会将本次 SSH 凭据交给部署服务器处理。请仅连接可信部署；敏感主机建议使用桌面端。",
+            )}
+          </p>
+        )}
       </div>
     </div>
   );

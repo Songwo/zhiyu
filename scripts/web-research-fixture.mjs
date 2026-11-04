@@ -8,7 +8,7 @@ import { createResearchService } from "../services/identity-login/research-servi
 import { createWebServer } from "../selfhost/server.mjs";
 
 /** 真实 HTTP 链路：Web → 身份服务 → 合成 OAuth / Exa / TypeSafe；不花真实额度。 */
-export async function webResearchFixture({ built = false } = {}) {
+export async function webResearchFixture({ built = false, additionalFetch } = {}) {
   const root = await mkdtemp(join(tmpdir(), "zhiyu-web-research-"));
   const behavior = { delay: 100, exaStatus: 200, jevStatus: 200, denied: false };
   const calls = [];
@@ -127,10 +127,13 @@ export async function webResearchFixture({ built = false } = {}) {
     log: { log() {}, error() {} },
     schedulePush: false,
     analysisBaseUrl: providerBase,
-    fetchImpl: (url, options) =>
-      new URL(url).origin === "https://auth.allinsong.top"
+    fetchImpl: async (url, options) => {
+      const additional = await additionalFetch?.(url, options);
+      if (additional) return additional;
+      return new URL(url).origin === "https://auth.allinsong.top"
         ? brokerRequest(new URL(url).pathname, options)
-        : fetch(url, options),
+        : fetch(url, options);
+    },
   };
   let web, base;
   const startWeb = async () => {

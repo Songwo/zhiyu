@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, KeyRound, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { desktop } from "@/lib/desktop";
+import { captureBridge } from "@/lib/web-extension";
 import { useAppStore } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import { useVault } from "@/lib/vault-state";
@@ -24,7 +24,7 @@ export function CaptureInbox() {
   const ready = useProfile((s) => s.profile?.ready);
   const state = useAppStore();
   useEffect(() => {
-    const api = desktop();
+    const api = captureBridge();
     if (!api) return;
     let active = true;
     let revision = 0;
@@ -68,7 +68,9 @@ export function CaptureInbox() {
   )
     return null;
   async function dismiss() {
-    await (item.hasCredential ? desktop()?.extension : desktop()?.capture)?.discard(item.id);
+    await (item.hasCredential ? captureBridge()?.extension : captureBridge()?.capture)?.discard(
+      item.id,
+    );
     setItems((list) => list.filter((entry) => entry.id !== item.id));
   }
   async function accept() {
@@ -76,7 +78,7 @@ export function CaptureInbox() {
     const current = generation.current;
     try {
       if (item.hasCredential) {
-        const api = desktop()!;
+        const api = captureBridge()!;
         const captured = await api.extension.take(item.id);
         // 领取过程中锁库、卸载或打开其他表单时，不把凭据放回界面。
         if (

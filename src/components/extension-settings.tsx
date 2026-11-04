@@ -1,9 +1,9 @@
 import { isWeb } from "@/lib/web";
-import { openExternal } from "@/lib/web-bridge";
+import { openExternal, hostBridge } from "@/lib/web-bridge";
+import { extensionApi, captureBridge } from "@/lib/web-extension";
 import { useEffect, useRef, useState } from "react";
 import { Copy, Download, ExternalLink, Link2, Loader2, Puzzle, Unplug } from "lucide-react";
 import { toast } from "sonner";
-import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import { useVault } from "@/lib/vault-state";
 import { Button } from "./ui/button";
@@ -11,7 +11,7 @@ import { Button } from "./ui/button";
 const RELEASES_URL = "https://github.com/Songwo/zhiyu/releases/latest";
 
 export function ExtensionSettings() {
-  const bridge = desktop()?.extension;
+  const bridge = extensionApi();
   const unlocked = useVault((s) => s.unlocked);
   const [status, setStatus] = useState<Awaited<ReturnType<NonNullable<typeof bridge>["status"]>>>();
   const [pairing, setPairing] = useState<{ code: string; expiresAt: number }>();
@@ -21,7 +21,7 @@ export function ExtensionSettings() {
   const generation = useRef(0);
 
   useEffect(() => {
-    void desktop()
+    void hostBridge()
       ?.info()
       .then((info) => setVersion(info.version))
       .catch(() => {});
@@ -33,10 +33,10 @@ export function ExtensionSettings() {
       ? `https://github.com/Songwo/zhiyu/releases/download/v${version}/Zhiyu-${version}-browser-extension.zip`
       : RELEASES_URL;
     try {
-      await desktop()?.openExternal(url);
+      await openExternal(url);
       if (version) toast.success(t("已在浏览器开始下载；解压后在扩展管理页加载该目录。"));
     } catch {
-      void desktop()?.openExternal(RELEASES_URL);
+      void openExternal(RELEASES_URL);
     }
   }
 
@@ -62,7 +62,7 @@ export function ExtensionSettings() {
         });
     };
     const off = bridge.onChanged(refresh);
-    const offVault = desktop()!.onVaultChanged(() => {
+    const offVault = captureBridge()!.onVaultChanged(() => {
       invalidate();
       setPairing(undefined);
     });
@@ -134,6 +134,13 @@ export function ExtensionSettings() {
           "配对并解锁后，登录页会建议本站账号，选择后填写，不自动提交登录。提交新账号时可确认保存；支持的在线文档会提示保存到知屿，点击后才读取当前可见正文。自动提示可在插件中关闭。",
         )}
       </p>
+      {isWeb() && (
+        <p className="rounded-xl bg-canvas p-4 text-meta leading-relaxed text-muted">
+          {t(
+            "在插件里选择 Web 工作区并填写当前站点地址。保持此标签页打开并解锁后才能配对、填写和保存；关闭、刷新或锁库后需要重新配对，密码不会由服务器解密。",
+          )}
+        </p>
+      )}
       <p className="text-meta leading-relaxed text-muted">
         {t(
           "已有 Chrome / Edge 密码可在「密钥库 → 浏览器密码」中通过 CSV 批量迁移。插件不会读取浏览器的原生密码库；知屿锁定后停止读取和填写账号。",
@@ -151,7 +158,7 @@ export function ExtensionSettings() {
         <>
           <dl className="divide-y divide-line text-meta">
             <div className="flex items-center justify-between gap-3 py-3">
-              <dt className="text-muted">{t("本机连接")}</dt>
+              <dt className="text-muted">{t(isWeb() ? "Web 工作区连接" : "本机连接")}</dt>
               <dd>{status?.running ? t("已就绪") : status ? t("连接不可用") : t("加载中")}</dd>
             </div>
             <div className="flex items-center justify-between gap-3 py-3">

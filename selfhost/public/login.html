@@ -13,6 +13,13 @@
       <img class="logo" src="/favicon.svg" alt="" width="56" height="56" />
       <h1 id="title">登录知屿</h1>
       <p class="sub" id="sub">你的数字资产工作台</p>
+      <details class="warn" aria-label="Web 安全提醒">
+        <summary>Web 端存在浏览器与服务器风险，敏感资产建议优先使用桌面端。</summary>
+        <p>
+          只登录自己信任的部署，使用 HTTPS
+          和两步验证，避免公共设备及不可信扩展。密钥库解锁后恶意脚本可能读取明文；SSH、邮箱等操作需要服务器处理凭据。服务器加密存储不等于端到端加密，管理员仍有能力访问。桌面端也需要可信设备与及时更新。
+        </p>
+      </details>
       <p class="warn" id="insecure" role="note" hidden>
         当前是未加密的 http 连接：登录密码会在网络上明文传输，同一网络里的人能看到。公网使用请改用
         https，或只在可信的内网 / VPN 里访问。

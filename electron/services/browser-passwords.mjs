@@ -1,11 +1,9 @@
-import { randomBytes, randomUUID } from "node:crypto";
-
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_ROWS = 10000;
 const TICKET_TTL = 5 * 60 * 1000;
 
 function parseCsv(input) {
-  if (typeof input !== "string" || Buffer.byteLength(input, "utf8") > MAX_BYTES)
+  if (typeof input !== "string" || new TextEncoder().encode(input).byteLength > MAX_BYTES)
     throw new Error("CSV 大小不能超过 10 MiB。");
   const text = input.replace(/^\ufeff/, "");
   const rows = [];
@@ -155,8 +153,7 @@ function classify(record, index) {
   return matches.length ? "conflict" : "new";
 }
 
-function makeEntry(record) {
-  const id = randomUUID();
+function makeEntry(record, id) {
   const updatedAt = new Date().toISOString();
   const asset = {
     id,
@@ -206,6 +203,8 @@ function restoreAsset(id, stored) {
 
 /** 密码只在主进程短期内存与加密库中流转；预览和资产元数据没有密码字段。 */
 export class BrowserPasswords {
+  #uuid;
+  #ticket;
   #vault;
   #getAssets;
   #now;
@@ -213,10 +212,21 @@ export class BrowserPasswords {
   #queue = Promise.resolve();
   #generation = 0;
 
-  constructor({ vault, getAssets = () => [], now = Date.now }) {
+  constructor({
+    vault,
+    getAssets = () => [],
+    now = Date.now,
+    uuid = () => globalThis.crypto.randomUUID(),
+    ticket = () =>
+      Array.from(globalThis.crypto.getRandomValues(new Uint8Array(32)), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+      ).join(""),
+  }) {
     this.#vault = vault;
     this.#getAssets = getAssets;
     this.#now = now;
+    this.#uuid = uuid;
+    this.#ticket = ticket;
     vault.onLock(() => this.clear());
   }
 
@@ -311,9 +321,9 @@ export class BrowserPasswords {
       guard();
       // 一个导入窗口只保留最新预览，限制明文票据的内存驻留量。
       for (const ticket of this.#tickets.keys()) this.#removeTicket(ticket);
-      const ticket = randomBytes(32).toString("hex");
+      const ticket = this.#ticket();
       const timer = setTimeout(() => this.#removeTicket(ticket), TICKET_TTL);
-      timer.unref();
+      timer.unref?.();
       this.#tickets.set(ticket, {
         candidates,
         total: parsed.length,
@@ -335,7 +345,7 @@ export class BrowserPasswords {
       const selected = [];
       for (const record of stored.candidates) {
         if (classify(record, index) !== "new") continue;
-        selected.push(makeEntry(record));
+        selected.push(makeEntry(record, this.#uuid()));
         index.set(identity(record), [record]);
       }
       const beforeCommit = () => {
@@ -374,7 +384,8 @@ export class BrowserPasswords {
                 .join(",") + "\r\n",
           )
           .join("");
-      if (Buffer.byteLength(csv, "utf8") > MAX_BYTES) throw new Error("导出 CSV 大小超过 10 MiB。");
+      if (new TextEncoder().encode(csv).byteLength > MAX_BYTES)
+        throw new Error("导出 CSV 大小超过 10 MiB。");
       return { csv, count: records.length };
     });
   }
@@ -417,12 +428,15 @@ export class BrowserPasswords {
       );
       if (existing) return { id: existing.id, status: "existing", assets: [] };
       const versions = records.filter((record) => identity(record) === identity(normalized)).length;
-      const created = makeEntry({
-        ...normalized,
-        title: versions
-          ? `${normalized.title.slice(0, 270)} · 密码版本 ${versions + 1}`
-          : normalized.title,
-      });
+      const created = makeEntry(
+        {
+          ...normalized,
+          title: versions
+            ? `${normalized.title.slice(0, 270)} · 密码版本 ${versions + 1}`
+            : normalized.title,
+        },
+        this.#uuid(),
+      );
       assertAuthorized();
       await this.#vault.batch([created.entry], { beforeCommit: assertAuthorized });
       assertAuthorized();

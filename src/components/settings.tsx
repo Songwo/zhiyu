@@ -268,7 +268,15 @@ function SettingsBody({ header }: { header?: ReactNode }) {
           )}
           {tab === "sync" && <SyncSettings />}
           {tab === "agent" && <AgentSettings />}
-          {tab === "mail-push" && (isWeb() ? <WebPushSettings /> : <MailPushSettings />)}
+          {tab === "mail-push" &&
+            (isWeb() ? (
+              <div className="space-y-8">
+                <WebPushSettings />
+                <MailPushSettings />
+              </div>
+            ) : (
+              <MailPushSettings />
+            ))}
           {tab === "extension" && <ExtensionSettings />}
           {tab === "storage" && <StorageSettings />}
           {tab === "about" && <About />}

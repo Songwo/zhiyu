@@ -16,7 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { desktop } from "@/lib/desktop";
+
 import { useAppStore } from "@/lib/store";
 import { useVault } from "@/lib/vault-state";
 import {
@@ -193,7 +193,7 @@ export function UsageWorkspace() {
       )
         return;
       if (id) {
-        if (id.startsWith("oauth:")) await desktop()!.aiAccounts.refresh(id.slice(6));
+        if (id.startsWith("oauth:")) await hostBridge()!.aiAccounts.refresh(id.slice(6));
         else await api.refresh(id);
         setSourceErrors((previous) => {
           const next = { ...previous };

@@ -46,11 +46,15 @@ export interface AiAccount {
 }
 export interface AiAccountBridge {
   list(): Promise<AiAccount[]>;
-  start(provider: AiProvider): Promise<{
+  start(
+    provider: AiProvider,
+    options?: { allowServerStorage?: boolean },
+  ): Promise<{
     id: string;
     mode: "loopback" | "code";
     redirectUri?: string;
     manualCallback?: boolean;
+    authorizationUrl?: string;
   }>;
   status(id: string): Promise<{ status: string; error: string; accountId?: string }>;
   finish(id: string, code: string): Promise<AiAccount>;

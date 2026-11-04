@@ -11,6 +11,7 @@
  * - Cloudflare Token、模型 API Key 用 server 目录里的密钥加密保存（见 secure-storage.mjs）。
  */
 import { X509Certificate, randomBytes } from "node:crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdir, readFile, readdir, rm, stat, writeFile, rename } from "node:fs/promises";
 import { basename, join, posix } from "node:path";
 import { AgentService } from "../electron/services/agent-service.mjs";
@@ -28,6 +29,10 @@ import { ImageBed } from "../electron/services/image-bed.mjs";
 import { MailClient, validateSmtp } from "../electron/services/mail-client.mjs";
 import { MailboxService } from "../electron/services/mailbox-service.mjs";
 import { createWebResearch } from "./research.mjs";
+import { createWebAiAccounts } from "./ai-accounts.mjs";
+import { createWebMailPush } from "./mail-push.mjs";
+import { createWebMailOAuth } from "./mail-oauth.mjs";
+import { createWebIdentities } from "./identities.mjs";
 import {
   MAIL_PROVIDERS,
   providerForAddress,
@@ -91,12 +96,18 @@ export function createServerCredentialStore(file, secureStorage) {
       throw new BridgeError("用量来源凭据读取失败");
     }
   };
-  const writeAll = (mutate) => {
+  const writeAll = (mutate, beforeCommit) => {
     const task = queue.then(async () => {
       const next = mutate(await readAll());
+      beforeCommit?.();
       const tmp = `${file}.${randomBytes(4).toString("hex")}.tmp`;
-      await writeFile(tmp, JSON.stringify(next), { mode: 0o600 });
-      await rename(tmp, file);
+      try {
+        await writeFile(tmp, JSON.stringify(next), { mode: 0o600 });
+        beforeCommit?.();
+        await rename(tmp, file);
+      } finally {
+        await rm(tmp, { force: true }).catch(() => {});
+      }
     });
     queue = task.catch(() => {});
     return task;
@@ -113,16 +124,40 @@ export function createServerCredentialStore(file, secureStorage) {
         return null;
       }
     },
-    set: (id, value) =>
-      writeAll((all) => ({
-        ...all,
-        [id]: secureStorage.encryptString(JSON.stringify(value)).toString("base64"),
-      })),
-    remove: (id) =>
+    list: async () => Object.keys(await readAll()),
+    readAll,
+    removeMany: (ids, options = {}) =>
+      writeAll((all) => {
+        for (const id of ids) delete all[id];
+        return all;
+      }, options.beforeCommit),
+    batch: (entries, options = {}) =>
+      writeAll((all) => {
+        for (const entry of entries) {
+          let secret = entry.secret;
+          if (entry.merge && all[entry.id]) {
+            const previous = JSON.parse(
+              secureStorage.decryptString(Buffer.from(all[entry.id], "base64")),
+            );
+            secret = { ...previous, ...secret };
+          }
+          all[entry.id] = secureStorage.encryptString(JSON.stringify(secret)).toString("base64");
+        }
+        return all;
+      }, options.beforeCommit),
+    set: (id, value, options = {}) =>
+      writeAll(
+        (all) => ({
+          ...all,
+          [id]: secureStorage.encryptString(JSON.stringify(value)).toString("base64"),
+        }),
+        options.beforeCommit,
+      ),
+    remove: (id, options = {}) =>
       writeAll((all) => {
         delete all[id];
         return all;
-      }),
+      }, options.beforeCommit),
   };
 }
 
@@ -156,6 +191,7 @@ export function createWebBridge({
   root,
   sessionActive = () => false,
   analysisBaseUrl,
+  queryMailbox,
 }) {
   const hostKeysFile = join(serverDir, "ssh-known-hosts.json");
   const downloadsDir = join(serverDir, "downloads");
@@ -187,13 +223,13 @@ export function createWebBridge({
   });
   const metrics = new MetricsStore(join(workspace, "metrics.json"));
   // 邮箱：登录名和授权码只在浏览器的密钥库里，每次操作随请求带来，操作结束就从内存删掉。
-  const mailCredentials = new Map();
+  const mailCredentials = new AsyncLocalStorage();
   const drafts = createServerCredentialStore(join(serverDir, "mail-drafts.json"), secureStorage);
   const mailVault = {
     unlocked: true,
     session: 1,
     get: async (id) =>
-      id.startsWith("mail-draft:") ? drafts.get(id) : (mailCredentials.get(id)?.value ?? null),
+      id.startsWith("mail-draft:") ? drafts.get(id) : (mailCredentials.getStore()?.get(id) ?? null),
     set: (id, value) => {
       if (!id.startsWith("mail-draft:")) throw new BridgeError("网页版不在服务器上保存邮箱凭据");
       return drafts.set(id, value);
@@ -208,21 +244,34 @@ export function createWebBridge({
     )
       throw new BridgeError("请先在邮箱详情保存用户名和密码 / 授权码");
     const key = `account:${id}`;
-    const entry = mailCredentials.get(key) ?? { users: 0 };
-    entry.users += 1;
-    entry.value = { username: credential.username, password: credential.password };
-    mailCredentials.set(key, entry);
-    try {
-      return await work();
-    } finally {
-      if (--entry.users <= 0) mailCredentials.delete(key);
-    }
+    return mailCredentials.run(
+      new Map([[key, { username: credential.username, password: credential.password }]]),
+      work,
+    );
   };
   const mailClient = new MailClient({ vault: mailVault, getSnapshot });
   const mailboxes = new MailboxService({
     directory: workspace,
     vault: mailVault,
     getSnapshot,
+    ...(queryMailbox ? { queryMailbox } : {}),
+  });
+  const backgroundMail = createWebMailPush({
+    store: createServerCredentialStore(join(serverDir, "background-mail.json"), secureStorage),
+    getSnapshot,
+    fetchImpl,
+    checkMailbox: (id, credential, options) =>
+      withMailbox(id, credential, () => mailboxes.check(id, options)),
+  });
+  const mailOAuth = createWebMailOAuth({ fetchImpl, sessionActive });
+  const identities = createWebIdentities({
+    store: createServerCredentialStore(join(serverDir, "identity-accounts.json"), secureStorage),
+    fetchImpl,
+    sessionActive,
+    getSnapshot,
+    mutateAssets,
+    documents,
+    emit,
   });
   const images = new ImageBed({
     file: join(workspace, "image-bed.json"),
@@ -241,6 +290,12 @@ export function createWebBridge({
     createServerCredentialStore(join(serverDir, "usage-credentials.json"), secureStorage),
     fetchImpl,
   );
+  const aiAccounts = createWebAiAccounts({
+    store: createServerCredentialStore(join(serverDir, "ai-accounts.json"), secureStorage),
+    fetchImpl,
+    sessionActive,
+    usage,
+  });
   // 「本机」在网页版指服务所在的机器：读的是服务用户主目录下的 AI 客户端日志。
   const localUsage = new LocalUsageMonitor({ file: join(workspace, "local-usage.json") });
   const v2rayn = new V2raynUsage({ configFile: join(workspace, "v2rayn-usage.json") });
@@ -266,6 +321,7 @@ export function createWebBridge({
             failures.push(source.name + "：" + error.message);
           }
         }
+        failures.push(...(await aiAccounts.refreshAll()));
         emit("usage:changed", { recordsChanged: true });
         return { failures };
       } finally {
@@ -641,20 +697,49 @@ export function createWebBridge({
   }
 
   return {
-    channels: [...Object.keys(handlers), ...research.channels],
+    channels: [
+      ...Object.keys(handlers),
+      ...research.channels,
+      ...aiAccounts.channels,
+      ...mailOAuth.channels,
+      ...identities.channels,
+      "mail-push:config",
+      "mail-push:save",
+      "mail-push:test",
+    ],
     async call(channel, args, context) {
       if (research.channels.includes(channel)) return research.call(channel, args, context);
+      if (aiAccounts.channels.includes(channel)) return aiAccounts.call(channel, args, context);
+      if (mailOAuth.channels.includes(channel)) return mailOAuth.call(channel, args, context);
+      if (identities.channels.includes(channel)) return identities.call(channel, args, context);
+      if (channel.startsWith("mail-push:")) {
+        const valid = () => {
+          if (!sessionActive(context?.sessionKey))
+            throw new BridgeError("网页登录已过期，请重新登录。");
+        };
+        valid();
+        if (channel === "mail-push:config") return backgroundMail.config();
+        if (channel === "mail-push:test") return backgroundMail.test();
+        if (channel === "mail-push:save") return backgroundMail.save(args?.[0], args?.[1], valid);
+      }
       const fn = Object.hasOwn(handlers, channel) ? handlers[channel] : null;
       if (!fn) throw new BridgeError("网页版不支持这个操作");
       return fn(...(Array.isArray(args) ? args : []));
     },
     takeDownload,
-    dropSessions: research.dropSessions,
+    pruneAssets: (snapshot) => identities.pruneAssets(snapshot),
+    dropSessions: () => {
+      research.dropSessions();
+      aiAccounts.dropSessions();
+      mailOAuth.dropSessions();
+      identities.dropSessions();
+    },
     /** 与桌面版相同的节奏：本机日志 1 分钟扫一次，用量来源 5 分钟刷新一次。 */
     startSchedules() {
       void refreshLocalUsage().catch(() => {});
       timers.push(setInterval(() => void refreshLocalUsage().catch(() => {}), 60_000));
       timers.push(setInterval(() => void refreshUsage(false).catch(() => {}), 300_000));
+      timers.push(setInterval(() => void backgroundMail.tick().catch(() => {}), 60_000));
       for (const timer of timers) timer.unref?.();
     },
     async clearDownloads() {
@@ -667,6 +752,10 @@ export function createWebBridge({
       ssh.closeAll();
       integrations.stop?.();
       research.stop();
+      aiAccounts.stop();
+      backgroundMail.stop();
+      mailOAuth.stop();
+      identities.stop();
     },
   };
 }

@@ -14,11 +14,11 @@
 
 ## 发布后验收
 
-正式版与镜像推送后，可执行 `gh workflow run verify-release.yml --ref main -f tag=v1.17.5`（替换为当前正式版本）。此只读流程从公开 Release 下载七个实际附件，核对大小、GitHub SHA256、校验清单与更新清单 SHA512；再检查 Web 的 amd64/arm64 索引、latest 一致性并拉取和启动实际公开镜像。验收 JSON 记录保存在 Actions 附件，不上传下载包，不触碰用户部署或数据。它仅适用于当前 latest 所指的稳定版本；本机网络下载中断时也不能把半包当作通过。
+正式版与镜像推送后，可执行 `gh workflow run verify-release.yml --ref main -f tag=v1.17.6`（替换为当前正式版本）。此只读流程从公开 Release 下载七个实际附件，核对大小、GitHub SHA256、校验清单与更新清单 SHA512；再检查 Web 的 amd64/arm64 索引、latest 一致性并拉取和启动实际公开镜像。验收 JSON 记录保存在 Actions 附件，不上传下载包，不触碰用户部署或数据。它仅适用于当前 latest 所指的稳定版本；本机网络下载中断时也不能把半包当作通过。
 
 ## 版本准备
 
-更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.5.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
+更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.6.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
 
 1.17.5 还需运行 `node scripts/web-research-ui-integration.mjs`，验证真实 Web 构建中的主身份、弹窗受限回退、Exa 余额与记录、Jev 逐段进度及不改原文、文档账号本地提取与密钥库兼容。该回归只用本机合成供应商，不冒充真实付费 API 验收。升级独立身份服务后健康检查需包含 `webLoginConfigured: true`，实际 `/v1/login/start` 的 `transport: "poll"`、等待状态及取消请求均需核实；同时保留桌面回环协议、会话密钥及检索账本。
 
@@ -226,3 +226,5 @@ v2rayN 回归检查只读打开数据库、手动目录选择与重启保留、�
 版本检查包括 package.json、锁文件根版本与 `packages[""].version`、浏览器插件和首条更新日志，插件本版只同步版本号。桌面包需包含订阅解析所需的 `js-yaml` 运行依赖与 Windows v2rayN 探测脚本。macOS 目标为 `mac-test-1.7.2.1` 独立未签名双架构 Pre-release；其构建、附件验证和实机结果分别记录，不能用 Windows 验证结果替代。
 
 本章节记录验证要求，不预填测试总数或通过结果。真实 v2rayN 客户端探测与合成桌面回归应分别记录范围；公开记录不包含用户节点、订阅地址、凭据、路径或用量数值。
+
+1.17.6 发布前还需执行 `node scripts/web-passwords-extension-integration.mjs`、`node scripts/web-ssh-recovery-integration.mjs` 和 `node scripts/web-oauth-ui-integration.mjs`，覆盖真实 MV3 扩展、真实 SSH 指纹变化、Web OAuth 同意和手动回调及后台邮件配置。合成供应商测试不代表真实账号验收。

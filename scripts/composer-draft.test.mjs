@@ -18,6 +18,7 @@ test("首次进入无需先填写个人资料，空名称使用工作区默认�
 test("新主机默认简录，编辑和已解析的SSH信息沿用连接入口", () => {
   assert.equal(initialServerMode(null, { name: "记录", host: "host.example.test" }), "record");
   assert.equal(initialServerMode({ id: "existing" }, {}), "ssh");
+  assert.equal(initialServerMode({ sshConfigured: false }, { _sshRecovery: "true" }), "ssh");
   assert.equal(initialServerMode(null, { _privateKeyPath: "qa-key" }), "ssh");
   assert.equal(initialServerMode(null, { _password: "qa-ssh" }), "ssh");
 });

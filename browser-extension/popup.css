@@ -31,6 +31,24 @@ body {
   line-height: 1.5;
   overflow-y: auto;
 }
+.workspace-choice {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.workspace-choice form {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.workspace-choice select {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+}
 button,
 input,
 a,

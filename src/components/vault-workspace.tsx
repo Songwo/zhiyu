@@ -35,7 +35,7 @@ import { Field, Input, Select } from "./ui/input";
 import { openFromEvent } from "./asset-card";
 import { CollectionCard } from "./ui/collection-card";
 import { BrowserPasswordTransfer } from "./browser-password-transfer";
-import { isDesktop } from "@/lib/desktop";
+
 import { useVault } from "@/lib/vault-state";
 
 const KIND_LABEL: Record<Secret["kind"], string> = {
@@ -161,12 +161,12 @@ export function VaultWorkspace() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {!isWeb() && (
+          {
             <Button variant="outline" size="sm" onClick={() => setTransferOpen(true)}>
               <ArrowDownUp className="size-4" />
               {t("浏览器密码")}
             </Button>
-          )}
+          }
           <Button
             variant="outline"
             size="sm"

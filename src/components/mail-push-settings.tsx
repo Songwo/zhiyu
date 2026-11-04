@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell, Loader2, Lock, Save, Send } from "lucide-react";
-import { desktop } from "@/lib/desktop";
+import { hostBridge } from "@/lib/web-bridge";
+import { isWeb } from "@/lib/web";
 import { t } from "@/lib/i18n";
 import type { MailPushConfig, MailPushProvider } from "@/lib/mail-push";
 import { useAppStore } from "@/lib/store";
@@ -9,7 +10,8 @@ import { Button } from "./ui/button";
 import { Field, Input, Select } from "./ui/input";
 
 export function MailPushSettings() {
-  const api = desktop()?.mailPush;
+  const api = hostBridge()?.mailPush;
+  const web = isWeb();
   const mailboxes = useAppStore((state) => state.mailboxes);
   const unlocked = useVault((state) => state.unlocked);
   const requireVault = useVault((state) => state.require);
@@ -29,7 +31,7 @@ export function MailPushSettings() {
     setError("");
     setNotice("");
     setDirty(false);
-    if (api && unlocked) {
+    if (api && (unlocked || web)) {
       void api
         .config()
         .then((value) => {
@@ -43,7 +45,7 @@ export function MailPushSettings() {
     return () => {
       alive = false;
     };
-  }, [api, unlocked]);
+  }, [api, unlocked, web]);
 
   async function task(run: () => Promise<void>) {
     setBusy(true);
@@ -59,7 +61,7 @@ export function MailPushSettings() {
   }
 
   if (!api) return <p className="text-meta text-muted">{t("邮件推送仅在桌面端可用。")}</p>;
-  if (!unlocked) {
+  if (!unlocked && !web) {
     return (
       <section className="space-y-4">
         <h3 className="text-lg font-semibold">{t("邮件推送")}</h3>
@@ -78,27 +80,48 @@ export function MailPushSettings() {
     setNotice("");
   };
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" aria-label={t("邮件推送")}>
       <h3 className="flex items-center gap-2 text-lg font-semibold">
         <Bell className="size-5" />
         {t("邮件推送")}
       </h3>
       <p className="text-meta leading-relaxed text-muted">
         {t(
-          "仅发送新增、未读数量和检查时间，不发送邮箱地址、标题或正文。桌面端运行且密钥库解锁时生效，首次检查仅建立基线。",
+          web
+            ? "仅发送新增、未读数量和检查时间，不发送邮箱地址、标题或正文。明确同意并保存后，服务器可在浏览器关闭时检查所选邮箱；首次检查仅建立基线。"
+            : "仅发送新增、未读数量和检查时间，不发送邮箱地址、标题或正文。桌面端运行且密钥库解锁时生效，首次检查仅建立基线。",
         )}
       </p>
       <fieldset disabled={busy} className="space-y-4">
+        {web && (
+          <label className="flex items-start gap-3 rounded-xl border border-warn/30 bg-warn/5 p-3 text-meta leading-relaxed">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 shrink-0"
+              checked={config.serverConsent === true}
+              onChange={(event) =>
+                patch({
+                  serverConsent: event.target.checked,
+                  ...(!event.target.checked ? { enabled: false } : {}),
+                })
+              }
+            />
+            {t(
+              "我允许服务器加密保存所选邮箱的用户名和授权码，用于后台检查；部署管理员仍有能力访问。关闭自动推送并保存会删除这些凭据。敏感邮箱建议使用桌面端。",
+            )}
+          </label>
+        )}
         <label className="flex min-h-10 items-center gap-3 text-meta">
           <input
             type="checkbox"
             checked={config.enabled}
+            disabled={web && !config.serverConsent}
             onChange={(event) => patch({ enabled: event.target.checked })}
             className="size-4 accent-ink"
           />
           {t("启用自动邮件推送")}
         </label>
-        <label className="flex min-h-10 items-center gap-3 text-meta">
+        <label className={web ? "hidden" : "flex min-h-10 items-center gap-3 text-meta"}>
           <input
             type="checkbox"
             checked={config.reminders === true}
@@ -235,6 +258,7 @@ export function MailPushSettings() {
                   reminders: config.reminders === true,
                   token: token || undefined,
                   clearToken,
+                  serverConsent: config.serverConsent,
                 });
                 setConfig(saved);
                 setToken("");

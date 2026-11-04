@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { desktop } from "@/lib/desktop";
+import { passwordsApi } from "@/lib/web-passwords";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import { useVault } from "@/lib/vault-state";
@@ -37,9 +38,9 @@ function statusLabel(status: string) {
   return t("无效记录");
 }
 
-/** 密码只由主进程解析和写入；此界面只接收可撤销票据与无密码预览。 */
+/** 桌面主进程或浏览器本地解析；此界面只接收可撤销票据与无密码预览。 */
 export function BrowserPasswordTransfer({ close }: { close: () => void }) {
-  const bridge = desktop()?.passwords;
+  const bridge = passwordsApi();
   const [direction, setDirection] = useState<"import" | "export">("import");
   const [browser, setBrowser] = useState<Browser>("chrome");
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -431,7 +432,9 @@ export function BrowserPasswordTransfer({ close }: { close: () => void }) {
                 </div>
                 <p className="text-meta leading-relaxed text-muted">
                   {t(
-                    "导出密钥库中有网站地址的账号密码，保留同站多个账号。API Key、SSH 私钥和无网站地址的记录不导出。保存前还需在系统对话框确认。",
+                    isWeb()
+                      ? "导出密钥库中有网站地址的账号密码，保留同站多个账号。CSV 在当前浏览器生成并下载，不发送明文到服务器。"
+                      : "导出密钥库中有网站地址的账号密码，保留同站多个账号。API Key、SSH 私钥和无网站地址的记录不导出。保存前还需在系统对话框确认。",
                   )}
                 </p>
                 {exported !== null && (

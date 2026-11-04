@@ -8,6 +8,7 @@ export function initialWorkspaceName(name, fallback) {
 
 /** @param {unknown} existing @param {Form} form @returns {"record" | "ssh"} */
 export function initialServerMode(existing, form) {
+  if (form._sshRecovery === "true") return "ssh";
   if (
     existing &&
     typeof existing === "object" &&

@@ -92,7 +92,7 @@ export function WebSecuritySettings() {
         </h3>
         <p className="mt-1 text-meta leading-relaxed text-muted">
           {t(
-            "网页版放在公网上时，登录页是别人能碰到的唯一入口：用两步验证、HTTPS 和来源限制把它守住。",
+            "Web 端公开部署会增加攻击面；登录、接口、浏览器脚本和扩展都需要保护。敏感资产建议优先使用桌面端，Web 请使用可信部署、HTTPS、两步验证和来源限制。",
           )}
         </p>
       </header>

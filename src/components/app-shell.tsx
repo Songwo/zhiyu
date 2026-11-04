@@ -1,5 +1,7 @@
 import { hostBridge, onWebEvent } from "@/lib/web-bridge";
 import { useProfile } from "@/lib/profile";
+import { startWebExtensionBroker } from "@/lib/web-extension";
+import { WebSecurityNotice } from "./web-security-notice";
 import { ViewErrorBoundary } from "./view-error-boundary";
 import { isWeb } from "@/lib/web";
 import { startWebSync } from "@/lib/web-store";
@@ -75,6 +77,7 @@ function DeferredOverlay({
 }
 
 export function AppShell() {
+  useEffect(() => startWebExtensionBroker(), []);
   const locale = useSyncExternalStore(subscribeLocale, getLocale, () => "zh" as const);
   useEffect(() => startLocaleSync(), []);
   useBrowserReminders();
@@ -328,6 +331,7 @@ export function AppShell() {
           !detailOpen && view === "agent" && "agent-shell",
         )}
       >
+        {web && <WebSecurityNotice />}
         <div
           className={cn(
             "page-container flex items-start",

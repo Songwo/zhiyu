@@ -1,6 +1,7 @@
 import { normalizeCapture, captureUrl } from "./browser-capture.mjs";
 import { collectLoginForms } from "./form-capture.mjs";
 import { BRIDGE } from "./bridge-config.mjs";
+import { bridgeFetch, workspaceOrigin, WEB_WORKSPACE_KEY } from "./web-transport.mjs";
 
 const bridge = BRIDGE;
 const chrome = globalThis.chrome;
@@ -13,11 +14,31 @@ const password = $("#password");
 const status = $("#status");
 const send = $("#send");
 const pairing = $("#pairing");
+let webWorkspace = (await chrome.storage.local.get(WEB_WORKSPACE_KEY))[WEB_WORKSPACE_KEY] || "";
+$("#workspace-mode").value = webWorkspace ? "web" : "desktop";
+$("#workspace-url").value = webWorkspace;
+$("#workspace-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const next =
+      $("#workspace-mode").value === "web" ? workspaceOrigin($("#workspace-url").value.trim()) : "";
+    if ($("#workspace-mode").value === "web" && !next) throw new Error("请填写 Web 工作区地址。");
+    await chrome.storage.local.set({ [WEB_WORKSPACE_KEY]: next });
+    webWorkspace = next;
+    await chrome.storage.session.remove([tokenKey, "zhiyuWebWorkspaceTab"]);
+    await forgetConnection();
+    connection("连接方式已保存，请重新配对");
+    message("在已解锁的知屿中生成新配对码。Web 方式不会访问服务器明文密码接口。");
+  } catch (error) {
+    message(error.message, "error");
+  }
+});
 let capture = null;
 let tabId;
 let token = "";
 let connected = false;
-let busy = false;
+// 初始化期间先禁用配对，避免旧的会话读取迟到后覆盖新连接。
+let busy = true;
 let candidates = [];
 
 function message(text, state = "") {
@@ -34,6 +55,8 @@ function controls() {
   $("#save-pending").disabled = busy || !connected;
 }
 function connection(text, state = "") {
+  if (webWorkspace)
+    text = text.replaceAll("桌面端", "Web 工作区").replaceAll("桌面连接", "Web 工作区连接");
   $("#connection-state").textContent = text;
   $("#connection-indicator").dataset.state = state;
   $("#disconnect").hidden = !token;
@@ -53,7 +76,7 @@ async function request(path, options = {}, authenticated = true) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
   try {
-    const response = await fetch(`${bridge}${path}`, {
+    const response = await bridgeFetch(`${bridge}${path}`, {
       ...options,
       credentials: "omit",
       cache: "no-store",
@@ -67,7 +90,11 @@ async function request(path, options = {}, authenticated = true) {
     if (response.status === 401) {
       await forgetConnection();
       connection("连接已失效，请重新配对", "error");
-      throw new Error("请在已解锁的知屿桌面端生成新的配对码。");
+      throw new Error(
+        webWorkspace
+          ? "请在已解锁的 Web 工作区生成新的配对码。"
+          : "请在已解锁的知屿桌面端生成新的配对码。",
+      );
     }
     if (response.status === 423) {
       await forgetConnection();
@@ -86,6 +113,8 @@ async function request(path, options = {}, authenticated = true) {
     if (error instanceof TypeError || error.name === "AbortError") {
       connected = false;
       connection("桌面端未连接", "error");
+      if (webWorkspace)
+        throw new Error("无法连接 Web 工作区，请打开所选站点并解锁，刷新或锁库后重新配对。");
       throw new Error("无法连接知屿，请打开 1.3.0 或更新版本并解锁。请求未自动重试。");
     }
     throw error;
@@ -144,6 +173,17 @@ async function readTab() {
   $("#url").textContent = capture.url;
   $("#url").title = capture.url;
   try {
+    const [{ result: workspace } = {}] = await chrome.scripting.executeScript({
+      target: { tabId, frameIds: [0] },
+      func: () => document.documentElement.dataset.zhiyuWebWorkspace === "true",
+    });
+    if (workspace || (webWorkspace && new URL(tab.url).origin === webWorkspace)) {
+      showCandidates([]);
+      password.value = "";
+      username.value = "";
+      message("当前是知屿工作区，不读取主密码表单；请切换到需要填写的网站。");
+      return;
+    }
     const [{ result } = {}] = await chrome.scripting.executeScript({
       target: { tabId, frameIds: [0] },
       func: collectLoginForms,
@@ -192,6 +232,7 @@ $("#toggle-password").addEventListener("click", () => {
 });
 $("#pair-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (busy) return;
   busy = true;
   controls();
   try {
@@ -209,7 +250,7 @@ $("#pair-form").addEventListener("submit", async (event) => {
     if (!state.unlocked) throw new Error("请先解锁桌面端密钥库。");
     connected = true;
     pairing.open = false;
-    connection("已连接本机知屿", "connected");
+    connection(webWorkspace ? "已连接 Web 工作区" : "已连接本机知屿", "connected");
     await loadAccounts();
     message("已配对，当前站点的账号与文档可以保存到知屿。", "success");
   } catch (error) {
@@ -269,8 +310,17 @@ $("#capture").addEventListener("submit", async (event) => {
 });
 $("#site-only").addEventListener("click", async () => {
   try {
-    await chrome.tabs.create({ url: captureUrl(await currentCapture()) });
-    message("已请求打开知屿，请在桌面端继续记录站点。");
+    if (webWorkspace) {
+      const current = await currentCapture();
+      await request("/v1/documents", {
+        method: "POST",
+        body: JSON.stringify({ url: current.url, title: current.title, text: "" }),
+      });
+      message("已保存来源链接到 Web 工作区。", "success");
+    } else {
+      await chrome.tabs.create({ url: captureUrl(await currentCapture()) });
+      message("已请求打开知屿，请在桌面端继续记录站点。");
+    }
   } catch (error) {
     message(error.message || "无法打开知屿，请安装桌面端并允许打开外部应用。", "error");
   }
@@ -309,9 +359,14 @@ await Promise.allSettled([
         return;
       }
       connected = true;
-      connection("已连接本机知屿", "connected");
+      connection(webWorkspace ? "已连接 Web 工作区" : "已连接本机知屿", "connected");
     } catch (error) {
-      connection("桌面连接不可用", "error");
+      connection(
+        webWorkspace && error.message.includes("解锁")
+          ? "密钥库已锁定，请重新配对"
+          : "桌面连接不可用",
+        "error",
+      );
       message(error.message, "error");
     }
   })(),
@@ -443,3 +498,5 @@ for (const [id, key] of [
   );
 }
 await loadAccounts();
+busy = false;
+controls();

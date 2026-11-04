@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { desktop } from "@/lib/desktop";
+import { hostBridge, openExternal } from "@/lib/web-bridge";
+import { isWeb } from "@/lib/web";
 import type { IdentityConfig, IdentityProfile } from "@/lib/identities";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
@@ -32,7 +34,10 @@ export function IdentityImport({
   folderId?: string;
   onImported?: (assetId: string) => void;
 }) {
-  const bridge = desktop()?.identities;
+  const bridge = hostBridge()?.identities;
+  const [consent, setConsent] = useState(false);
+  const [authorizationUrl, setAuthorizationUrl] = useState("");
+  const [callback, setCallback] = useState("");
   const unlocked = useVault((state) => state.unlocked);
   const [config, setConfig] = useState<IdentityConfig | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
@@ -171,6 +176,7 @@ export function IdentityImport({
         clientId: clientId.trim(),
         redirectUri: redirectUri.trim(),
         ...(clientSecret ? { clientSecret } : {}),
+        allowServerStorage: consent,
       });
       if (!alive.current || current !== generation.current || !useVault.getState().unlocked) return;
       setConfig(value);
@@ -194,13 +200,15 @@ export function IdentityImport({
     setBusy("start");
     setError("");
     try {
-      const value = await bridge.start();
+      const value = await bridge.start({ allowServerStorage: consent });
       if (!alive.current || current !== generation.current || !useVault.getState().unlocked) {
         void bridge.cancel(value.id).catch(() => {});
         return;
       }
       session.current = value.id;
       setSessionId(value.id);
+      setAuthorizationUrl(value.authorizationUrl ?? "");
+      setCallback("");
       setConfigOpen(false);
     } catch (caught) {
       if (alive.current && current === generation.current)
@@ -262,7 +270,13 @@ export function IdentityImport({
           </span>
           <div>
             <h3>Linux.do</h3>
-            <p>{t("在系统浏览器完成官方授权，身份资料与授权凭据加密保存在本机。")}</p>
+            <p>
+              {t(
+                isWeb()
+                  ? "在官方页面完成授权，独立身份凭据由可信部署服务器加密保存，与桌面密钥库分别配置。"
+                  : "在系统浏览器完成官方授权，身份资料与授权凭据加密保存在本机。",
+              )}
+            </p>
           </div>
         </div>
         {!unlocked ? (
@@ -291,6 +305,20 @@ export function IdentityImport({
           </Button>
         ) : (
           <>
+            {isWeb() && (
+              <label className="flex items-start gap-2 rounded-lg border border-warn/30 bg-warn/5 p-3 text-meta leading-relaxed">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={consent}
+                  disabled={Boolean(sessionId) || Boolean(busy)}
+                  onChange={(event) => setConsent(event.target.checked)}
+                />
+                {t(
+                  "我允许服务器加密保存独立身份的客户端密钥和授权令牌；管理员仍有能力访问。断开授权会删除该身份的令牌，接入配置与桌面端不互通。敏感账号建议使用桌面端。",
+                )}
+              </label>
+            )}
             <Collapsible.Root
               open={configOpen}
               onOpenChange={setConfigOpen}
@@ -370,9 +398,9 @@ export function IdentityImport({
                       variant="ghost"
                       size="sm"
                       onClick={() =>
-                        void desktop()
-                          ?.openExternal("https://connect.linux.do/")
-                          .catch(() => toast.error(t("无法打开链接")))
+                        void openExternal("https://connect.linux.do/").catch(() =>
+                          toast.error(t("无法打开链接")),
+                        )
                       }
                     >
                       <ExternalLink />
@@ -385,6 +413,7 @@ export function IdentityImport({
                         !!busy ||
                         !clientId.trim() ||
                         !redirectUri.trim() ||
+                        (isWeb() && !consent) ||
                         (!config.hasClientSecret && !clientSecret)
                       }
                     >
@@ -405,6 +434,46 @@ export function IdentityImport({
                   <strong>{t("等待浏览器授权")}</strong>
                   <p>{t("请在打开的 Linux.do 页面确认登录，完成后这里会自动显示资料。")}</p>
                 </div>
+              </div>
+            )}
+            {isWeb() && waiting && authorizationUrl && (
+              <div className="space-y-3 rounded-lg border border-line p-3">
+                <a
+                  className="text-meta underline"
+                  href={authorizationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("打开官方授权页面")}
+                </a>
+                <p className="text-2xs leading-relaxed text-muted">
+                  {t(
+                    "完成授权后，本机回调页面可能无法打开。请复制完整地址栏链接粘贴到下方；不要输入账号密码。",
+                  )}
+                </p>
+                <Field label={t("完整授权回调地址")}>
+                  <Input
+                    aria-label={t("完整授权回调地址")}
+                    value={callback}
+                    autoComplete="off"
+                    onChange={(event) => setCallback(event.target.value)}
+                  />
+                </Field>
+                <Button
+                  disabled={Boolean(busy) || !callback.trim()}
+                  onClick={() => {
+                    setBusy("start");
+                    void bridge
+                      ?.finish?.(sessionId!, callback.trim())
+                      .then(() => setCallback(""))
+                      .catch((error: unknown) =>
+                        setError(error instanceof Error ? error.message : String(error)),
+                      )
+                      .finally(() => setBusy(null));
+                  }}
+                >
+                  {t("确认授权回调")}
+                </Button>
               </div>
             )}
             {preview && (
@@ -444,7 +513,14 @@ export function IdentityImport({
           </Button>
         ) : (
           <Button
-            disabled={!unlocked || !config?.configured || !!busy || waiting || configDirty}
+            disabled={
+              !unlocked ||
+              !config?.configured ||
+              !!busy ||
+              waiting ||
+              configDirty ||
+              (isWeb() && !consent)
+            }
             onClick={() => void start()}
           >
             {busy === "start" ? <Loader2 className="animate-spin" /> : <ExternalLink />}
