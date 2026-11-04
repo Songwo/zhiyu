@@ -196,7 +196,9 @@
             <li>安全设置：登录后在「设置 → 个人资料 → 账号安全」开启两步验证（TOTP）并保存 8 个恢复码；在服务器上用 <code>ZHIYU_ALLOWED_NETS</code> 只允许自己的 IP 或 VPN；登录失败会被限流，新地址登录会推送到手机，登录中的设备可以随时退出。</li>
             <li>「设置 → 提醒推送」可以让服务器按时把续费与备忘提醒推送到 Telegram、微信或企业微信，浏览器关着也能收到。</li>
             <li>「设置 → 数据」可以下载加密备份到桌面版恢复，也能把桌面版备份恢复到网页版。</li>
-            <li>网页版改由服务器执行 SSH 终端、SFTP、主机采集、域名与证书检查、Cloudflare、AI 助手和用量刷新；另有「主机监控」页，显示这台 VPS 自己的 CPU、内存、磁盘、网络。浏览器插件配对、浏览器密码 CSV 迁移、OAuth 网页登录、v2rayN 流量等仍只在桌面版。</li>
+            <li>在「设置 → 个人资料」连接 Linux.do 主身份，在官方页面完成授权后回到知屿确认绑定。Exa 显示免费/已购次数、逐条进度与记录；同一主体与桌面共用额度。未配置积分商户或可信 Exa 余额时不开放购买。</li>
+            <li>在「设置 → 模型与知识库」填写自己的 TypeSafe Jev Key，手动授权本次分析后逐段显示进度，只在原文高亮、下划线或定位，不新建提取文档。Web 也支持在浏览器解析文档账号并加密保存；服务器保护的 API Key 不随工作区同步。</li>
+            <li>网页版改由服务器执行 SSH 终端、SFTP、主机采集、域名与证书检查、Cloudflare、AI 助手和用量刷新；另有「主机监控」页，显示这台 VPS 自己的状态。浏览器插件配对、密码 CSV 迁移、AI/邮箱供应商 OAuth、v2rayN 本机流量仍有桌面环境限制，详见<a href="https://github.com/Songwo/zhiyu/blob/main/docs/WEB-PARITY.md">功能对照</a>。</li>
           </ol>
           <p class="guide-tip">完整步骤、环境变量、HTTPS 示例和「安全加固」清单见仓库里的 <a href="https://github.com/Songwo/zhiyu/blob/main/docs/WEB.md">docs/WEB.md</a>。</p>
         </section>
