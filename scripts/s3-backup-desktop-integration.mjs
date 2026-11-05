@@ -13,7 +13,8 @@ const env = { ...process.env, NANPAD_TEST_DATA_DIR: root, NANPAD_DISABLE_GPU: "1
 delete env.ELECTRON_RUN_AS_NODE;
 delete env.SINAN_DEV_URL;
 delete env.NODE_PATH;
-const executablePath = resolve(process.argv[2] ?? "release/v1.17.7/win-unpacked/Zhiyu.exe");
+const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+const executablePath = resolve(process.argv[2] ?? `release/v${version}/win-unpacked/Zhiyu.exe`);
 let instance;
 const errors = [],
   password = "synthetic-desktop-backup-password";

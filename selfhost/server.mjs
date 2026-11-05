@@ -14,7 +14,7 @@
  */
 import { createServer } from "node:http";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -38,6 +38,7 @@ import {
   verifyTotp,
 } from "./security.mjs";
 import { createServerSecureStorage } from "./secure-storage.mjs";
+import { writeAtomic } from "./atomic-write.mjs";
 import {
   BACKUP_LIMITS,
   applyPendingRestore,
@@ -83,12 +84,6 @@ class HttpError extends Error {
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 
-/** 先写临时文件再改名，中断时不会留下半个文件。 */
-async function writeAtomic(file, data, mode = 0o600) {
-  const tmp = `${file}.${randomBytes(6).toString("hex")}.tmp`;
-  await writeFile(tmp, data, { mode });
-  await rename(tmp, file);
-}
 async function readJson(file) {
   try {
     return JSON.parse(await readFile(file, "utf8"));
@@ -449,6 +444,13 @@ export async function createWebServer({
     clientIp,
     limits: syncLimits,
   });
+  // 启动失败直接交给创建服务的调用者处理，不能让后台初始化产生未处理的拒绝。
+  try {
+    await syncHost.ready;
+  } catch (error) {
+    bridge.stop();
+    throw error;
+  }
   const syncGuard = (work) =>
     work().catch((error) => {
       if (error instanceof SyncHttpError) throw new HttpError(error.status, error.message);

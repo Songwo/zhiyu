@@ -105,6 +105,32 @@ jobs:
       - name: 验证真实 MV3 扩展与 Web 本地密码迁移
         run: node scripts/web-passwords-extension-integration.mjs
 
+  windows-check:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: 规范 Windows 临时目录
+        shell: pwsh
+        run: |
+          $taskTempPath = node -p "require('node:fs').realpathSync.native(require('node:os').tmpdir())"
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve temporary directory' }
+          "TEMP=$taskTempPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TMP=$taskTempPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - run: npm ci
+      - name: 安装独立登录服务依赖
+        working-directory: services/identity-login
+        run: npm ci --omit=dev --ignore-scripts
+      - run: node node_modules/electron/install.js
+      - run: npx playwright install chromium
+      - run: npm run terminal:build
+      - run: npm run typecheck
+      - run: npm test
+
   web-docker:
     runs-on: ubuntu-latest
     timeout-minutes: 20
