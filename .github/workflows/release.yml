@@ -194,6 +194,11 @@ jobs:
           version=$(node -p "require('./package.json').version")
           test "v$version" = "$ZHIYU_RELEASE_TAG"
           test "$(git rev-parse HEAD)" = "$(git rev-parse "$ZHIYU_RELEASE_TAG^{}")"
+      - name: 规范 macOS 临时目录的真实路径
+        run: |
+          task_temp_path=$(node -p "require('node:fs').realpathSync.native(require('node:os').tmpdir())")
+          test -d "$task_temp_path"
+          echo "TMPDIR=$task_temp_path" >> "$GITHUB_ENV"
       - run: npm ci
       - run: node node_modules/electron/install.js
       - name: 安装独立登录服务依赖

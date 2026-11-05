@@ -36,11 +36,21 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: 规范 macOS 临时目录的真实路径
+        run: |
+          task_temp_path=$(node -p "require('node:fs').realpathSync.native(require('node:os').tmpdir())")
+          test -d "$task_temp_path"
+          echo "TMPDIR=$task_temp_path" >> "$GITHUB_ENV"
       - run: npm ci
       - name: 安装匹配本机架构的 Electron
         run: node node_modules/electron/install.js
+      - name: 安装独立登录服务依赖
+        working-directory: services/identity-login
+        run: npm ci --omit=dev --ignore-scripts
+      - run: npx playwright install chromium
       - run: node --test scripts/package-stage.test.mjs
       - run: npm run typecheck
+      - run: npm test
       - name: 预先验证正式 DMG 与 ZIP 构建
         run: npm run desktop:dist -- --mac --${{ matrix.arch }}
       - name: 校验并归档程序
