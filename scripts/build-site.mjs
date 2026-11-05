@@ -107,7 +107,7 @@ export function renderSite(template, values) {
           "'": "&#39;",
         })[char],
     );
-  return template.replace(/\{\{([A-Z_]+)\}\}/g, (_, key) => {
+  return template.replace(/\{\{([A-Z][A-Z0-9_]*)\}\}/g, (_, key) => {
     if (!Object.hasOwn(values, key)) throw new Error(`Unknown site template field: ${key}`);
     return escape(values[key]);
   });

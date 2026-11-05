@@ -126,6 +126,19 @@ test("发布说明按文本输出，不能把脚本或模板占位符带进网�
   assert.throws(() => renderSite("{{UNKNOWN}}", releaseDetails(release)), /Unknown/);
 });
 
+test("包含芯片架构数字的四个 Mac 下载字段必须被替换，未知字段仍报错", () => {
+  const keys = ["MAC_ARM64_DMG_URL", "MAC_ARM64_ZIP_URL", "MAC_X64_DMG_URL", "MAC_X64_ZIP_URL"];
+  const values = Object.fromEntries(
+    keys.map((key) => [key, `https://example.test/${key}?a=1&b=2`]),
+  );
+  const template = keys.map((key) => `<a href="{{${key}}}">下载</a>`).join("");
+  const html = renderSite(template, values);
+  for (const key of keys)
+    assert.ok(html.includes(`href="https://example.test/${key}?a=1&amp;b=2"`), key);
+  assert.doesNotMatch(html, /\{\{[^{}]+\}\}/);
+  assert.throws(() => renderSite("{{MAC_ARM64_UNKNOWN_URL}}", values), /Unknown/);
+});
+
 test("没有正文时回退到发布标题，长说明保持简短", () => {
   assert.equal(
     releaseDetails({ ...publishedRelease(), body: "" }).RELEASE_SUMMARY,
@@ -194,6 +207,6 @@ test("同步协议动画：分镜自洽，动画 SVG 与分镜同步，页面模
       MAC_X64_ZIP_URL: "u",
       MAC_DOWNLOAD_NOTE: "Mac",
     };
-    assert.doesNotMatch(renderSite(html, values), /\{\{[A-Z_]+\}\}/, file);
+    assert.doesNotMatch(renderSite(html, values), /\{\{[^{}]+\}\}/, file);
   }
 });
