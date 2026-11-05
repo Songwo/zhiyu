@@ -41,8 +41,8 @@ jobs:
         run: node node_modules/electron/install.js
       - run: node --test scripts/package-stage.test.mjs
       - run: npm run typecheck
-      - name: 构建未签名测试程序
-        run: npm run desktop:pack -- --mac --${{ matrix.arch }}
+      - name: 预先验证正式 DMG 与 ZIP 构建
+        run: npm run desktop:dist -- --mac --${{ matrix.arch }}
       - name: 校验并归档程序
         env:
           BUILD_ARCH: ${{ matrix.arch }}
@@ -56,6 +56,12 @@ jobs:
           MACH_ARCH="$BUILD_ARCH"
           if [ "$BUILD_ARCH" = "x64" ]; then MACH_ARCH=x86_64; fi
           lipo -archs "$APP/Contents/MacOS/Zhiyu" | grep -q "$MACH_ARCH"
+          python3 scripts/verify-macos-package.py --app "$APP" --zip "release/v$VERSION/Zhiyu-$VERSION-mac-$BUILD_ARCH.zip" --version "$VERSION" --arch "$BUILD_ARCH"
+          mount="$RUNNER_TEMP/zhiyu-main-dmg-$BUILD_ARCH"
+          mkdir -p "$mount"
+          hdiutil attach "release/v$VERSION/Zhiyu-$VERSION-mac-$BUILD_ARCH.dmg" -readonly -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount" -force' EXIT
+          python3 scripts/verify-macos-package.py --app "$mount/Zhiyu.app" --version "$VERSION" --arch "$BUILD_ARCH"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "release/Zhiyu-mac-$BUILD_ARCH-unsigned.zip"
       - uses: actions/upload-artifact@v4
         with:

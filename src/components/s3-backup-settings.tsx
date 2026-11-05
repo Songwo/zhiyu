@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CloudUpload, Loader2, Unplug, ShieldCheck } from "lucide-react";
 import { backupAutomation } from "@/lib/backup-automation";
 import type { S3BackupStatus, S3BackupTarget } from "@/lib/backup";
@@ -37,11 +37,15 @@ export function S3BackupSettings({
     [dirty, setDirty] = useState(false);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const generation = useRef(0);
   useEffect(() => {
+    const started = generation.current;
     if (reload)
       void api
         ?.s3Status()
-        .then(setStatus)
+        .then((next) => {
+          if (generation.current === started) setStatus(next);
+        })
         .catch(() => {});
   }, [api, reload]);
   useEffect(() => {
@@ -67,11 +71,13 @@ export function S3BackupSettings({
     setNotice("");
   };
   const run = async (work: () => Promise<S3BackupStatus>, done: string) => {
+    const operation = ++generation.current;
     setBusy(true);
     setError("");
     setNotice("");
     try {
       const s = await work();
+      if (operation !== generation.current) return;
       setStatus(s);
       setDirty(false);
       setAccessKeyId("");
@@ -80,16 +86,25 @@ export function S3BackupSettings({
       setNotice(done);
       onChanged();
     } catch (e) {
+      if (operation !== generation.current) return;
       setError(e instanceof Error ? e.message : String(e));
       void api
         ?.s3Status()
-        .then(setStatus)
+        .then((next) => {
+          if (operation === generation.current) setStatus(next);
+        })
         .catch(() => {});
     } finally {
-      setBusy(false);
+      if (operation === generation.current) setBusy(false);
     }
   };
   if (!api) return null;
+  if (!status && !error)
+    return (
+      <p role="status" className="text-meta text-muted">
+        {t("加载中…")}
+      </p>
+    );
   return (
     <section className="mb-8 space-y-4" aria-label={t("S3 云端备份")}>
       <header>
@@ -282,10 +297,13 @@ export function S3BackupSettings({
                   accessKeyId,
                   secretAccessKey,
                   sessionToken,
-                  allowServerStorage: consent,
+                  ...(web ? { allowServerStorage: consent } : {}),
                 });
                 await api.s3Test();
-                return api.s3Configure({ enabled: true, allowServerStorage: consent });
+                return api.s3Configure({
+                  enabled: true,
+                  ...(web ? { allowServerStorage: consent } : {}),
+                });
               }, t("S3 已绑定，后续自动备份会上传加密文件。"))
             }
           >
@@ -315,12 +333,18 @@ export function S3BackupSettings({
               type="checkbox"
               checked={status.enabled}
               disabled={dirty || (web && !consent && !status.enabled)}
-              onChange={(e) =>
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                setStatus((current) => current && { ...current, enabled });
                 void run(
-                  () => api.s3Configure({ enabled: e.target.checked, allowServerStorage: consent }),
+                  () =>
+                    api.s3Configure({
+                      enabled,
+                      ...(web ? { allowServerStorage: consent } : {}),
+                    }),
                   t("云端备份设置已保存"),
-                )
-              }
+                );
+              }}
             />
             {t("自动备份同时上传 S3")}
           </label>
