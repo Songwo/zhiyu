@@ -100,7 +100,10 @@ jobs:
       - name: 验证文档关系与 Agent 修改的正式程序接口
         shell: pwsh
         run: |
+          Set-StrictMode -Version Latest
           $version = (Get-Content package.json | ConvertFrom-Json).version
+          $taskAppPath = "release/v$version/win-unpacked/Zhiyu.exe"
+          if (!(Test-Path -LiteralPath $taskAppPath)) { throw 'Packaged application missing' }
           node scripts/workspace-v150-integration.mjs "release/v$version/win-unpacked/Zhiyu.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/agent-access-desktop-integration.mjs "release/v$version/win-unpacked/Zhiyu.exe"
@@ -115,7 +118,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/backup-integration.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/s3-backup-desktop-integration.mjs "$app"
+          node scripts/s3-backup-desktop-integration.mjs "$taskAppPath"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: npm run extension:build
       - name: 验证正式程序的密码迁移与浏览器接口
