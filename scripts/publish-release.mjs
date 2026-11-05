@@ -4,6 +4,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { prepareReleaseFiles } from "./prepare-release-files.mjs";
+import { waitForReleaseMetadata } from "./release-metadata.mjs";
 
 const [directory, version] = process.argv.slice(2);
 assert.match(version, /^\d+\.\d+\.\d+$/);
@@ -54,8 +55,9 @@ if (release && !release.draft) {
       "--notes-file",
       `docs/releases/v${version}.md`,
     );
-    release = JSON.parse(gh("api", `repos/${repo}/releases?per_page=100`)).find(
-      (r) => r.tag_name === tag,
+    release = await waitForReleaseMetadata(
+      () => JSON.parse(gh("api", `repos/${repo}/releases?per_page=100`)),
+      tag,
     );
   }
   assert.ok(release?.id);
