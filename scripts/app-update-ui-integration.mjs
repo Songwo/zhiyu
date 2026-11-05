@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 
-const origin = "http://127.0.0.1:8080";
+const origin = process.env.NANPAD_QA_URL ?? "http://127.0.0.1:8856";
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ locale: "zh-CN", viewport: { width: 900, height: 650 } });

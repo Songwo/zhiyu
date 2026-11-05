@@ -50,6 +50,7 @@ const find = (id: ViewId) => ALL.find((item) => item.id === id)!;
 /** 顶栏常驻的入口，其余放进「更多」。 */
 const PRIMARY: Array<{ id: ViewId; label: string }> = [
   { id: "overview", label: "总览" },
+  { id: "relations", label: "资产关系图" },
   { id: "host", label: "主机监控" },
   { id: "servers", label: "服务器" },
   { id: "domains", label: "域名" },

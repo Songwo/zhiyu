@@ -4107,7 +4107,9 @@ p {
   font-size: 12px;
   font-weight: 550;
   text-align: left;
-  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 .sidebar-group-toggle:hover {
   color: var(--color-ink);
@@ -4138,7 +4140,9 @@ p {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-group-chevron { transition: none; }
+  .sidebar-group-chevron {
+    transition: none;
+  }
 }
 .sidebar-tools-chevron {
   transition: transform var(--dur-base) var(--ease-out-soft);
@@ -6325,6 +6329,21 @@ p {
 .settings-dialog {
   max-width: 70rem;
   height: min(800px, 90vh);
+}
+.settings-mobile-nav {
+  display: none;
+  flex-shrink: 0;
+  padding: 12px;
+  border-bottom: 1px solid var(--color-line);
+}
+@media (max-width: 639px) {
+  .settings-mobile-nav {
+    display: block;
+  }
+  .settings-dialog > .settings-nav,
+  .settings-page-panel > .settings-nav {
+    display: none;
+  }
 }
 .settings-content-body {
   animation: stagger-in 360ms var(--ease-out-soft) both;

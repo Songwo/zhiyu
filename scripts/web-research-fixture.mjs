@@ -128,6 +128,10 @@ export async function webResearchFixture({ built = false, additionalFetch } = {}
     schedulePush: false,
     analysisBaseUrl: providerBase,
     fetchImpl: async (url, options) => {
+      if (String(url) === "https://api.github.com/repos/Songwo/zhiyu/releases/latest")
+        return new Response(JSON.stringify({ tag_name: "v0.0.0" }), {
+          headers: { "content-type": "application/json" },
+        });
       const additional = await additionalFetch?.(url, options);
       if (additional) return additional;
       return new URL(url).origin === "https://auth.allinsong.top"

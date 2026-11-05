@@ -1,9 +1,9 @@
 import { phoneExpiry } from "./phone-numbers.mjs";
 import { extraExpiryCandidates } from "./renewals.mjs";
 import { dueReminders } from "./reminders.mjs";
-import { containerIssues } from "./service-monitor.mjs";
+import { containerAlertEntries } from "./service-monitor.mjs";
 
-/** @typedef {{ key: string, kind: string, id: string, name: string, reason: "offline" | "expiry" | "reminder" | "service", days?: number, detail?: string, detailEn?: string }} AttentionItem */
+/** @typedef {{ key: string, kind: string, id: string, name: string, reason: "offline" | "expiry" | "reminder" | "service", days?: number, detail?: string, detailEn?: string, incident?: string }} AttentionItem */
 
 /** @type {Record<string, (name: string, value?: number) => [string, string]>} */
 const ISSUE_TEXT = {
@@ -34,10 +34,16 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
       });
     // Docker 容器出问题：每种问题单独一条，同一问题 24 小时内只提醒一次，恢复后重新计。
     if (s.collect === false) continue;
-    for (const issue of containerIssues(s.serviceScan)) {
+    for (const { issue, signature, state } of containerAlertEntries(
+      s.serviceScan,
+      s.containerAlerts,
+      now,
+    )) {
+      if (state !== "active") continue;
       const [zh, en] = ISSUE_TEXT[issue.kind](issue.container, issue.value);
       out.push({
         key: `container:${s.id}:${issue.container}:${issue.kind}`,
+        incident: signature,
         kind: "server",
         id: s.id,
         name: s.name,
@@ -130,12 +136,14 @@ export class NotificationTracker {
   #seen = new Map();
   /** @param {AttentionItem[]} candidates @param {number} [now] */
   take(candidates, now = Date.now()) {
-    const current = new Set(candidates.map((x) => x.key));
+    /** @param {AttentionItem} x */
+    const identity = (x) => x.key + (x.incident ? ":" + x.incident : "");
+    const current = new Set(candidates.map(identity));
     for (const key of this.#seen.keys()) if (!current.has(key)) this.#seen.delete(key);
     return candidates.filter((x) => {
-      const last = this.#seen.get(x.key);
+      const last = this.#seen.get(identity(x));
       if (last !== undefined && now - last < 86_400_000) return false;
-      this.#seen.set(x.key, now);
+      this.#seen.set(identity(x), now);
       return true;
     });
   }

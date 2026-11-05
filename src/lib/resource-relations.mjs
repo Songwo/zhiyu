@@ -1,9 +1,10 @@
+import { phoneExpiry } from "../../electron/services/phone-numbers.mjs";
 /** @typedef {import('./asset-view').AssetRow} AssetRow */
 /** @typedef {import('./types').Snapshot} Snapshot */
 /** @typedef {import('./documents').DocumentSummary} DocumentSummary */
-/** @typedef {{kind: import('./types').AssetKind | 'document', id: string}} ResourceRef */
-/** @typedef {Omit<AssetRow, 'kind'> & ResourceRef & {demo?: boolean, host?: string}} ResourceRow */
-/** @typedef {{id: string, from: ResourceRef, to: ResourceRef, type: 'asset' | 'document'}} Relation */
+/** @typedef {{kind: import('./types').AssetKind | 'document' | 'phone', id: string}} ResourceRef */
+/** @typedef {Omit<AssetRow, 'kind'> & ResourceRef & {demo?: boolean, host?: string, subscriptionIds?: string[]}} ResourceRow */
+/** @typedef {{id: string, from: ResourceRef, to: ResourceRef, type: 'asset' | 'document' | 'phone'}} Relation */
 
 /** @param {ResourceRef} ref */
 export const resourceKey = (ref) => JSON.stringify([ref.kind, ref.id]);
@@ -53,6 +54,20 @@ export function resourceRows(rows, documents, snapshot) {
   );
   return [
     ...rows.map((row) => ({ ...row, ...inventory.get(resourceKey(row)) })),
+    ...(snapshot.phoneNumbers ?? []).map((phone) => ({
+      kind: /** @type {const} */ ("phone"),
+      id: phone.id,
+      name: phone.label || "••••" + phone.number.replace(/\D/g, "").slice(-4),
+      detail: `••••${phone.number.replace(/\D/g, "").slice(-4)} · ${phone.provider}`,
+      tags: [],
+      status: /** @type {'online'|'warning'} */ (
+        ["expired", "today", "soon"].includes(phoneExpiry(phone.expiresAt).status)
+          ? "warning"
+          : "online"
+      ),
+      search: `${phone.label} ${phone.provider}`.toLocaleLowerCase(),
+      subscriptionIds: phone.subscriptionIds,
+    })),
     ...documents.map((doc) => ({
       kind: /** @type {const} */ ("document"),
       id: doc.id,
@@ -69,7 +84,7 @@ export function resourceRows(rows, documents, snapshot) {
 export function confirmedRelations(rows, links, documents) {
   const known = new Set(rows.map(resourceKey));
   const result = new Map();
-  /** @param {ResourceRef} from @param {ResourceRef} to @param {'asset'|'document'} type */
+  /** @param {ResourceRef} from @param {ResourceRef} to @param {'asset'|'document'|'phone'} type */
   const add = (from, to, type) => {
     if (
       resourceKey(from) === resourceKey(to) ||
@@ -86,6 +101,9 @@ export function confirmedRelations(rows, links, documents) {
     });
   };
   for (const link of links ?? []) add(link.from, link.to, "asset");
+  for (const row of rows)
+    if (row.kind === "phone")
+      for (const id of row.subscriptionIds ?? []) add(row, { kind: "ai", id }, "phone");
   for (const doc of documents)
     for (const ref of doc.bindings) add({ kind: "document", id: doc.id }, ref, "document");
   return [...result.values()];
@@ -117,6 +135,56 @@ export function relatedResources(rows, relations, anchors) {
   return rows.filter((row) => selected.has(resourceKey(row)));
 }
 
+/** @param {ResourceRef} from @param {ResourceRef} to */
+export function canRelateResources(from, to) {
+  if (resourceKey(from) === resourceKey(to) || (from.kind === "document" && to.kind === "document"))
+    return false;
+  if (from.kind === "phone" || to.kind === "phone") return from.kind === "ai" || to.kind === "ai";
+  return true;
+}
+
+/** 只沿已保存关系计算最短链路，不读取凭据、文档正文或自动确认建议。
+ * @param {ResourceRow[]} rows @param {Relation[]} relations @param {ResourceRef} root
+ * @returns {Array<{row: ResourceRow, distance: number, path: ResourceRef[]}>}
+ */
+export function relationPaths(rows, relations, root) {
+  const known = new Map(rows.map((row) => [resourceKey(row), row])),
+    key = resourceKey(root);
+  if (!known.has(key)) return [];
+  const adjacency = new Map();
+  for (const edge of relations) {
+    const a = resourceKey(edge.from),
+      b = resourceKey(edge.to);
+    if (a === b || !known.has(a) || !known.has(b)) continue;
+    for (const [from, to] of [
+      [a, b],
+      [b, a],
+    ]) {
+      if (!adjacency.has(from)) adjacency.set(from, new Set());
+      adjacency.get(from).add(to);
+    }
+  }
+  const paths = new Map([[key, [root]]]),
+    queue = [key];
+  for (let index = 0; index < queue.length; index++) {
+    const current = queue[index];
+    const currentPath = paths.get(current);
+    if (!currentPath) continue;
+    for (const next of [...(adjacency.get(current) ?? [])].sort())
+      if (!paths.has(next)) {
+        const row = known.get(next);
+        if (!row) continue;
+        paths.set(next, [...currentPath, { kind: row.kind, id: row.id }]);
+        queue.push(next);
+      }
+  }
+  return queue.flatMap((k) => {
+    const row = known.get(k),
+      path = paths.get(k);
+    return row && path ? [{ row, distance: path.length - 1, path }] : [];
+  });
+}
+
 /** @param {string | undefined} host */
 function normalizedHost(host) {
   if (!host) return "";
@@ -143,6 +211,7 @@ export function suggestRelations(rows, relations) {
       (from.kind === "document" && to.kind === "document")
     )
       return;
+    if (!canRelateResources(from, to)) return;
     suggestions.set(id, {
       id,
       from: { kind: from.kind, id: from.id },
@@ -204,9 +273,17 @@ export function suggestRelations(rows, relations) {
 
 /** @param {ResourceRow[]} rows @param {Relation[]} relations @param {boolean} vertical */
 export function resourceGraph(rows, relations, vertical) {
-  const kinds = ["secret", "server", "service", "domain", "cert", "mail", "ai", "document"].filter(
-    (kind) => rows.some((row) => row.kind === kind),
-  );
+  const kinds = [
+    "secret",
+    "server",
+    "service",
+    "domain",
+    "cert",
+    "mail",
+    "ai",
+    "phone",
+    "document",
+  ].filter((kind) => rows.some((row) => row.kind === kind));
   const slots = new Map();
   const known = new Set(rows.map(resourceKey));
   const nodeId = (/** @type {ResourceRef} */ ref) => encodeURIComponent(resourceKey(ref));

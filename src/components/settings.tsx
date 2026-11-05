@@ -214,6 +214,20 @@ function SettingsBody({ header }: { header?: ReactNode }) {
   const setTab = useAppStore((s) => s.setSettingsTab);
   return (
     <>
+      <div className="settings-mobile-nav">
+        <Select
+          aria-label={t("设置分类")}
+          value={tab}
+          onValueChange={setTab}
+          options={TAB_GROUPS.flatMap((group) =>
+            group.tabs.map((entry) => ({
+              value: entry.id,
+              label: t(isWeb() && entry.id === "mail-push" ? "提醒推送" : entry.label),
+              description: t(group.title),
+            })),
+          )}
+        />
+      </div>
       <nav className="settings-nav flex min-h-0 w-40 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line p-2">
         <h2 className="px-3 pb-2 pt-3 text-meta font-semibold tracking-tight">{t("设置")}</h2>
         {TAB_GROUPS.map((group) => (

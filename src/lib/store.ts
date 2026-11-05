@@ -105,6 +105,7 @@ export interface AppState extends Snapshot {
   groupByTag: boolean;
   activity: ActivityItem[];
   expanded: ExpandState | null;
+  relationFocus: { kind: AssetKind | "document" | "phone"; id: string } | null;
   sshServerId: string | null;
   sshSessionIds: string[];
   commandOpen: boolean;
@@ -195,6 +196,7 @@ const emptyUi = {
   settingsOpen: false,
   settingsPage: false,
   agentPrompt: null,
+  relationFocus: null,
   settingsTab: "appearance",
   composerOpen: false,
   createPickerOpen: false,

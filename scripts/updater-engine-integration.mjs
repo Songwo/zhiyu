@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import electron from "electron";
+import yaml from "js-yaml";
 
 if (!process.versions.electron) {
   const directory = await mkdtemp(join(tmpdir(), "zhiyu-update-engine-"));
@@ -33,6 +34,7 @@ if (!process.versions.electron) {
   app.setPath("userData", directory);
   void app.whenReady().then(async () => {
     const { DesktopUpdater } = await import("../electron/services/app-updater.mjs");
+    const { BackgroundUpdates } = await import("../electron/services/background-updates.mjs");
     const { default: library } = await import("electron-updater");
     const payload = Buffer.alloc(256 * 1024, 42);
     const checksum = createHash("sha512").update(payload).digest("base64");
@@ -43,6 +45,19 @@ if (!process.versions.electron) {
       if (path === "/latest.yml") {
         response.end(
           `version: 99.0.0\nfiles:\n  - url: Nanpad-99.0.0-setup.exe\n    sha512: ${checksum}\n    size: ${payload.length}\npath: Nanpad-99.0.0-setup.exe\nsha512: ${checksum}\nreleaseDate: '2026-10-08T00:00:00.000Z'\n`,
+        );
+      } else if (path === "/latest-mac.yml") {
+        response.end(
+          yaml.dump({
+            version: "99.0.0",
+            files: ["arm64", "x64"].flatMap((arch) =>
+              ["dmg", "zip"].map((ext) => ({
+                url: `Zhiyu-99.0.0-mac-${arch}.${ext}`,
+                sha512: checksum,
+                size: payload.length,
+              })),
+            ),
+          }),
         );
       } else if (path.endsWith(".exe")) {
         requests++;
@@ -72,10 +87,38 @@ if (!process.versions.electron) {
         const updater = new DesktopUpdater({ engine, current: app.getVersion(), supported: true });
         assert.equal((await updater.check()).state, "outdated");
         const before = requests;
-        const result = await updater.download();
+        let result;
+        if (broken) result = await updater.download();
+        else {
+          let now = Date.now();
+          const background = new BackgroundUpdates({ updater, now: () => now });
+          background.start({ firstDelay: 1000000 });
+          now += 1000000;
+          try {
+            await background.tick();
+            result = updater.status();
+          } finally {
+            background.stop();
+          }
+        }
         assert.equal(requests, before + 1);
         assert.equal(result.state, broken ? "error" : "downloaded");
         if (broken) assert.match(result.reason, /checksum|sha512/i);
+      }
+      const { GenericProvider } = await import("electron-updater/out/providers/GenericProvider.js");
+      const { MacUpdater } = await import("electron-updater/out/MacUpdater.js");
+      const engine = new library.NsisUpdater({ provider: "generic", url });
+      const provider = new GenericProvider({ provider: "generic", url }, engine, {
+        executor: engine.httpExecutor,
+        platform: "darwin",
+      });
+      const macInfo = await provider.getLatestVersion();
+      assert.equal(macInfo.version, "99.0.0");
+      for (const arm of [false, true]) {
+        const files = MacUpdater.filterFilesForArch(provider.resolveFiles(macInfo), arm);
+        assert.equal(files.length, 2);
+        assert.ok(files.every((file) => file.url.pathname.includes(arm ? "mac-arm64" : "mac-x64")));
+        assert.ok(files.some((file) => file.url.pathname.endsWith(".zip")));
       }
       console.log(
         JSON.stringify({
@@ -83,6 +126,9 @@ if (!process.versions.electron) {
           realNsisEngine: true,
           realHttpDownload: true,
           corruptedDownloadRejected: true,
+          scheduledBackgroundDownload: true,
+          macManifestRealSdk: true,
+          macBothArchitectureSelection: true,
           installerExecuted: false,
           isolated: true,
         }),

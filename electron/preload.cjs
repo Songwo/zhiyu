@@ -169,6 +169,10 @@ contextBridge.exposeInMainWorld("sinan", {
     test: () => unwrap(ipcRenderer.invoke("mail-push:test")),
   },
   backup: {
+    s3Status: () => unwrap(ipcRenderer.invoke("backup:s3-status")),
+    s3Configure: (input) => unwrap(ipcRenderer.invoke("backup:s3-configure", input)),
+    s3Test: () => unwrap(ipcRenderer.invoke("backup:s3-test")),
+    s3Disconnect: () => unwrap(ipcRenderer.invoke("backup:s3-disconnect")),
     info: () => unwrap(ipcRenderer.invoke("backup:info")),
     create: (input) => unwrap(ipcRenderer.invoke("backup:create", input)),
     pick: () => unwrap(ipcRenderer.invoke("backup:pick")),

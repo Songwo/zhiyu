@@ -1,3 +1,5 @@
+import { cloneElement, isValidElement, useId } from "react";
+import { Select } from "./select";
 import type {
   InputHTMLAttributes,
   LabelHTMLAttributes,
@@ -40,10 +42,29 @@ export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElem
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
+  const generated = useId();
+  const control =
+    isValidElement<{ id?: string; "aria-label"?: string; "aria-labelledby"?: string }>(children) &&
+    (children.type === Input ||
+      children.type === Textarea ||
+      children.type === Select ||
+      children.type === "input" ||
+      children.type === "textarea" ||
+      children.type === "select")
+      ? children
+      : null;
+  const id = control?.props.id ?? generated;
   return (
     <div>
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={control ? id : undefined}>{label}</Label>
+      {control
+        ? cloneElement(control, {
+            id,
+            ...(!control.props["aria-label"] && !control.props["aria-labelledby"]
+              ? { "aria-label": label }
+              : {}),
+          })
+        : children}
     </div>
   );
 }

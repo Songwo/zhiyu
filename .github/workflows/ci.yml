@@ -89,6 +89,12 @@ jobs:
       # 自托管网页版：构建同一份界面代码，跑一遍首次设置、跨设备同步与退出登录。
       - run: npm run web:build
       - run: node scripts/web-selfhost-integration.mjs
+      - name: 验证关联、容器告警、云备份与 AI 底部布局
+        run: |
+          node scripts/web-relations-integration.mjs
+          node scripts/web-container-alerts-integration.mjs
+          node scripts/web-s3-backup-integration.mjs
+          node scripts/web-agent-layout-integration.mjs
       - name: 验证 Web 主身份、检索与 Jev 原文提示
         run: node scripts/web-research-ui-integration.mjs
       - name: 验证 Web SSH 指纹、授权同意与邮件设置

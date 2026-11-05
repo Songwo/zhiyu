@@ -65,7 +65,13 @@ export function AssetWorkspace() {
   const graphRows = useMemo(() => {
     if (!graph) return [];
     return s.view === "relations" || all
-      ? resources.filter((row) => !s.query || row.search.includes(s.query.toLocaleLowerCase()))
+      ? s.query
+        ? relatedResources(
+            resources,
+            relations,
+            resources.filter((row) => row.search.includes(s.query.toLocaleLowerCase())),
+          )
+        : resources
       : relatedResources(resources, relations, rows);
   }, [graph, s.view, s.query, all, resources, relations, rows]);
   return (

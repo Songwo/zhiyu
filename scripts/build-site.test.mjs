@@ -188,6 +188,11 @@ test("同步协议动画：分镜自洽，动画 SVG 与分镜同步，页面模
       CHECKSUM_URL: "u",
       PORTABLE_URL: "u",
       PORTABLE_SIZE: "1 MB",
+      MAC_ARM64_DMG_URL: "u",
+      MAC_ARM64_ZIP_URL: "u",
+      MAC_X64_DMG_URL: "u",
+      MAC_X64_ZIP_URL: "u",
+      MAC_DOWNLOAD_NOTE: "Mac",
     };
     assert.doesNotMatch(renderSite(html, values), /\{\{[A-Z_]+\}\}/, file);
   }

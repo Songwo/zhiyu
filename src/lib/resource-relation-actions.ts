@@ -1,6 +1,5 @@
-import { desktop } from "./desktop";
 import { useAppStore } from "./store";
-import { useDocuments, type DocumentAsset } from "./documents";
+import { useDocuments, documentsApi, type DocumentAsset } from "./documents";
 import { assetEntries, refKey, type AssetRef } from "./operations";
 import type { ResourceRef } from "./resource-relations.mjs";
 
@@ -21,6 +20,24 @@ export async function updateResourceRelation(from: ResourceRef, to: ResourceRef,
 }
 
 async function applyResourceRelation(from: ResourceRef, to: ResourceRef, remove: boolean) {
+  const phoneRef = from.kind === "phone" ? from : to.kind === "phone" ? to : null;
+  if (phoneRef) {
+    const target = from.kind === "phone" ? to : from;
+    if (target.kind !== "ai")
+      throw new Error("号码通过已绑定的 AI 订阅连接其他资源，请选择 AI 订阅。");
+    const state = useAppStore.getState(),
+      phone = state.phoneNumbers.find((p) => p.id === phoneRef.id);
+    if (!phone || !state.aiAssets.some((a) => a.id === target.id))
+      throw new Error("关联资源已不存在，请刷新后重试。");
+    state.upsertPhoneNumber({
+      ...phone,
+      subscriptionIds: remove
+        ? phone.subscriptionIds.filter((id) => id !== target.id)
+        : [...new Set([...phone.subscriptionIds, target.id])],
+      updatedAt: new Date().toISOString(),
+    });
+    return;
+  }
   if (from.kind === "document" && to.kind === "document")
     throw new Error("请选择至少一项账号或其他资产，文档通过共同资产组成关联组。");
   const state = useAppStore.getState();
@@ -38,10 +55,7 @@ async function applyResourceRelation(from: ResourceRef, to: ResourceRef, remove:
     if (documents.status[document.id] && documents.status[document.id] !== "saved")
       await documents.flush(document.id);
     const beforeRead = useDocuments.getState().drafts[document.id];
-    const bridge = desktop();
-    const current: DocumentAsset | null = bridge
-      ? await bridge.documents.get(document.id)
-      : JSON.parse(localStorage.getItem("nanpad-doc:" + document.id) || "null");
+    const current: DocumentAsset | null = await documentsApi().get(document.id);
     if (!current) throw new Error("关联文档已不存在，请刷新后重试。");
     // 异步读取期间若用户继续编辑，绑定应合并到新草稿，不能覆盖正文。
     const latestDraft = useDocuments.getState().drafts[document.id];

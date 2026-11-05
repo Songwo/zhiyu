@@ -23,6 +23,7 @@ import {
   ChevronDown,
   Ellipsis,
   Plus,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -73,6 +74,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "工作台",
     items: [
       { id: "overview", label: "资产总览", icon: House, badgeKey: "total" },
+      { id: "relations", label: "资产关系图", icon: Network },
       { id: "renewals", label: "费用与续费", icon: CalendarClock },
       { id: "docs", label: "文档资产", icon: FileText },
       { id: "agent", label: "AI 助手", icon: MessagesSquare },

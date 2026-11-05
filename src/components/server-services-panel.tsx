@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Boxes, ExternalLink, Network, ShieldAlert } from "lucide-react";
 import { t } from "@/lib/i18n";
 import {
   containerIssues,
+  containerAlertEntries,
   endpointState,
   isScanFresh,
   type ContainerInfo,
@@ -14,6 +15,8 @@ import { useAppStore } from "@/lib/store";
 import type { Server } from "@/lib/types";
 import { cn, relativeTime } from "@/lib/utils";
 import { RefreshOneButton } from "./refresh-button";
+import { Button } from "./ui/button";
+import { ContainerAlertSettings, changeContainerAlerts } from "./container-alert-settings";
 
 const SCOPE_LABEL = { public: "对外", private: "内网", local: "仅本机" } as const;
 const STATE_LABEL: Record<string, string> = {
@@ -90,7 +93,13 @@ export function ServerServicesPanel({ server }: { server: Server }) {
   const openComposer = useAppStore((s) => s.openComposer);
   const scan = server.serviceScan;
   const fresh = isScanFresh(scan);
-  const issues = useMemo(() => containerIssues(scan), [scan]);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const entries = containerAlertEntries(scan, server.containerAlerts, now);
+  const issues = containerIssues(scan, server.containerAlerts, now);
   const bound = useMemo(
     () => (services ?? []).filter((service) => service.endpoint?.serverId === server.id),
     [services, server.id],
@@ -120,16 +129,79 @@ export function ServerServicesPanel({ server }: { server: Server }) {
         <RefreshOneButton kind="server" id={server.id} />
       </header>
 
-      {!!issues.length && (
-        <div className="rounded-xl border border-warn/40 bg-warn/5 p-4" role="status">
+      <ContainerAlertSettings server={server} now={now} />
+
+      {!!entries.length && (
+        <div
+          className={cn(
+            "rounded-xl border p-4",
+            issues.length ? "border-warn/40 bg-warn/5" : "border-line bg-surface/40",
+          )}
+          role="status"
+        >
           <p className="flex items-center gap-2 text-meta font-medium">
-            <ShieldAlert className="size-4 text-warn" />
-            {t("{0} 个容器需要处理", issues.length)}
+            <ShieldAlert className={cn("size-4", issues.length ? "text-warn" : "text-muted")} />
+            {issues.length ? t("{0} 个容器需要处理", issues.length) : t("容器异常处理记录")}
           </p>
           <ul className="mt-2 space-y-1 text-meta">
-            {issues.map((issue) => (
-              <li key={`${issue.container}:${issue.kind}`}>
-                <strong className="font-medium">{issue.container}</strong> · {issueText(issue)}
+            {entries.map(({ issue, signature, state, until }) => (
+              <li
+                key={`${issue.container}:${issue.kind}`}
+                className="flex flex-wrap items-center justify-between gap-2 py-1"
+              >
+                <span>
+                  <strong className="font-medium">{issue.container}</strong> · {issueText(issue)}
+                  {state !== "active" && (
+                    <span className="ml-2 text-muted">
+                      {state === "acknowledged"
+                        ? t("已确认本次异常")
+                        : state === "grace"
+                          ? t("启动宽限至 {0}", new Date(until!).toLocaleTimeString())
+                          : t("维护静音中")}
+                    </span>
+                  )}
+                </span>
+                {state === "active" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={t("确认 {0} 当前异常", issue.container)}
+                    onClick={() =>
+                      changeContainerAlerts(server.id, (config, current) => {
+                        const latest = containerAlertEntries(current.serviceScan, config).find(
+                          (entry) => entry.issue.container === issue.container,
+                        );
+                        return latest?.signature === signature
+                          ? {
+                              ...config,
+                              acknowledged: {
+                                ...config.acknowledged,
+                                [issue.container]: signature,
+                              },
+                            }
+                          : config;
+                      })
+                    }
+                  >
+                    {t("确认本次异常")}
+                  </Button>
+                )}
+                {state === "acknowledged" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={t("撤销 {0} 异常确认", issue.container)}
+                    onClick={() =>
+                      changeContainerAlerts(server.id, (config) => {
+                        const acknowledged = { ...config.acknowledged };
+                        delete acknowledged[issue.container];
+                        return { ...config, acknowledged };
+                      })
+                    }
+                  >
+                    {t("撤销确认")}
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

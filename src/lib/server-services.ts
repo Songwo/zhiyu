@@ -44,13 +44,41 @@ export const SCAN_STALE_MS = 30 * 60_000;
 export type {
   ContainerIssue,
   ContainerIssueKind,
+  ContainerAlertConfig,
 } from "../../electron/services/service-monitor.mjs";
-export { containerIssues } from "../../electron/services/service-monitor.mjs";
+export {
+  containerIssues,
+  containerAlertEntries,
+  containerAlertRule,
+  reconcileContainerAlertConfig,
+} from "../../electron/services/service-monitor.mjs";
 import { containerIssues } from "../../electron/services/service-monitor.mjs";
 
 /** 主机状态：有容器问题时至少是「注意」，不因此把整台主机标成离线。 */
-export function withContainerIssues(status: Status, scan?: ServerServices | null): Status {
-  return status === "online" && containerIssues(scan).length ? "warning" : status;
+export function withContainerIssues(
+  status: Status,
+  scan?: ServerServices | null,
+  config?: Server["containerAlerts"],
+  now = Date.now(),
+): Status {
+  return status === "online" && containerIssues(scan, config, now).length ? "warning" : status;
+}
+
+/** 容器确认和静音不能掩盖 SSH 故障、CPU、内存或磁盘告警。 */
+export function hostMetricsStatus(cpu?: number, memory?: number, disk?: number): Status {
+  const metrics = [cpu, memory, disk].filter((n): n is number => typeof n === "number");
+  return metrics.some((n) => n >= 90)
+    ? "offline"
+    : metrics.some((n) => n >= 78)
+      ? "warning"
+      : "online";
+}
+
+export function serverStatusWithContainerAlerts(server: Server, now = Date.now()): Status {
+  if (server.collect === false || !server.serviceScan) return server.status;
+  if (server.probeError) return "offline";
+  const base = server.hostProbeStatus ?? hostMetricsStatus(server.cpu, server.memory, server.disk);
+  return withContainerIssues(base, server.serviceScan, server.containerAlerts, now);
 }
 
 export function isScanFresh(scan: ServerServices | undefined | null, now = Date.now()) {

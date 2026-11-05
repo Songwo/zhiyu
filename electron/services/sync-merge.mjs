@@ -44,6 +44,7 @@ export const VOLATILE_FIELDS = new Set([
   "probedAt",
   "probeError",
   "serviceScan",
+  "hostProbeStatus",
   "usageCheckedAt",
   "usageSummary",
   "usageAvailable",

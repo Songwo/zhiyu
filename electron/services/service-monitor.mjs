@@ -234,9 +234,10 @@ const FLAPPING = 5;
  * 需要人处理的容器问题：重启循环、异常退出、内存不足被杀、健康检查失败、反复重启。
  * 正常退出（退出码 0）的一次性任务容器不算问题。界面和系统通知共用这一份判断。
  * @param {{ docker?: { containers?: any[] } } | null | undefined} scan
+ * @param {ContainerAlertConfig} [config]
  * @returns {ContainerIssue[]}
  */
-export function containerIssues(scan) {
+function rawContainerIssues(scan, config = {}) {
   /** @type {ContainerIssue[]} */
   const issues = [];
   for (const c of scan?.docker?.containers ?? []) {
@@ -254,7 +255,7 @@ export function containerIssues(scan) {
     } else if (c.state === "running") {
       if (c.health === "unhealthy")
         issues.push({ kind: "unhealthy", container: c.name, severity: "warn" });
-      else if ((c.restartCount ?? 0) >= FLAPPING)
+      else if ((c.restartCount ?? 0) >= containerAlertRule(config, c.name).restartThreshold)
         issues.push({
           kind: "flapping",
           container: c.name,
@@ -264,6 +265,107 @@ export function containerIssues(scan) {
     }
   }
   return issues;
+}
+
+/**
+ * @typedef {{restartThreshold?: number, startupGraceSeconds?: number}} ContainerAlertRule
+ * @typedef {ContainerAlertRule & {overrides?: Record<string, ContainerAlertRule>, acknowledged?: Record<string,string>, mutedUntil?: Record<string,number>}} ContainerAlertConfig
+ */
+
+/** @param {ContainerAlertConfig} config @param {string} name */
+export function containerAlertRule(config = {}, name = "") {
+  const own =
+    config.overrides && Object.hasOwn(config.overrides, name) ? config.overrides[name] : {};
+  const threshold = own?.restartThreshold ?? config.restartThreshold;
+  const grace = own?.startupGraceSeconds ?? config.startupGraceSeconds;
+  return {
+    restartThreshold:
+      typeof threshold === "number" &&
+      Number.isInteger(threshold) &&
+      threshold >= 1 &&
+      threshold <= 10000
+        ? threshold
+        : FLAPPING,
+    startupGraceSeconds:
+      typeof grace === "number" && Number.isInteger(grace) && grace >= 0 && grace <= 3600
+        ? grace
+        : 120,
+  };
+}
+
+/** 当前异常的指纹不含不断变化的运行时长；容器重建、再次启动或计数增加均是新事件。
+ * @param {any} container @param {ContainerIssue} issue
+ */
+function incidentSignature(container, issue) {
+  return JSON.stringify([
+    container.id,
+    container.startedAt ?? "",
+    container.restartCount ?? 0,
+    container.state,
+    container.health ?? "",
+    container.exitCode ?? 0,
+    !!container.oomKilled,
+    issue.kind,
+  ]);
+}
+
+/** 确认与静音保留原始异常，只影响需要处理的告警。重启循环、退出和 OOM 不受启动宽限影响。
+ * @param {{docker?: {containers?: any[]}} | null | undefined} scan
+ * @param {ContainerAlertConfig} [config] @param {number} [now]
+ */
+export function containerAlertEntries(scan, config = {}, now = Date.now()) {
+  return rawContainerIssues(scan, config).map((issue) => {
+    const container = scan?.docker?.containers?.find((c) => c.name === issue.container);
+    const signature = incidentSignature(container, issue);
+    const mutedUntil = Object.hasOwn(config.mutedUntil ?? {}, issue.container)
+      ? config.mutedUntil?.[issue.container]
+      : undefined;
+    const acknowledged =
+      Object.hasOwn(config.acknowledged ?? {}, issue.container) &&
+      config.acknowledged?.[issue.container] === signature;
+    const started = Date.parse(container?.startedAt);
+    const graceUntil =
+      started + containerAlertRule(config, issue.container).startupGraceSeconds * 1000;
+    const grace = container?.state === "running" && started <= now && now < graceUntil;
+    const state =
+      mutedUntil && mutedUntil > now
+        ? "muted"
+        : acknowledged
+          ? "acknowledged"
+          : grace
+            ? "grace"
+            : "active";
+    return {
+      issue,
+      signature,
+      state,
+      until: state === "muted" ? mutedUntil : state === "grace" ? graceUntil : undefined,
+    };
+  });
+}
+
+/** @param {{docker?: {containers?: any[]}} | null | undefined} scan @param {ContainerAlertConfig} [config] @param {number} [now] @returns {ContainerIssue[]} */
+export function containerIssues(scan, config = {}, now = Date.now()) {
+  return containerAlertEntries(scan, config, now)
+    .filter((entry) => entry.state === "active")
+    .map((entry) => entry.issue);
+}
+
+/** 已成功采集到恢复状态后丢弃旧确认，确保同容器随后再次出现相同健康故障也会重新提醒。
+ * @param {ContainerAlertConfig | undefined} config @param {{docker?: {available?: boolean,containers?: any[]}} | undefined} scan
+ * @returns {ContainerAlertConfig | undefined}
+ */
+export function reconcileContainerAlertConfig(config, scan) {
+  if (!config?.acknowledged || !scan?.docker?.available) return config;
+  const current = new Map(
+    containerAlertEntries(scan, config).map((entry) => [entry.issue.container, entry.signature]),
+  );
+  const acknowledged = Object.fromEntries(
+    Object.entries(config.acknowledged).filter(
+      ([name, signature]) => current.get(name) === signature,
+    ),
+  );
+  return { ...config, acknowledged };
 }
 
 /** 解析 SERVICES_SCRIPT 的输出。 */

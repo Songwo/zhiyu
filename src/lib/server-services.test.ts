@@ -6,6 +6,7 @@ import {
   isScanFresh,
   serviceStatusFromEndpoint,
   withContainerIssues,
+  serverStatusWithContainerAlerts,
   type ContainerInfo,
   type ServerServices,
 } from "./server-services.ts";
@@ -70,6 +71,25 @@ test("有容器问题时主机至少是「注意」，已经离线的不被改�
   assert.equal(withContainerIssues("online", bad), "warning");
   assert.equal(withContainerIssues("offline", bad), "offline");
   assert.equal(withContainerIssues("online", scan([container()])), "online");
+});
+
+test("容器静音和确认只清除容器告警，不能清除主机过载或 SSH 失败", () => {
+  const server = {
+    ...host(scan([container({ state: "restarting" })])),
+    cpu: 1,
+    memory: 1,
+    disk: 1,
+    status: "warning",
+    containerAlerts: { mutedUntil: { web: NOW + 60000 } },
+  } as Server;
+  assert.equal(serverStatusWithContainerAlerts(server, NOW), "online");
+  assert.equal(serverStatusWithContainerAlerts(server, NOW + 60000), "warning");
+  assert.equal(serverStatusWithContainerAlerts({ ...server, memory: 80 }, NOW), "warning");
+  assert.equal(serverStatusWithContainerAlerts({ ...server, disk: 95 }, NOW), "offline");
+  assert.equal(
+    serverStatusWithContainerAlerts({ ...server, probeError: "connect failed" }, NOW),
+    "offline",
+  );
 });
 
 test("采集结果超过 30 分钟就不再算最新", () => {

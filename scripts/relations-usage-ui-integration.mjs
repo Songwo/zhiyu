@@ -200,6 +200,8 @@ try {
         })),
       };
       window.sinan = {
+        // 远程用量刷新要求已解锁；此夹具只提供合成数据，不读取真实凭据。
+        vault: { status: async () => ({ exists: true, unlocked: true }) },
         store: {
           load: async () => JSON.parse(localStorage.getItem("qa-assets") || "null"),
           save: async (value) => localStorage.setItem("qa-assets", JSON.stringify(value)),

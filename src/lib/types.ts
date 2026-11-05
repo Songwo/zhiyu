@@ -185,6 +185,9 @@ export interface Server extends ProbeMeta, Taggable {
   billing?: Billing;
   /** 最近一次采集到的监听端口与 Docker 容器。 */
   serviceScan?: import("./server-services").ServerServices;
+  /** 容器告警规则和当前事件确认随工作区同步，不修改真实容器状态。 */
+  containerAlerts?: import("./server-services").ContainerAlertConfig;
+  hostProbeStatus?: Status;
 }
 
 export interface Domain extends ProbeMeta, Taggable {

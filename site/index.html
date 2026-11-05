@@ -311,13 +311,30 @@
 
       <section class="section" aria-labelledby="cards-title">
         <article class="wrap feature">
-        <div class="feature-copy">
-          <span class="tag tag-teal">支付卡与 eSIM</span>
-          <h2 id="cards-title">卡片有期限，<br />关联有归处</h2>
-          <p>居中的 3D 卡面可以翻到背面，解锁后快速复制私人资料。常见国内银行离线辅助识别，支持自定义发行方、内置图标与地域筛选；eSIM 分别记录套餐到期和保号期限。卡片继续关联账号、服务与文档，到期事项进入既有提醒。</p>
-          <p>桌面与自托管 Web 均支持 Exa 联网检索和 TypeSafe Jev 原文提示，逐条显示实际处理进度；同一 Linux.do 主身份共享免费与已购次数及记录。搜索由维护者配置，无法核实真实预算时关闭积分购买；Jev 使用自己的 Key，只在原文标记。</p>
-        </div>
-        <figure class="shot"><img src="./cards.png?v={{ASSET_REVISION}}" width="1360" height="900" loading="lazy" alt="合成支付卡示例：银行图标、卡片期限和地域分类" /></figure>
+          <div class="feature-copy">
+            <span class="tag tag-teal">支付卡与 eSIM</span>
+            <h2 id="cards-title">卡片有期限，<br />关联有归处</h2>
+            <p>
+              居中的 3D
+              卡面可以翻到背面，解锁后快速复制私人资料。常见国内银行离线辅助识别，支持自定义发行方、内置图标与地域筛选；eSIM
+              分别记录套餐到期和保号期限。卡片继续关联账号、服务与文档，到期事项进入既有提醒。
+            </p>
+            <p>
+              桌面与自托管 Web 均支持 Exa 联网检索和 TypeSafe Jev
+              原文提示，逐条显示实际处理进度；同一 Linux.do
+              主身份共享免费与已购次数及记录。搜索由维护者配置，无法核实真实预算时关闭积分购买；Jev
+              使用自己的 Key，只在原文标记。
+            </p>
+          </div>
+          <figure class="shot">
+            <img
+              src="./cards.png?v={{ASSET_REVISION}}"
+              width="1360"
+              height="900"
+              loading="lazy"
+              alt="合成支付卡示例：银行图标、卡片期限和地域分类"
+            />
+          </figure>
         </article>
       </section>
       <section class="section download" id="download" aria-labelledby="release-title">
@@ -346,12 +363,27 @@
               ><strong>浏览器插件 <span aria-hidden="true">↓</span></strong
               ><span>Chrome / Edge · 账号建议、填写与网页文档保存</span></a
             >
+            <a class="download-option" href="{{MAC_ARM64_DMG_URL}}"
+              ><strong>macOS Apple Silicon · DMG ↓</strong
+              ><span>M 系列芯片 · 未签名、未公证</span></a
+            >
+            <a class="download-option" href="{{MAC_ARM64_ZIP_URL}}"
+              ><strong>macOS Apple Silicon · ZIP ↓</strong
+              ><span>M 系列芯片 · 解压后拖入应用程序</span></a
+            >
+            <a class="download-option" href="{{MAC_X64_DMG_URL}}"
+              ><strong>macOS Intel · DMG ↓</strong><span>Intel 芯片 · 未签名、未公证</span></a
+            >
+            <a class="download-option" href="{{MAC_X64_ZIP_URL}}"
+              ><strong>macOS Intel · ZIP ↓</strong><span>Intel 芯片 · 解压后拖入应用程序</span></a
+            >
+            <p class="release-links">{{MAC_DOWNLOAD_NOTE}}</p>
             <p class="release-links">
               <a href="{{CHECKSUM_URL}}">SHA256 校验文件</a
               ><a href="https://github.com/Songwo/zhiyu/blob/main/docs/USER-GUIDE.md"
                 >安装与使用教程 ↗</a
               ><a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md"
-                >macOS 测试版说明 ↗</a
+                >macOS 安装说明 ↗</a
               >
             </p>
           </div>
@@ -367,8 +399,8 @@
         <details>
           <summary>免费吗？支持什么系统？</summary>
           <p>
-            知屿是开源项目。Windows 提供 x64 正式安装包和免安装便携版；macOS 测试包以独立
-            Pre-release 提供，未签名、未公证，详见
+            知屿是开源项目。Windows 提供 x64 安装包和便携版；自 1.17.7 起，正式版本同时提供 macOS
+            Apple Silicon 与 Intel 的 DMG / ZIP，未签名、未公证，详见
             <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 说明</a
             >。Linux 尚未提供经过验证的正式安装包。
           </p>

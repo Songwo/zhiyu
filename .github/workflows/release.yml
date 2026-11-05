@@ -1,4 +1,4 @@
-name: Windows 正式版
+name: 全平台正式版
 on:
   push:
     tags: ["v*"]
@@ -59,6 +59,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run i18n:check
+      - name: 构建并测试真实 Windows 原生终端
+        run: npm run terminal:build
       - run: npm test
       - name: 验证独立登录服务与出站代理
         working-directory: services/identity-login
@@ -113,6 +115,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/backup-integration.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/s3-backup-desktop-integration.mjs "$app"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: npm run extension:build
       - name: 验证正式程序的密码迁移与浏览器接口
         shell: pwsh
@@ -130,7 +134,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: 验证浏览器插件真实交互
         run: node scripts/browser-companion-integration.mjs
-      - name: 校验文件与发布
+      - name: 校验并暂存 Windows 附件
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -152,11 +156,107 @@ jobs:
           $metadata = "$directory/latest.yml"
           $blockmap = "$installer.blockmap"
           if (!(Test-Path $metadata) -or !(Test-Path $blockmap)) { throw 'Update metadata missing' }
-          gh release create "v$version" $installer $online $portable $extension $metadata $blockmap "$directory/SHA256SUMS.txt" --verify-tag --title "知屿 Zhiyu $version" --notes-file "docs/releases/v$version.md"
+          $stage = Join-Path $env:RUNNER_TEMP "windows-release"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          @($installer, $online, $portable, $extension, $metadata, $blockmap) | ForEach-Object { Copy-Item -LiteralPath $_ -Destination $stage }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: ${{ runner.temp }}/windows-release/*
+          if-no-files-found: error
+          retention-days: 7
 
-  # 网页版镜像：Windows 正式版全部检查通过后，推送到 ghcr.io/<owner>/zhiyu-web:<版本> 与 latest。
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      ZHIYU_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: 核对标签与版本
+        run: |
+          version=$(node -p "require('./package.json').version")
+          test "v$version" = "$ZHIYU_RELEASE_TAG"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$ZHIYU_RELEASE_TAG^{}")"
+      - run: npm ci
+      - run: node node_modules/electron/install.js
+      - name: 安装独立登录服务依赖
+        working-directory: services/identity-login
+        run: npm ci --omit=dev --ignore-scripts
+      - run: npx playwright install chromium
+      - run: npm run typecheck
+      - run: npm test
+      - name: 构建 DMG 与 ZIP
+        run: npm run desktop:dist -- --mac --${{ matrix.arch }}
+      - name: 校验应用、ZIP 与 DMG 的版本及芯片架构
+        env:
+          BUILD_ARCH: ${{ matrix.arch }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          app=$(find "release/v$version" -maxdepth 2 -type d -name Zhiyu.app -print -quit)
+          test -n "$app"
+          python3 scripts/verify-macos-package.py --app "$app" --zip "release/v$version/Zhiyu-$version-mac-$BUILD_ARCH.zip" --version "$version" --arch "$BUILD_ARCH"
+          mount="$RUNNER_TEMP/zhiyu-dmg-$BUILD_ARCH"
+          mkdir -p "$mount"
+          hdiutil attach "release/v$version/Zhiyu-$version-mac-$BUILD_ARCH.dmg" -readonly -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount" -force' EXIT
+          python3 scripts/verify-macos-package.py --app "$mount/Zhiyu.app" --version "$version" --arch "$BUILD_ARCH"
+          stage="$RUNNER_TEMP/mac-release-$BUILD_ARCH"
+          mkdir -p "$stage"
+          cp "release/v$version/Zhiyu-$version-mac-$BUILD_ARCH.dmg" "release/v$version/Zhiyu-$version-mac-$BUILD_ARCH.zip" "$stage/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos-${{ matrix.arch }}
+          path: ${{ runner.temp }}/mac-release-${{ matrix.arch }}/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/release-files
+      - name: 全平台附件齐全并校验后才公开 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          node scripts/publish-release.mjs "$RUNNER_TEMP/release-files" "$version"
+
+  # Windows 与 macOS 全部验证、正式附件公开后再发布 Web 镜像。
   web-image:
-    needs: windows
+    needs: publish
     permissions:
       contents: read
       packages: write

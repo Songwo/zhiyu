@@ -33,6 +33,7 @@ import { createWebAiAccounts } from "./ai-accounts.mjs";
 import { createWebMailPush } from "./mail-push.mjs";
 import { createWebMailOAuth } from "./mail-oauth.mjs";
 import { createWebIdentities } from "./identities.mjs";
+import { createWebBackups } from "./backups.mjs";
 import {
   MAIL_PROVIDERS,
   providerForAddress,
@@ -192,6 +193,7 @@ export function createWebBridge({
   sessionActive = () => false,
   analysisBaseUrl,
   queryMailbox,
+  produceBackup,
 }) {
   const hostKeysFile = join(serverDir, "ssh-known-hosts.json");
   const downloadsDir = join(serverDir, "downloads");
@@ -264,6 +266,13 @@ export function createWebBridge({
       withMailbox(id, credential, () => mailboxes.check(id, options)),
   });
   const mailOAuth = createWebMailOAuth({ fetchImpl, sessionActive });
+  const backups = createWebBackups({
+    serverDir,
+    secureStorage,
+    produceBackup,
+    fetchImpl,
+    sessionActive,
+  });
   const identities = createWebIdentities({
     store: createServerCredentialStore(join(serverDir, "identity-accounts.json"), secureStorage),
     fetchImpl,
@@ -703,6 +712,7 @@ export function createWebBridge({
       ...aiAccounts.channels,
       ...mailOAuth.channels,
       ...identities.channels,
+      ...backups.channels,
       "mail-push:config",
       "mail-push:save",
       "mail-push:test",
@@ -712,6 +722,7 @@ export function createWebBridge({
       if (aiAccounts.channels.includes(channel)) return aiAccounts.call(channel, args, context);
       if (mailOAuth.channels.includes(channel)) return mailOAuth.call(channel, args, context);
       if (identities.channels.includes(channel)) return identities.call(channel, args, context);
+      if (backups.channels.includes(channel)) return backups.call(channel, args, context);
       if (channel.startsWith("mail-push:")) {
         const valid = () => {
           if (!sessionActive(context?.sessionKey))
@@ -736,6 +747,7 @@ export function createWebBridge({
     },
     /** 与桌面版相同的节奏：本机日志 1 分钟扫一次，用量来源 5 分钟刷新一次。 */
     startSchedules() {
+      backups.start();
       void refreshLocalUsage().catch(() => {});
       timers.push(setInterval(() => void refreshLocalUsage().catch(() => {}), 60_000));
       timers.push(setInterval(() => void refreshUsage(false).catch(() => {}), 300_000));
@@ -756,6 +768,7 @@ export function createWebBridge({
       backgroundMail.stop();
       mailOAuth.stop();
       identities.stop();
+      backups.stop();
     },
   };
 }

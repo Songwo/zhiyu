@@ -2,6 +2,8 @@ import { hostBridge, onWebEvent } from "@/lib/web-bridge";
 import { useProfile } from "@/lib/profile";
 import { startWebExtensionBroker } from "@/lib/web-extension";
 import { WebSecurityNotice } from "./web-security-notice";
+import { AppUpdateNotice } from "./app-update-notice";
+import { startUpdateNotices } from "@/lib/app-updates";
 import { ViewErrorBoundary } from "./view-error-boundary";
 import { isWeb } from "@/lib/web";
 import { startWebSync } from "@/lib/web-store";
@@ -42,7 +44,7 @@ import { desktop, isDesktop } from "@/lib/desktop";
 import { useLive } from "@/lib/live";
 import { startNavHistory } from "@/lib/nav-history";
 import { usePresence } from "@/lib/motion";
-import { refreshAll } from "@/lib/probes";
+import { refreshAll, startContainerAlertClock } from "@/lib/probes";
 import { migrateSecretValues } from "@/lib/vault-migrate";
 import { useAppStore } from "@/lib/store";
 import type { ViewId } from "@/lib/types";
@@ -77,6 +79,8 @@ function DeferredOverlay({
 }
 
 export function AppShell() {
+  useEffect(() => startContainerAlertClock(), []);
+  useEffect(() => startUpdateNotices(), []);
   useEffect(() => startWebExtensionBroker(), []);
   const locale = useSyncExternalStore(subscribeLocale, getLocale, () => "zh" as const);
   useEffect(() => startLocaleSync(), []);
@@ -321,6 +325,8 @@ export function AppShell() {
   const web = isWeb();
   const workspace = (
     <>
+      {web && <WebSecurityNotice />}
+      <AppUpdateNotice />
       {/* 对话使用内部滚动；资产视图保留两列共用的滚动区域。 */}
       <div
         ref={workspaceScroll}
@@ -331,7 +337,6 @@ export function AppShell() {
           !detailOpen && view === "agent" && "agent-shell",
         )}
       >
-        {web && <WebSecurityNotice />}
         <div
           className={cn(
             "page-container flex items-start",

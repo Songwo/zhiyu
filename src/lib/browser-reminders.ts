@@ -26,7 +26,7 @@ export function useBrowserReminders() {
       const today = new Date().toDateString();
       const done = seen();
       const items = notificationCandidates(snapshotOf(useAppStore.getState()), Date.now()).filter(
-        (item) => item.reason !== "offline" && done[item.key] !== today,
+        (item) => item.reason !== "offline" && done[item.key + (item.incident ?? "")] !== today,
       );
       if (!items.length) return;
       new Notification("知屿提醒", {
@@ -36,7 +36,7 @@ export function useBrowserReminders() {
           .join("\n"),
       });
       const next = Object.fromEntries(Object.entries(done).filter(([, day]) => day === today));
-      for (const item of items) next[item.key] = today;
+      for (const item of items) next[item.key + (item.incident ?? "")] = today;
       try {
         localStorage.setItem(SEEN_KEY, JSON.stringify(next));
       } catch {

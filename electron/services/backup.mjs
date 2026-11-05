@@ -37,7 +37,7 @@ const ASSET_COLLECTIONS = [
   "phoneNumbers",
 ];
 // 本机缓存与本机备份计划：既不打包，恢复时也保留当前文件。
-const MACHINE_LOCAL = new Set(["local-usage.json", "backup-schedule.json"]);
+const MACHINE_LOCAL = new Set(["local-usage.json", "backup-schedule.json", "backup-s3.json"]);
 // 只收应用自己的小写数据文件；Chromium 的 Preferences、Local State、缓存目录天然被排除。
 const ROOT_FILE = /^[a-z0-9][a-z0-9_-]*(?:\.[a-z0-9_-]+)*\.(?:json|enc)$/;
 const DOCUMENT_PART = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;

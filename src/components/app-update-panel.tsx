@@ -70,6 +70,14 @@ function DesktopUpdatePanel() {
   const [status, setStatus] = useState<UpdateCheck | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [autoDownload, setAutoDownload] = useState(true);
+  useEffect(() => {
+    if (api?.preferences)
+      void api.preferences
+        .get()
+        .then((p) => setAutoDownload(p.backgroundUpdateDownload !== false))
+        .catch(() => {});
+  }, [api]);
   useEffect(() => {
     if (!api) return;
     let alive = true;
@@ -129,6 +137,24 @@ function DesktopUpdatePanel() {
       aria-label={t("软件更新")}
     >
       <h4 className="font-semibold text-body">{t("软件更新")}</h4>
+      {api && status && !status.manual && (
+        <label className="mt-3 flex items-start gap-2 text-meta leading-relaxed">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={autoDownload}
+            onChange={(event) => {
+              const enabled = event.target.checked;
+              setAutoDownload(enabled);
+              void api.preferences.set({ backgroundUpdateDownload: enabled }).catch(() => {
+                setAutoDownload(!enabled);
+                setError(t("后台更新设置保存失败，请重试。"));
+              });
+            }}
+          />
+          {t("后台自动下载新版安装包，完成后提示；安装和重启仍由我确认。")}
+        </label>
+      )}
       <p className="mt-2 text-meta leading-relaxed text-muted" role="status" aria-live="polite">
         {api ? t(message ?? "正在检查更新…") : t("应用内更新仅支持 Windows 正式安装版。")}
       </p>
@@ -149,7 +175,7 @@ function DesktopUpdatePanel() {
             }
           >
             <Download />
-            {t("下载新版便携包")}
+            {t(status.manualKind === "platform" ? "下载 macOS 新版" : "下载新版便携包")}
           </Button>
         )}
         {status?.state === "outdated" && !status.manual && (
@@ -186,7 +212,9 @@ function DesktopUpdatePanel() {
       {status?.state === "outdated" && status.manual && (
         <p className="mt-3 text-xs leading-relaxed text-muted">
           {t(
-            "便携版不会自动安装。下载新的便携压缩包后，退出知屿，解压覆盖程序文件，保留 data 文件夹即可。",
+            status.manualKind === "platform"
+              ? "macOS 会提醒新版本，请从发布页选择 Apple Silicon 或 Intel 安装包；替换应用前由你自行退出，个人资料目录保持不变。"
+              : "便携版不会自动安装。下载新的便携压缩包后，退出知屿，解压覆盖程序文件，保留 data 文件夹即可。",
           )}
         </p>
       )}

@@ -234,6 +234,11 @@
   border-top: 1px solid var(--color-line);
   background: var(--color-canvas);
   color: var(--color-ink);
+  /* 极短窗口或软键盘弹出时允许输入区内部滚动，权限选项不会被祖先裁掉。 */
+  flex-shrink: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .agent-composer-field {
   display: grid;

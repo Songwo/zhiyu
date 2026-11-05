@@ -13,6 +13,11 @@ const web = await createWebServer({
   staticDir: resolve("dist-web"),
   log: { log() {}, error() {} },
   schedulePush: false,
+  fetchImpl: async (url) => {
+    if (String(url) === "https://api.github.com/repos/Songwo/zhiyu/releases/latest")
+      return new Response(JSON.stringify({ tag_name: "v0.0.0" }));
+    throw new Error("Unexpected isolated test network request");
+  },
 });
 await new Promise((r) => web.server.listen(0, "127.0.0.1", r));
 const base = `http://127.0.0.1:${web.server.address().port}`;

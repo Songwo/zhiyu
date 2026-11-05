@@ -26,12 +26,16 @@ import {
   RotateCcw,
   Link2,
   FileText,
+  Phone,
+  Focus,
 } from "lucide-react";
 import "@xyflow/react/dist/style.css";
 import {
   resourceGraph,
   resourceKey,
   resourceRelationPath,
+  relationPaths,
+  type ResourceRef,
   type ResourceRow,
   type Relation,
 } from "@/lib/resource-relations.mjs";
@@ -48,9 +52,13 @@ import { StatusBadge } from "./ui/status-badge";
 import { Button } from "./ui/button";
 import { useAppStore } from "@/lib/store";
 import { ResourceRelationsPanel } from "./resource-relations-panel";
+import { ResourceChainPanel } from "./resource-chain-panel";
 import "./resource-relations.css";
 
-type AssetNode = Node<{ asset: ResourceRow; vertical: boolean }, "asset">;
+type AssetNode = Node<
+  { asset: ResourceRow; vertical: boolean; focus?: (ref: ResourceRef) => void },
+  "asset"
+>;
 const ICONS = {
   domain: Globe,
   cert: Shield,
@@ -60,6 +68,7 @@ const ICONS = {
   secret: KeyRound,
   service: Globe,
   document: FileText,
+  phone: Phone,
 };
 function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
   const updateNodeInternals = useUpdateNodeInternals();
@@ -76,7 +85,13 @@ function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
       <div className="graph-node-meta">
         <span>
           <Icon className="size-4" />
-          {t(asset.kind === "document" ? "文档" : KIND_LABEL[asset.kind])}
+          {t(
+            asset.kind === "document"
+              ? "文档"
+              : asset.kind === "phone"
+                ? "号码"
+                : KIND_LABEL[asset.kind],
+          )}
         </span>
         {asset.kind !== "document" && <StatusBadge status={asset.status} pending={asset.pending} />}
       </div>
@@ -90,11 +105,21 @@ function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
               .open(asset.id)
               .then(() => useAppStore.getState().setView("docs"))
               .catch((error) => toast.error(String(error.message)));
-          } else openFromEvent(e, asset.kind as AssetKind, asset.id);
+          } else if (asset.kind === "phone") useAppStore.getState().openPhones({ id: asset.id });
+          else openFromEvent(e, asset.kind as AssetKind, asset.id);
         }}
       >
         <span>{asset.name}</span>
         <small>{asset.detail}</small>
+      </button>
+      <button
+        type="button"
+        className="nodrag flex w-full items-center justify-center gap-1 border-t border-line px-2 py-1.5 text-2xs text-muted hover:text-ink"
+        aria-label={t("查看 {0} 的关联链", asset.name)}
+        onClick={() => data.focus?.(asset)}
+      >
+        <Focus className="size-3" />
+        {t("查看关联链")}
       </button>
       <Handle
         type="source"
@@ -125,10 +150,21 @@ export default function AssetGraph(props: {
   relations: Relation[];
 }) {
   const [manage, setManage] = useState(false);
+  const focus = useAppStore((state) => state.relationFocus);
+  const onFocus = useCallback(
+    (ref: ResourceRef | null) => useAppStore.setState({ relationFocus: ref }),
+    [],
+  );
+  const root = focus && props.resources.find((r) => resourceKey(r) === resourceKey(focus));
+  const shown = useMemo(
+    () =>
+      root ? relationPaths(props.resources, props.relations, root).map((p) => p.row) : props.rows,
+    [root, props.resources, props.relations, props.rows],
+  );
   return (
     <div className="resource-graph-workspace">
       <div className="resource-graph-intro">
-        <p>{t("实线表示已保存关联，虚线表示文档绑定。拖动连线或通过管理面板自由组合资源。")}</p>
+        <p>{t("实线表示已保存关联，虚线表示文档绑定；号码展示已保存的订阅绑定。")}</p>
         <Button
           variant="outline"
           size="sm"
@@ -139,20 +175,34 @@ export default function AssetGraph(props: {
           {t("管理资源关联")}
         </Button>
       </div>
+      <ResourceChainPanel
+        resources={props.resources}
+        relations={props.relations}
+        focus={root || null}
+        onFocus={onFocus}
+      />
       {manage && <ResourceRelationsPanel resources={props.resources} relations={props.relations} />}
-      {props.rows.length > 300 && (
+      {shown.length > 300 && (
         <p className="text-sm text-muted">
           {t("画布显示前 300 项资源，请缩小筛选范围查看其余资源。")}
         </p>
       )}
       <ReactFlowProvider>
-        <GraphCanvas rows={props.rows.slice(0, 300)} relations={props.relations} />
+        <GraphCanvas rows={shown.slice(0, 300)} relations={props.relations} onFocus={onFocus} />
       </ReactFlowProvider>
     </div>
   );
 }
 
-function GraphCanvas({ rows, relations }: { rows: ResourceRow[]; relations: Relation[] }) {
+function GraphCanvas({
+  rows,
+  relations,
+  onFocus,
+}: {
+  rows: ResourceRow[];
+  relations: Relation[];
+  onFocus: (ref: ResourceRef) => void;
+}) {
   const container = useRef<HTMLDivElement>(null);
   const [vertical, setVertical] = useState(false);
   const [frameSize, setFrameSize] = useState("");
@@ -231,11 +281,12 @@ function GraphCanvas({ rows, relations }: { rows: ResourceRow[]; relations: Rela
         return {
           ...old,
           ...node,
+          data: { ...node.data, focus: onFocus },
           position: (preserve && old?.position) || node.position,
         };
       }),
     );
-  }, [graph.nodes, setNodes, topology]);
+  }, [graph.nodes, setNodes, topology, onFocus]);
   useEffect(() => {
     if (!nodesInitialized) return;
     // 等受控节点和连接点完成测量，再统一适配，避免两套初始 fit 互相覆盖。

@@ -84,6 +84,13 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   const [deleting, setDeleting] = useState(false);
   const [serverTab, setServerTab] = useState<ServerTab>("overview");
   const currentServer = asset.kind === "server" ? servers.find((s) => s.id === asset.id) : null;
+  const [alertTime, setAlertTime] = useState(Date.now);
+  const alertClockEnabled = Boolean(currentServer?.serviceScan);
+  useEffect(() => {
+    if (!alertClockEnabled) return;
+    const timer = setInterval(() => setAlertTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [alertClockEnabled]);
   const currentAccount =
     asset.kind === "secret"
       ? secrets.find((item) => item.id === asset.id && ["account", "password"].includes(item.kind))
@@ -313,7 +320,13 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
           {(
             [
               ["overview", "监控概览", Activity, 0],
-              ["services", "端口与容器", Boxes, containerIssues(currentServer.serviceScan).length],
+              [
+                "services",
+                "端口与容器",
+                Boxes,
+                containerIssues(currentServer.serviceScan, currentServer.containerAlerts, alertTime)
+                  .length,
+              ],
               ["nodes", "自建节点", Zap, currentServer.nodes?.length ?? 0],
               ["docs", "服务文档", BookOpen, 0],
               ["secrets", "绑定密钥", KeyRound, currentServer.customSecrets?.length ?? 0],

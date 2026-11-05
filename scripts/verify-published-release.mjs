@@ -4,8 +4,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import yaml from "js-yaml";
+import { releaseAssetNames, macPackageNames, requiresMacPackages } from "./release-assets.mjs";
 
-/** 校验实际下载的七个公开附件，不以附件名或上传状态代替内容验证。 */
+/** 校验实际下载的全部必需附件，不以附件名或上传状态代替内容验证。 */
 export async function verifyPublishedRelease(release, directory) {
   const tag = release.tag_name;
   assert.match(tag, /^v\d+\.\d+\.\d+$/);
@@ -13,15 +14,7 @@ export async function verifyPublishedRelease(release, directory) {
   assert.equal(release.prerelease, false, "这里只接受正式版本");
   const version = tag.slice(1);
   const setupName = `Zhiyu-${version}-setup.exe`;
-  const files = [
-    "latest.yml",
-    "SHA256SUMS.txt",
-    setupName,
-    `${setupName}.blockmap`,
-    `Zhiyu-${version}-online-setup.exe`,
-    `Zhiyu-${version}-portable-x64.zip`,
-    `Zhiyu-${version}-browser-extension.zip`,
-  ];
+  const files = releaseAssetNames(version);
   const assets = new Map(release.assets.map((asset) => [asset.name, asset]));
   assert.equal(assets.size, release.assets.length, "不能有同名附件");
   const sums = new Map(
@@ -51,8 +44,8 @@ export async function verifyPublishedRelease(release, directory) {
     checked.push({ name, size: data.length, sha256 });
     if (name === setupName) setup = data;
   }
-  assert.equal(sums.size, 4, "校验清单必须覆盖四个下载包");
-  for (const name of files.filter((name) => /\.(exe|zip)$/.test(name)))
+  assert.equal(sums.size, requiresMacPackages(version) ? 8 : 4, "校验清单必须覆盖所有下载包");
+  for (const name of files.filter((name) => /\.(exe|zip|dmg)$/.test(name)))
     assert.ok(sums.has(name), `校验清单缺少 ${name}`);
   const latest = yaml.load(await readFile(join(directory, "latest.yml"), "utf8"));
   assert.equal(latest.version, version);
@@ -63,7 +56,36 @@ export async function verifyPublishedRelease(release, directory) {
   assert.equal(latest.files[0].url, setupName);
   assert.equal(latest.files[0].sha512, sha512);
   assert.equal(latest.files[0].size, setup.length);
-  return { tag, publishedAt: release.published_at, checked, updateMetadataMatchesSetup: true };
+  if (requiresMacPackages(version)) {
+    const mac = yaml.load(await readFile(join(directory, "latest-mac.yml"), "utf8"));
+    assert.equal(mac.version, version);
+    assert.deepEqual(
+      mac.files.map((entry) => entry.url).sort(),
+      macPackageNames(version).sort(),
+      "Mac 更新清单必须覆盖两个架构的 DMG/ZIP",
+    );
+    for (const file of mac.files) {
+      const data = await readFile(join(directory, file.url));
+      assert.equal(file.size, data.length);
+      assert.equal(
+        file.sha512,
+        createHash("sha512").update(data).digest("base64"),
+        `Mac 更新清单摘要错误：${file.url}`,
+      );
+    }
+    const chosen = mac.files.find((entry) => entry.url === mac.path);
+    assert.ok(chosen);
+    assert.equal(mac.sha512, chosen.sha512);
+  }
+  return {
+    tag,
+    publishedAt: release.published_at,
+    checked,
+    updateMetadataMatchesSetup: true,
+    ...(requiresMacPackages(version)
+      ? { macArchitectures: ["arm64", "x64"], macMetadataVerified: true }
+      : {}),
+  };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

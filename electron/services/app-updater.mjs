@@ -24,6 +24,7 @@ export class DesktopUpdater {
     current,
     supported,
     manual = false,
+    manualKind = "portable",
     publish = () => {},
     prepare = async () => {},
   }) {
@@ -32,7 +33,12 @@ export class DesktopUpdater {
     this.manual = manual;
     this.publish = publish;
     this.prepare = prepare;
-    this.state = { state: "idle", current, page: PAGE, ...(manual ? { manual: true } : {}) };
+    this.state = {
+      state: "idle",
+      current,
+      page: PAGE,
+      ...(manual ? { manual: true, manualKind } : {}),
+    };
     this.job = null;
     this.downloaded = null;
     engine.autoDownload = false;
@@ -94,7 +100,12 @@ export class DesktopUpdater {
   }
   download() {
     return this.run(async () => {
-      if (this.manual) throw new Error(MANUAL_UPDATE);
+      if (this.manual)
+        throw new Error(
+          this.state.manualKind === "platform"
+            ? "macOS 请从发布页下载对应芯片架构的新版应用，再由你确认替换；不会自动退出或安装。"
+            : MANUAL_UPDATE,
+        );
       if (!this.supported || !this.available) throw new Error("请先检查可用的新版本。");
       if (this.state.state === "installing") return this.status();
       this.downloaded = null;
@@ -110,7 +121,12 @@ export class DesktopUpdater {
   install() {
     if (this.state.state === "installing") return Promise.resolve(this.status());
     return this.run(async () => {
-      if (this.manual) throw new Error(MANUAL_UPDATE);
+      if (this.manual)
+        throw new Error(
+          this.state.manualKind === "platform"
+            ? "macOS 请从发布页下载对应芯片架构的新版应用，再由你确认替换；不会自动退出或安装。"
+            : MANUAL_UPDATE,
+        );
       if (!this.supported || !this.downloaded || this.state.state !== "downloaded")
         throw new Error("请先完整下载并校验更新包。");
       await verifyInstaller(this.downloaded.file, this.downloaded.expected);

@@ -3068,4 +3068,119 @@ export const EN: Record<string, string> = {
   二级标题: "Heading 2",
   三级标题: "Heading 3",
   移除链接: "Remove link",
+  配置模型: "Configure model",
+  版本更新提醒: "Version update notification",
+  "正在后台下载 {0} · {1}%": "Downloading {0} in the background · {1}%",
+  "新版 {0} 已下载，方便时再安装": "Version {0} is ready. Install when convenient.",
+  "知屿 {0} 可以更新了": "Zhiyu {0} is available",
+  查看更新: "View update",
+  本次暂不提醒: "Dismiss for this session",
+  "后台更新设置保存失败，请重试。": "Could not save background update settings. Please try again.",
+  "后台自动下载新版安装包，完成后提示；安装和重启仍由我确认。":
+    "Download updates in the background and notify me when ready. Ask me before installing or restarting.",
+  "查看 {0} 的关联链": "View connections for {0}",
+  查看关联链: "View connections",
+  "实线表示已保存关联，虚线表示文档绑定；号码展示已保存的订阅绑定。":
+    "Solid lines show saved connections; dashed lines show document bindings. Phone numbers show saved subscription bindings.",
+  "我允许服务器加密保管自动备份密码。请使用独立于密钥库主密码的密码；管理员仍能访问，敏感资产建议使用桌面端。":
+    "I allow the server to store my encrypted backup password. Use a password different from your vault password. Administrators can still access it; use the desktop app for sensitive assets.",
+  自动备份记录: "Automatic backup history",
+  容器告警设置: "Container alert settings",
+  "重启阈值按 Docker 累计次数判断；确认当前异常可清除历史告警。启动宽限仅适用于运行中容器，重启循环、异常退出和内存不足仍会立即提醒。":
+    "The restart threshold uses the cumulative Docker count. Acknowledge an incident to dismiss its historical alert. Startup grace applies only to running containers; restart loops, crashes and out-of-memory events still alert immediately.",
+  规则适用范围: "Rule scope",
+  "此主机所有容器（默认规则）": "All containers on this host (default rule)",
+  维护静音时长: "Maintenance mute duration",
+  "15 分钟": "15 minutes",
+  "1 小时": "1 hour",
+  "4 小时": "4 hours",
+  "24 小时": "24 hours",
+  "已进入维护静音，真实容器状态仍会保留":
+    "Maintenance mute enabled. Actual container states remain visible.",
+  进入维护静音: "Mute for maintenance",
+  "维护静音会暂时停止所选容器的全部容器告警，到期自动恢复。不会停止采集，也不执行容器重启。":
+    "Maintenance temporarily mutes all alerts for the selected containers until the deadline. Collection continues; no containers are restarted.",
+  "{0} 静音至 {1}": "{0} muted until {1}",
+  取消静音: "Unmute",
+  "重启阈值需为 1–10000，启动宽限需为 0–3600 秒。":
+    "Restart threshold must be 1–10000; startup grace must be 0–3600 seconds.",
+  容器告警规则已保存: "Container alert rules saved",
+  "累计重启告警阈值（次）": "Cumulative restart alert threshold",
+  "启动宽限（秒）": "Startup grace (seconds)",
+  保存告警规则: "Save alert rules",
+  已恢复此主机默认规则: "Host default rules restored",
+  恢复主机默认规则: "Use host defaults",
+  查看完整关联链: "View full connection chain",
+  关联链路: "Connection chain",
+  从一项资源看清整条关联链: "Explore all connections from one resource",
+  聚焦关联资源: "Focus resource",
+  "选择邮箱、账号或其他资源": "Choose an email, account or other resource",
+  查看全部资源: "View all resources",
+  "直接关联 {0} 项 · 间接关联 {1} 项 · 涉及文档 {2} 篇":
+    "{0} direct · {1} indirect · {2} documents",
+  "邮箱失去访问时，可按下方链路核对登录、找回和通知设置。保存的关联不等于已验证的登录依赖。":
+    "If you lose email access, use these connections to review sign-in, recovery and notification settings. Saved connections do not verify sign-in dependencies.",
+  "这项资源还没有已确认关联，可通过管理资源关联添加。":
+    "This resource has no confirmed connections. Add one using Manage connections.",
+  "选择一个邮箱或账号，查看直接、间接关联及相连文档。搜索会保留已确认的关联链；建议需要确认后才进入图中。":
+    "Choose an email or account to see direct and indirect connections and linked documents. Search preserves confirmed chains; suggestions appear in the graph only after confirmation.",
+  "S3 云端备份": "S3 cloud backups",
+  "先在本地生成加密备份，再上传到你绑定的存储。只清理当前工作区上传并记录的旧备份，不会删除桶内其他文件。备份密码和存储密钥不会放进备份。":
+    "Create an encrypted local backup before uploading to your storage. Retention removes only recorded backups from this workspace, preserving other objects. Backup passwords and storage keys are excluded.",
+  "我允许可信部署服务器加密保管 S3 凭据并执行备份上传；管理员仍能访问这些凭据，敏感资产建议使用桌面端。":
+    "I trust this server to store encrypted S3 credentials and upload backups. Administrators can still access these credentials; use the desktop app for sensitive assets.",
+  存储类型: "Storage provider",
+  "阿里云 OSS（S3 兼容接口）": "Alibaba Cloud OSS (S3 interface)",
+  "Cloudflare 账号 ID（快捷生成 Endpoint）": "Cloudflare account ID (generate endpoint)",
+  "OSS 请使用 s3.oss-存储区域.aliyuncs.com 兼容端点，区域必须匹配 Bucket；默认签名区域沿用官方示例 us-east-1。":
+    "For OSS, use s3.oss-REGION.aliyuncs.com matching your bucket location. The signing region defaults to us-east-1 as in the official example.",
+  签名区域: "Signing region",
+  "已加密保存，留空沿用": "Stored encrypted; leave blank to keep",
+  高级连接设置: "Advanced connection settings",
+  备份前缀: "Backup prefix",
+  "路径寻址（MinIO / R2 常用）": "Path-style addressing (common for MinIO / R2)",
+  "允许可信内网 HTTP（请求和备份元信息缺少传输加密，建议使用 HTTPS）":
+    "Allow trusted LAN HTTP (requests and backup metadata lack transport encryption; HTTPS recommended)",
+  "绑定云端备份需要先解锁密钥库。": "Unlock the vault before binding cloud backups.",
+  "S3 已绑定，后续自动备份会上传加密文件。":
+    "S3 bound. Automatic backups will upload encrypted files.",
+  测试并绑定: "Test and bind",
+  "已解除绑定；云端已有备份会保留。": "Storage unbound. Existing cloud backups are preserved.",
+  云端备份设置已保存: "Cloud backup settings saved",
+  "自动备份同时上传 S3": "Upload automatic backups to S3",
+  连接读写与清理测试已通过: "Storage write, metadata and cleanup checks passed",
+  "仅授予备份前缀下的对象写入、读取元信息和删除权限。云端保留份数沿用自动备份设置；如需恢复，从存储下载 .zhiyu-backup 文件，再使用从备份恢复。":
+    "Grant object write, metadata read and delete access only within the backup prefix. Cloud retention follows your automatic backup settings. To restore, download a .zhiyu-backup file and choose Restore from backup.",
+  云端备份记录: "Cloud backup history",
+  已确认本次异常: "Incident acknowledged",
+  "启动宽限至 {0}": "Startup grace until {0}",
+  维护静音中: "Muted for maintenance",
+  "确认 {0} 当前异常": "Acknowledge current incident for {0}",
+  确认本次异常: "Acknowledge incident",
+  "撤销 {0} 异常确认": "Revoke acknowledgement for {0}",
+  撤销确认: "Revoke acknowledgement",
+  设置分类: "Settings category",
+  容器异常处理记录: "Container incident history",
+  "由部署管理员更新镜像；当前页面不会自动升级或刷新。":
+    "Ask the deployment administrator to update the image. This page will not update or reload automatically.",
+  "请下载对应芯片架构的新版应用；当前操作不受影响。":
+    "Download the update for your chip architecture. Your current work is unaffected.",
+  "便携版需下载新版压缩包，保留 data 文件夹；当前操作不受影响。":
+    "Download the new portable archive and keep the data folder. Your current work is unaffected.",
+  "你可以继续编辑和使用终端；确认安装前不会重启。":
+    "Continue editing and using the terminal. No restart occurs until you confirm installation.",
+  "自动备份密码已由服务器密钥加密保存。":
+    "The automatic backup password is encrypted with the server key.",
+  收起链路列表: "Collapse connections",
+  "查看全部 {0} 项关联": "View all {0} connections",
+  本地已保存: "Saved locally",
+  本地备份失败: "Local backup failed",
+  云端已上传: "Uploaded to cloud",
+  云端上传失败: "Cloud upload failed",
+  未上传云端: "Not uploaded",
+  上传成功: "Upload succeeded",
+  已按策略清理: "Removed by retention policy",
+  上传失败: "Upload failed",
+  "按周期备份服务器已保存的工作区，浏览器关闭后仍可运行；不包含浏览器未保存草稿、仅在浏览器保存的对话历史和 server 目录的凭据。":
+    "Back up the saved server workspace on a schedule, even with the browser closed. Excludes unsaved browser drafts, browser-only conversations and credentials in the server directory.",
 };

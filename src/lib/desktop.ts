@@ -180,6 +180,7 @@ export interface UpdateCheck {
   page: string;
   /** 便携版只提示新版本，由用户下载压缩包覆盖。 */
   manual?: boolean;
+  manualKind?: "portable" | "platform";
   reason?: string;
 }
 
@@ -429,6 +430,7 @@ export interface DesktopBridge {
 }
 
 export interface DesktopPreferences {
+  backgroundUpdateDownload?: boolean;
   serverMonitorMinutes: number;
   closeToTray: boolean;
   notifications: boolean;

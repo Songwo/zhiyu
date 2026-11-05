@@ -240,6 +240,19 @@ export async function createWebServer({
     },
     analysisBaseUrl,
     queryMailbox,
+    produceBackup: (password) =>
+      serial(
+        async () =>
+          (
+            await createBackup({
+              root: workspace,
+              password,
+              appVersion: VERSION,
+              platform: "web",
+              kind: "auto",
+            })
+          ).data,
+      ),
   });
   await bridge.clearDownloads().catch(() => {});
   if (schedulePush) bridge.startSchedules();

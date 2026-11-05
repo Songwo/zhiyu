@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import {
   resourceKey,
   suggestRelations,
+  canRelateResources,
   type Relation,
   type ResourceRow,
 } from "@/lib/resource-relations.mjs";
@@ -29,7 +30,7 @@ export function ResourceRelationsPanel({
   const suggestions = useMemo(() => suggestRelations(resources, relations), [resources, relations]);
   const options = resources.map((row) => ({
     value: resourceKey(row),
-    label: `${row.name} · ${t(row.kind === "document" ? "文档" : KIND_LABEL[row.kind])}`,
+    label: `${row.name} · ${t(row.kind === "document" ? "文档" : row.kind === "phone" ? "号码" : KIND_LABEL[row.kind])}`,
   }));
   const names = new Map(resources.map((row) => [resourceKey(row), row.name]));
   const choices = suggestions.filter((item) => selected.has(item.id));
@@ -88,7 +89,11 @@ export function ResourceRelationsPanel({
               value={to}
               onValueChange={setTo}
               placeholder={t("选择资源")}
-              options={options.filter((option) => option.value !== from)}
+              options={options.filter((option) => {
+                const source = resources.find((r) => resourceKey(r) === from),
+                  target = resources.find((r) => resourceKey(r) === option.value);
+                return !source || (target && canRelateResources(source, target));
+              })}
             />
             <Button
               disabled={busy || !from || !to || from === to}
@@ -176,7 +181,15 @@ export function ResourceRelationsPanel({
                 <strong>
                   {names.get(resourceKey(item.from))} ↔ {names.get(resourceKey(item.to))}
                 </strong>
-                <small>{t(item.type === "document" ? "文档绑定" : "已保存关联")}</small>
+                <small>
+                  {t(
+                    item.type === "document"
+                      ? "文档绑定"
+                      : item.type === "phone"
+                        ? "号码与订阅绑定"
+                        : "已保存关联",
+                  )}
+                </small>
               </span>
               <Button
                 variant="ghost"

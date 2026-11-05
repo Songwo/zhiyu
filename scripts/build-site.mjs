@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { requiresMacPackages, macPackageNames } from "./release-assets.mjs";
 
 const repository = "https://github.com/Songwo/zhiyu";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,6 +43,11 @@ export function releaseDetails(release) {
   )
     ? asset(`${brand}-${version}-portable-x64.zip`)
     : null;
+  const macRequired = requiresMacPackages(version);
+  const macAvailable = macPackageNames(version).every((name) =>
+    release.assets?.some((entry) => entry.name === name),
+  );
+  if (macRequired || macAvailable) for (const name of macPackageNames(version)) asset(name);
   // 只取发布说明首段，作为普通文本转义；不执行 Markdown/HTML。
   const paragraph = (release.body ?? "")
     .replaceAll("\r\n", "\n")
@@ -70,6 +76,21 @@ export function releaseDetails(release) {
     CHECKSUM_URL: checksum.browser_download_url,
     PORTABLE_URL: portable?.browser_download_url ?? releaseUrl,
     PORTABLE_SIZE: portable ? `${Math.round(portable.size / 1_000_000)} MB` : "解压即用",
+    MAC_ARM64_DMG_URL: macAvailable
+      ? asset(`Zhiyu-${version}-mac-arm64.dmg`).browser_download_url
+      : releaseUrl,
+    MAC_ARM64_ZIP_URL: macAvailable
+      ? asset(`Zhiyu-${version}-mac-arm64.zip`).browser_download_url
+      : releaseUrl,
+    MAC_X64_DMG_URL: macAvailable
+      ? asset(`Zhiyu-${version}-mac-x64.dmg`).browser_download_url
+      : releaseUrl,
+    MAC_X64_ZIP_URL: macAvailable
+      ? asset(`Zhiyu-${version}-mac-x64.zip`).browser_download_url
+      : releaseUrl,
+    MAC_DOWNLOAD_NOTE: macAvailable
+      ? "Apple Silicon 与 Intel · DMG / ZIP · 未签名、未公证"
+      : "此旧版本尚无完整 macOS 附件；新版发布后会展示直接下载入口",
   };
 }
 

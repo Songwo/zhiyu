@@ -76,6 +76,7 @@ const local: DocumentsBridge = {
 function api() {
   return desktop()?.documents ?? (isWeb() ? webDocuments : local);
 }
+export { api as documentsApi };
 export function summary(doc: DocumentAsset): DocumentSummary {
   const texts: string[] = [];
   let imageCount = 0;

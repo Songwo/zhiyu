@@ -353,6 +353,11 @@ export function AgentView() {
             <p className="truncate text-meta font-medium">{active?.title ?? t("新对话")}</p>
             <p className="truncate text-2xs text-subtle">{model || t("尚未配置模型")}</p>
           </div>
+          {!model && !configOpen && (
+            <Button size="sm" variant="outline" onClick={() => setConfigOpen(true)}>
+              {t("配置模型")}
+            </Button>
+          )}
           <Button
             size="icon-sm"
             variant="ghost"

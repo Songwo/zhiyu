@@ -22,6 +22,7 @@ import { DocumentsStore } from "./services/documents.mjs";
 import { WorkspaceActions } from "./services/workspace-actions.mjs";
 import electronUpdater from "electron-updater";
 import { DesktopUpdater } from "./services/app-updater.mjs";
+import { BackgroundUpdates } from "./services/background-updates.mjs";
 import {
   app,
   BrowserWindow,
@@ -93,6 +94,7 @@ import {
   writeBackupFile,
 } from "./services/backup.mjs";
 import { BackupScheduler } from "./services/backup-schedule.mjs";
+import { S3Backups } from "./services/backup-s3.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const normalizeImage = createImageNormalizer(nativeImage);
@@ -175,6 +177,7 @@ let restartingForRestore = false;
 let preferences = {
   closeToTray: true,
   notifications: true,
+  backgroundUpdateDownload: true,
   reminderDays: 21,
   locale: "zh",
   zoomPercent: 100,
@@ -901,7 +904,7 @@ function registerIpc() {
   );
   profile.setIdentitySource(mainIdentity);
   for (const method of ["quota", "records", "start", "status", "cancel", "checkout"])
-    handle(`research:${method}`, (input) => mainIdentity.research(method,input??{}));
+    handle(`research:${method}`, (input) => mainIdentity.research(method, input ?? {}));
   handle("profile:get", () => profile.get());
   handle("profile:save", async (value) => {
     const result = await profile.save(value);
@@ -1285,6 +1288,8 @@ function registerIpc() {
       safe.serverMonitorMinutes = validateMonitorMinutes(patch.serverMonitorMinutes);
     if (typeof patch?.closeToTray === "boolean") safe.closeToTray = patch.closeToTray;
     if (typeof patch?.notifications === "boolean") safe.notifications = patch.notifications;
+    if (typeof patch?.backgroundUpdateDownload === "boolean")
+      safe.backgroundUpdateDownload = patch.backgroundUpdateDownload;
     if (patch && Object.hasOwn(patch, "reminderDays")) {
       if (
         !Number.isInteger(patch.reminderDays) ||
@@ -1334,13 +1339,32 @@ function registerIpc() {
   const updates = new DesktopUpdater({
     engine: updateEngine,
     current: APP_VERSION,
-    supported: app.isPackaged && process.platform === "win32",
+    supported: app.isPackaged && ["win32", "darwin"].includes(process.platform),
     // 便携版只检查新版本，由用户下载新压缩包覆盖，不运行安装器。
-    manual: PORTABLE,
+    manual: PORTABLE || process.platform === "darwin",
+    manualKind: process.platform === "darwin" ? "platform" : "portable",
     publish: (state) => emit("app:update-status", state),
     prepare: async () => {
       await Promise.all([assetWrites, preferenceWrites, ...writes.values(), localUsage.queue]);
     },
+  });
+  const backgroundUpdates = new BackgroundUpdates({
+    updater: updates,
+    autoDownload: () => preferences.backgroundUpdateDownload,
+  });
+  if (
+    app.isPackaged &&
+    !process.env.NANPAD_TEST_DATA_DIR &&
+    !process.argv.some((arg) => arg.startsWith("--user-data-dir="))
+  )
+    backgroundUpdates.start();
+  const checkInBackground = () => void backgroundUpdates.tick();
+  app.on("browser-window-focus", checkInBackground);
+  powerMonitor.on("resume", checkInBackground);
+  app.once("before-quit", () => {
+    backgroundUpdates.stop();
+    app.off("browser-window-focus", checkInBackground);
+    powerMonitor.off("resume", checkInBackground);
   });
   // ---- encrypted backup ---------------------------------------------------
   const userData = app.getPath("userData");
@@ -1382,9 +1406,15 @@ function registerIpc() {
       secureStorage: includeSecure ? safeStorage : null,
     });
   };
+  const s3Backups = new S3Backups({
+    file: join(userData, "backup-s3.json"),
+    secureStorage: safeStorage,
+    fetchImpl: (...args) => net.fetch(...args),
+  });
   const backupSchedule = new BackupScheduler({
     file: join(userData, "backup-schedule.json"),
     secureStorage: safeStorage,
+    upload: (data, file, keep) => s3Backups.upload(data, file, keep),
     // 自动备份无人值守，不解密系统保护的凭据；需要时由用户手动创建完整备份。
     run: (password) =>
       exclusiveBackup(
@@ -1393,6 +1423,22 @@ function registerIpc() {
   });
   backupSchedule.start();
   app.once("before-quit", () => backupSchedule.stop());
+  app.once("before-quit", () => s3Backups.stop());
+  handle("backup:s3-status", () => s3Backups.status());
+  handle("backup:s3-configure", (input) => {
+    const disablingOnly =
+      input?.enabled === false && Object.keys(input).every((key) => key === "enabled");
+    if (!disablingOnly && !vault.unlocked) throw new Error("绑定云端备份需要先解锁密钥库。");
+    return s3Backups.configure(input);
+  });
+  handle("backup:s3-test", async () => {
+    if (!vault.unlocked) throw new Error("测试云端备份需要先解锁密钥库。");
+    const status = await s3Backups.test();
+    if (!(await backupSchedule.status()).directory)
+      await backupSchedule.setDirectory(join(userData, "auto-backups"));
+    return status;
+  });
+  handle("backup:s3-disconnect", () => s3Backups.disconnect());
   handle("backup:info", () => ({
     lastRestore: restoreOutcome,
     secureAvailable: secureStorageUsable(safeStorage),
@@ -1788,7 +1834,7 @@ if (!app.requestSingleInstanceLock()) {
       const saved = JSON.parse(
         await readFile(join(app.getPath("userData"), "preferences.json"), "utf8"),
       );
-      for (const key of ["closeToTray", "notifications"])
+      for (const key of ["closeToTray", "notifications", "backgroundUpdateDownload"])
         if (typeof saved[key] === "boolean") preferences[key] = saved[key];
       if (["zh", "en"].includes(saved.locale)) preferences.locale = saved.locale;
       preferences.zoomPercent = readZoomPercent(saved.zoomPercent);

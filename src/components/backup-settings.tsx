@@ -12,6 +12,8 @@ import { desktop } from "@/lib/desktop";
 import { isWeb, webDownloadBackup, webRestoreBackup } from "@/lib/web";
 import { intlLocale, t } from "@/lib/i18n";
 import { useVault } from "@/lib/vault-state";
+import { backupAutomation } from "@/lib/backup-automation";
+import { S3BackupSettings } from "./s3-backup-settings";
 import { Button } from "./ui/button";
 import { Field, Input, Select } from "./ui/input";
 
@@ -27,7 +29,7 @@ function formatBytes(bytes: number) {
 
 function Block({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="mb-8">
+    <section className="mb-8" aria-label={title}>
       <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
       {hint && <p className="mt-1 text-meta leading-relaxed text-muted">{hint}</p>}
       <div className="mt-4">{children}</div>
@@ -37,6 +39,8 @@ function Block({ title, hint, children }: { title: string; hint?: string; childr
 
 /** 「设置 → 数据」中的加密备份、从备份恢复与自动备份。 */
 export function BackupSettings() {
+  const [automationRevision, setAutomationRevision] = useState(0);
+  const changed = () => setAutomationRevision((value) => value + 1);
   const api = desktop()?.backup;
   const [info, setInfo] = useState<{
     lastRestore: RestoreOutcome | null;
@@ -49,12 +53,20 @@ export function BackupSettings() {
       .then(setInfo)
       .catch(() => {});
   }, [api]);
-  if (!api) return isWeb() ? <WebBackup /> : null;
+  if (!api)
+    return isWeb() ? (
+      <>
+        <WebBackup />
+        <AutoBackup reload={automationRevision} onChanged={changed} />
+        <S3BackupSettings onChanged={changed} reload={automationRevision} />
+      </>
+    ) : null;
   return (
     <>
       <CreateBackup secureAvailable={info?.secureAvailable ?? false} />
       <RestoreBackup lastRestore={info?.lastRestore ?? null} />
-      <AutoBackup />
+      <AutoBackup reload={automationRevision} onChanged={changed} />
+      <S3BackupSettings onChanged={changed} reload={automationRevision} />
     </>
   );
 }
@@ -406,8 +418,10 @@ function RestoreBackup({ lastRestore }: { lastRestore: RestoreOutcome | null }) 
   );
 }
 
-function AutoBackup() {
-  const api = desktop()!.backup;
+function AutoBackup({ reload = 0, onChanged }: { reload?: number; onChanged?: () => void }) {
+  const api = backupAutomation()!;
+  const web = isWeb();
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<AutoBackupStatus | null>(null);
   const [password, setPassword] = useState("");
   const [editingPassword, setEditingPassword] = useState(false);
@@ -419,7 +433,7 @@ function AutoBackup() {
       .autoStatus()
       .then(setStatus)
       .catch((err) => setError(message(err)));
-  }, [api]);
+  }, [api, reload]);
 
   async function run(action: () => Promise<AutoBackupStatus | null>, done?: string) {
     setBusy(true);
@@ -439,29 +453,49 @@ function AutoBackup() {
       return false;
     } finally {
       setBusy(false);
+      onChanged?.();
     }
   }
 
   if (!status) return null;
+  const configure = (input: Parameters<typeof api.autoConfigure>[0]) =>
+    api.autoConfigure({ ...input, allowServerStorage: consent });
   const needsPassword = !status.hasPassword || !status.passwordReadable || editingPassword;
   return (
     <Block
       title={t("自动备份")}
       hint={t(
-        "按周期把加密备份写入你选择的文件夹（建议另一块磁盘或网盘同步目录），只保留最近几份。自动备份不包含系统保护的凭据。",
+        web
+          ? "按周期备份服务器已保存的工作区，浏览器关闭后仍可运行；不包含浏览器未保存草稿、仅在浏览器保存的对话历史和 server 目录的凭据。"
+          : "按周期把加密备份写入你选择的文件夹（建议另一块磁盘或网盘同步目录），只保留最近几份。自动备份不包含系统保护的凭据。",
       )}
     >
       <div className="space-y-3">
+        {web && (
+          <label className="flex items-start gap-2 rounded-lg border border-warn/30 bg-warn/5 p-3 text-meta leading-relaxed">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+            />
+            {t(
+              "我允许服务器加密保管自动备份密码。请使用独立于密钥库主密码的密码；管理员仍能访问，敏感资产建议使用桌面端。",
+            )}
+          </label>
+        )}
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => void run(() => api.autoDirectory())}
-          >
-            <FolderOpen className="size-3.5" />
-            {status.directory ? t("更换文件夹") : t("选择文件夹")}
-          </Button>
+          {!web && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => void run(() => api.autoDirectory())}
+            >
+              <FolderOpen className="size-3.5" />
+              {status.directory ? t("更换文件夹") : t("选择文件夹")}
+            </Button>
+          )}
           <span className="min-w-0 break-all text-meta text-muted">
             {status.directory ?? t("尚未选择")}
           </span>
@@ -472,9 +506,7 @@ function AutoBackup() {
               aria-label={t("备份周期")}
               value={String(status.intervalHours)}
               disabled={busy}
-              onValueChange={(value) =>
-                void run(() => api.autoConfigure({ intervalHours: Number(value) }))
-              }
+              onValueChange={(value) => void run(() => configure({ intervalHours: Number(value) }))}
               options={[
                 { value: "24", label: t("每天") },
                 { value: "72", label: t("每 3 天") },
@@ -487,7 +519,7 @@ function AutoBackup() {
               aria-label={t("保留份数")}
               value={String(status.keep)}
               disabled={busy}
-              onValueChange={(value) => void run(() => api.autoConfigure({ keep: Number(value) }))}
+              onValueChange={(value) => void run(() => configure({ keep: Number(value) }))}
               options={[3, 5, 7, 10, 14, 30].map((n) => ({
                 value: String(n),
                 label: t("最近 {0} 份", n),
@@ -500,13 +532,11 @@ function AutoBackup() {
             className="flex flex-wrap items-end gap-2"
             onSubmit={(event) => {
               event.preventDefault();
-              void run(() => api.autoConfigure({ password }), t("自动备份密码已保存")).then(
-                (ok) => {
-                  if (!ok) return;
-                  setPassword("");
-                  setEditingPassword(false);
-                },
-              );
+              void run(() => configure({ password }), t("自动备份密码已保存")).then((ok) => {
+                if (!ok) return;
+                setPassword("");
+                setEditingPassword(false);
+              });
             }}
           >
             <div className="min-w-56 flex-1">
@@ -522,14 +552,20 @@ function AutoBackup() {
                 />
               </Field>
             </div>
-            <Button type="submit" size="sm" disabled={busy || password.length < 10}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={busy || password.length < 10 || (web && !consent)}
+            >
               {t("保存密码")}
             </Button>
           </form>
         ) : (
           <div className="flex items-center gap-2 text-meta text-muted">
             <ShieldCheck className="size-4" />
-            {t("自动备份密码已由系统加密保存在本机。")}
+            {t(
+              web ? "自动备份密码已由服务器密钥加密保存。" : "自动备份密码已由系统加密保存在本机。",
+            )}
             <Button variant="ghost" size="sm" onClick={() => setEditingPassword(true)}>
               {t("更换")}
             </Button>
@@ -544,12 +580,12 @@ function AutoBackup() {
           <input
             type="checkbox"
             checked={status.enabled}
-            disabled={busy}
+            disabled={busy || (web && !consent && !status.enabled)}
             onChange={(e) => {
               const enabled = e.target.checked;
               // 先更新勾选状态再保存，避免等待主进程时复选框弹回；保存失败时还原。
               setStatus({ ...status, enabled });
-              void run(() => api.autoConfigure({ enabled })).then((ok) => {
+              void run(() => configure({ enabled })).then((ok) => {
                 if (!ok) setStatus((current) => current && { ...current, enabled: !enabled });
               });
             }}
@@ -579,6 +615,31 @@ function AutoBackup() {
           <p role="alert" className="text-meta text-crit">
             {error ?? t("最近一次自动备份失败：{0}", status.lastError ?? "")}
           </p>
+        )}
+        {Boolean(status.history?.length) && (
+          <details className="rounded-lg border border-line p-3">
+            <summary className="cursor-pointer text-meta">{t("自动备份记录")}</summary>
+            <ul className="mt-3 space-y-2 text-2xs">
+              {status.history!.slice(0, 10).map((record, index) => (
+                <li key={`${record.at}-${index}`} className="break-words">
+                  <p>
+                    {when(record.at)} · {t(record.local ? "本地已保存" : "本地备份失败")} ·{" "}
+                    {t(
+                      record.remote === "uploaded"
+                        ? "云端已上传"
+                        : record.remote === "failed"
+                          ? "云端上传失败"
+                          : "未上传云端",
+                    )}
+                  </p>
+                  {record.file && <p className="text-muted">{record.file}</p>}
+                  {(record.warning || record.error) && (
+                    <p className="text-warn">{record.warning || record.error}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
     </Block>

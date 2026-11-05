@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
  * 所以主进程新引用一个包时必须加在这里；desktop:dist 打包前会用 mainProcessPackages 核对。
  */
 export const DESKTOP_RUNTIME_DEPENDENCIES = [
+  "aws4fetch",
   "ssh2",
   "electron-updater",
   "imapflow",

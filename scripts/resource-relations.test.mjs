@@ -8,6 +8,8 @@ import {
   suggestRelations,
   resourceGraph,
   resourceRelationPath,
+  relationPaths,
+  canRelateResources,
 } from "../src/lib/resource-relations.mjs";
 
 const row = (kind, id, name, extra = {}) => ({
@@ -40,6 +42,61 @@ const snapshot = {
   certs: [],
   aiAssets: [],
 };
+
+test("邮箱—账号—主机—文档链双向最短路径，环路/孤立/悬空不伪造依赖", () => {
+  const resources = [
+    row("mail", "mail", "邮箱"),
+    row("secret", "account", "账号"),
+    row("server", "host", "主机"),
+    row("document", "doc", "文档"),
+    row("domain", "alone", "孤立域名"),
+  ];
+  const link = (from, to) => ({ from: resources[from], to: resources[to], type: "asset" });
+  const relations = [
+    link(0, 1),
+    link(1, 2),
+    link(2, 3),
+    link(3, 1),
+    { from: resources[0], to: { kind: "secret", id: "missing" } },
+  ];
+  const paths = relationPaths(resources, relations, resources[0]);
+  assert.equal(paths.length, 4);
+  assert.equal(paths.find((p) => p.row.id === "doc").distance, 2);
+  assert.deepEqual(
+    paths.find((p) => p.row.id === "doc").path.map((p) => p.id),
+    ["mail", "account", "doc"],
+  );
+  assert.equal(
+    relationPaths(resources, relations, resources[3]).find((p) => p.row.id === "mail").distance,
+    2,
+  );
+  assert.deepEqual(relationPaths(resources, relations, { kind: "server", id: "missing" }), []);
+});
+
+test("号码按已有订阅绑定进入图，号码密文不进入节点，仅支持真实可保存的号码关联", () => {
+  const s = {
+    ...snapshot,
+    phoneNumbers: [
+      {
+        id: "phone",
+        label: "保号",
+        number: "PRIVATE NUMBER",
+        numberHint: "••••1234",
+        subscriptionIds: ["ai-1", "missing"],
+        expiresAt: "2026-12-01",
+      },
+    ],
+  };
+  const resources = resourceRows([...rows, row("ai", "ai-1", "订阅")], [], s);
+  const phone = resources.find((r) => r.kind === "phone");
+  assert.ok(phone);
+  assert.equal(JSON.stringify(phone).includes("PRIVATE"), false);
+  const links = confirmedRelations(resources, [], []);
+  assert.equal(links.length, 1);
+  assert.equal(links[0].type, "phone");
+  assert.equal(canRelateResources(phone, { kind: "document", id: "d" }), false);
+  assert.equal(canRelateResources(phone, { kind: "ai", id: "ai-1" }), true);
+});
 
 test("关系节点读取文档标题与绑定，凭据和正文不进入图或建议", () => {
   const resources = resourceRows(rows, [doc], snapshot);

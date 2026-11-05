@@ -7,8 +7,14 @@ import { formatUptime } from "./desktop";
 import { useLive } from "./live";
 import { expiryStatus } from "./status";
 import { useAppStore } from "./store";
-import { serviceStatusFromEndpoint, withContainerIssues } from "./server-services";
-import type { Certificate, Domain, Server, Status } from "./types";
+import {
+  serviceStatusFromEndpoint,
+  withContainerIssues,
+  hostMetricsStatus,
+  reconcileContainerAlertConfig,
+  serverStatusWithContainerAlerts,
+} from "./server-services";
+import type { Certificate, Domain, Server } from "./types";
 
 /**
  * 绑定了端口 / 容器 / 域名的服务资产，状态由最近一次主机采集决定。
@@ -49,11 +55,20 @@ const flights = new ProbeFlights();
 const busy = (id: string, on: boolean) => useProbeState.getState().set(id, on);
 
 /** A host is "warning" while it is loaded, "offline" only when unreachable. */
-function hostStatus(cpu?: number, memory?: number, disk?: number): Status {
-  const hot = [cpu, memory, disk].filter((n): n is number => typeof n === "number");
-  if (hot.some((n) => n >= 90)) return "offline";
-  if (hot.some((n) => n >= 78)) return "warning";
-  return "online";
+const hostStatus = hostMetricsStatus;
+
+/** 静音/启动宽限到期时，即使尚未再次采集，也及时恢复可见告警。 */
+export function startContainerAlertClock() {
+  const check = () => {
+    const store = useAppStore.getState();
+    for (const server of store.servers) {
+      if (!server.containerAlerts && !server.hostProbeStatus) continue;
+      const status = serverStatusWithContainerAlerts(server);
+      if (server.status !== status) store.upsertServer({ ...server, status });
+    }
+  };
+  const timer = setInterval(check, 1000);
+  return () => clearInterval(timer);
 }
 
 /**
@@ -86,6 +101,7 @@ async function probeServer(server: Server): Promise<void> {
       "username",
     ]);
     if (!current) return;
+    const containerAlerts = reconcileContainerAlertConfig(current.containerAlerts, probe.services);
     const next: Server = {
       ...current,
       os: probe.os ?? current.os,
@@ -99,9 +115,12 @@ async function probeServer(server: Server): Promise<void> {
       diskTotalKb: probe.diskTotalKb,
       // 采集失败（旧主机、命令被禁用）时保留上一次的端口与容器信息，由「是否过期」来判断可信度。
       serviceScan: probe.services ?? current.serviceScan,
+      containerAlerts,
+      hostProbeStatus: hostStatus(probe.cpu, probe.memory, probe.disk),
       status: withContainerIssues(
         hostStatus(probe.cpu, probe.memory, probe.disk),
         probe.services ?? current.serviceScan,
+        containerAlerts,
       ),
       lastSeen: probe.at,
       probedAt: probe.at,

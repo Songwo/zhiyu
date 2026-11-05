@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile, unlink } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import {
   assertBackupPassword,
@@ -22,6 +22,8 @@ const DEFAULTS = {
   lastAttemptAt: null,
   lastFile: null,
   lastError: null,
+  lastLocalRunAt: null,
+  history: [],
 };
 
 function validKeep(value) {
@@ -42,12 +44,14 @@ export class BackupScheduler {
   #queue = Promise.resolve();
   #timer = null;
   #starter = null;
+  #upload;
 
-  constructor({ file, secureStorage, run, now = Date.now }) {
+  constructor({ file, secureStorage, run, upload, now = Date.now }) {
     this.#file = file;
     this.#storage = secureStorage;
     this.#run = run;
     this.#now = now;
+    this.#upload = upload;
   }
 
   #enqueue(work) {
@@ -74,6 +78,8 @@ export class BackupScheduler {
         lastAttemptAt: Number.isFinite(saved.lastAttemptAt) ? saved.lastAttemptAt : null,
         lastFile: typeof saved.lastFile === "string" ? saved.lastFile : null,
         lastError: typeof saved.lastError === "string" ? saved.lastError : null,
+        lastLocalRunAt: Number.isFinite(saved.lastLocalRunAt) ? saved.lastLocalRunAt : null,
+        history: Array.isArray(saved.history) ? saved.history.slice(0, 30) : [],
       };
     } catch (error) {
       if (error.code === "ENOENT" || error instanceof SyntaxError) return { ...DEFAULTS };
@@ -81,11 +87,17 @@ export class BackupScheduler {
     }
   }
 
-  async #write(config) {
+  async #write(config, beforeCommit = () => {}) {
     await mkdir(dirname(this.#file), { recursive: true });
     const temporary = `${this.#file}.tmp`;
-    await writeFile(temporary, JSON.stringify(config), { mode: 0o600 });
-    await rename(temporary, this.#file);
+    try {
+      beforeCommit();
+      await writeFile(temporary, JSON.stringify(config), { mode: 0o600 });
+      beforeCommit();
+      await rename(temporary, this.#file);
+    } finally {
+      await unlink(temporary).catch(() => {});
+    }
   }
 
   #password(config) {
@@ -125,6 +137,8 @@ export class BackupScheduler {
       lastRunAt: config.lastRunAt,
       lastFile: config.lastFile,
       lastError: config.lastError,
+      lastLocalRunAt: config.lastLocalRunAt,
+      history: config.history,
       nextRunAt:
         config.enabled && config.lastRunAt ? config.lastRunAt + config.intervalHours * HOUR : null,
     };
@@ -145,8 +159,9 @@ export class BackupScheduler {
     });
   }
 
-  configure(input) {
+  configure(input, beforeCommit = () => {}) {
     return this.#enqueue(async () => {
+      beforeCommit();
       if (!input || typeof input !== "object" || Array.isArray(input))
         throw new Error("自动备份设置无效。");
       const config = await this.#read();
@@ -171,25 +186,39 @@ export class BackupScheduler {
         if (input.enabled && !config.encryptedPassword) throw new Error("请先设置自动备份密码。");
         config.enabled = input.enabled;
       }
-      await this.#write(config);
+      await this.#write(config, beforeCommit);
       return this.#dto(config);
     });
   }
 
   async #execute(config) {
     const attemptAt = this.#now();
+    let localFile = null;
     try {
       if (!config.directory) throw new Error("请先选择备份文件夹。");
       const data = await this.#run(this.#password(config));
       const name = autoBackupName(new Date(attemptAt));
       await writeBackupFile(join(config.directory, name), data);
+      localFile = name;
       await pruneAutoBackups(config.directory, config.keep);
+      const remote = await this.#upload?.(data, name, config.keep);
       const next = {
         ...config,
         lastRunAt: attemptAt,
         lastAttemptAt: null,
         lastFile: name,
         lastError: null,
+        lastLocalRunAt: attemptAt,
+        history: [
+          {
+            at: attemptAt,
+            file: name,
+            local: true,
+            remote: remote?.uploaded ? "uploaded" : "disabled",
+            warning: remote?.warning ?? null,
+          },
+          ...config.history,
+        ].slice(0, 30),
       };
       await this.#write(next);
       return this.#dto(next);
@@ -197,10 +226,24 @@ export class BackupScheduler {
       const next = {
         ...config,
         lastAttemptAt: attemptAt,
-        lastError: String(error?.message ?? error),
+        lastLocalRunAt: localFile ? attemptAt : config.lastLocalRunAt,
+        lastFile: localFile ?? config.lastFile,
+        lastError: localFile
+          ? `本地备份已保存，但云端上传或保留策略失败：${String(error?.message ?? error)}`
+          : String(error?.message ?? error),
+        history: [
+          {
+            at: attemptAt,
+            file: localFile,
+            local: Boolean(localFile),
+            remote: localFile ? "failed" : "not-started",
+            error: String(error?.message ?? error),
+          },
+          ...config.history,
+        ].slice(0, 30),
       };
       await this.#write(next).catch(() => {});
-      throw error;
+      throw new Error(next.lastError);
     }
   }
 

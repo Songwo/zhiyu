@@ -74,6 +74,16 @@ export function AssetRelations({ asset }: { asset: AssetRef }) {
         <Link2 className="size-4" />
         {t("关联资产")}
       </h3>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          state.setView("relations");
+          useAppStore.setState({ relationFocus: asset });
+        }}
+      >
+        {t("查看完整关联链")}
+      </Button>
       {related.length === 0 && <p className="tool-empty">{t("尚未关联资产")}</p>}
       <ul className="divide-y divide-line">
         {related.map((ref) => {
