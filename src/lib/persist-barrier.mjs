@@ -21,10 +21,8 @@ export function trackPersistence(storage, { onError = () => {} } = {}) {
             /* 错误提示不能阻断后续保存。 */
           }
         });
-        return task.then(
-          () => {},
-          () => {},
-        );
+        // 原任务已有错误处理，可安全忽略；await setState 的既有调用方仍必须收到拒绝。
+        return task;
       },
     },
     async flush() {

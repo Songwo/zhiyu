@@ -23,7 +23,10 @@ try {
       }),
     ),
   );
-  await page.goto(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:8080");
+  await page.goto(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:8080", {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
+  });
   await page.locator('[data-app-ready="true"]').waitFor();
   await page.evaluate(async () => {
     const { useAppStore, snapshotOf } = await import(
@@ -93,7 +96,11 @@ try {
   });
   await page.getByRole("button", { name: "查看服务 合成边缘服务", exact: true }).click();
   details = page.getByRole("region", { name: "资产详情", exact: true });
-  await details.getByText("服务操作手册", { exact: true }).waitFor();
+  // 文档同时出现在通用关联与关联文档区，明确核对文档区，不能依赖全详情文字唯一。
+  await details
+    .getByRole("region", { name: "关联文档", exact: true })
+    .getByText("服务操作手册", { exact: true })
+    .waitFor();
   await details.getByRole("button", { name: "编辑", exact: true }).click();
   editor = page.getByRole("dialog", { name: "服务资产", exact: true });
   await editor.getByLabel("服务名称", { exact: true }).fill("合成博客服务");
