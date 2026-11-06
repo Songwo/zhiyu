@@ -54,6 +54,9 @@ import { toast } from "sonner";
 import { TypedDeleteDialog } from "./typed-delete-dialog";
 import { cardPrivateId } from "@/lib/card-private.mjs";
 import { NetworkResearch } from "./network-research";
+import { m } from "motion/react";
+import { useMotionPreset } from "@/lib/motion";
+import { commitResourceChanges } from "@/lib/resource-relation-actions";
 
 /**
  * 资产详情是主内容区里的一页，而不是浮在列表上的弹窗：顶部返回原列表，
@@ -70,6 +73,7 @@ export function AssetDetailPage() {
 type ServerTab = "overview" | "services" | "nodes" | "docs" | "secrets" | "ops" | "files";
 
 function AssetDetail({ asset }: { asset: ExpandState }) {
+  const animation = useMotionPreset();
   const view = useAppStore((s) => s.view);
   const setExpanded = useAppStore((s) => s.setExpanded);
   const openComposer = useAppStore((s) => s.openComposer);
@@ -82,7 +86,12 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [serverTab, setServerTab] = useState<ServerTab>("overview");
+  const [serverTab, setServerTab] = useState<ServerTab>(
+    asset.focus === "nodes" ? "nodes" : "overview",
+  );
+  useEffect(() => {
+    if (asset.focus === "nodes") setServerTab("nodes");
+  }, [asset.focus, asset.nodeId]);
   const currentServer = asset.kind === "server" ? servers.find((s) => s.id === asset.id) : null;
   const [alertTime, setAlertTime] = useState(Date.now);
   const alertClockEnabled = Boolean(currentServer?.serviceScan);
@@ -137,7 +146,10 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
         requireUnlocked: () =>
           useVault.getState().require(t("删除账号及其加密凭据需要解锁密钥库。")),
         removeCredential: (key: string) => vault.remove(key),
-        removeAsset: (assetId: string) => remove("secret", assetId),
+        removeAsset: async (assetId: string) => {
+          remove("secret", assetId);
+          await commitResourceChanges();
+        },
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
@@ -174,7 +186,11 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
           <ServerServicesPanel key={`services:${asset.id}`} server={currentServer} />
         )}
         {serverTab === "nodes" && (
-          <ServerNodesPanel key={`nodes:${asset.id}`} server={currentServer} />
+          <ServerNodesPanel
+            key={`nodes:${asset.id}`}
+            server={currentServer}
+            focusId={asset.nodeId}
+          />
         )}
         {serverTab === "docs" && (
           <ServerDocsPanel key={`docs:${asset.id}`} server={currentServer} />
@@ -222,7 +238,12 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   }
 
   return (
-    <section className="asset-detail" aria-label={t("资产详情")} data-kind={asset.kind}>
+    <m.section
+      {...animation}
+      className="asset-detail motion-asset-detail"
+      aria-label={t("资产详情")}
+      data-kind={asset.kind}
+    >
       {confirmDelete && currentAccount && (
         <EditorDialog title={t("删除账号")} onClose={() => setConfirmDelete(false)}>
           <p className="text-sm leading-relaxed text-muted">
@@ -259,6 +280,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
             }
             setConfirmDelete(false);
             remove(asset.kind, asset.id);
+            await commitResourceChanges();
           }}
         />
       )}
@@ -356,7 +378,7 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
       <div className="detail-body" key={serverTab}>
         {body}
       </div>
-    </section>
+    </m.section>
   );
 }
 

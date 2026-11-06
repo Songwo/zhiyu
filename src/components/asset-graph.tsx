@@ -28,11 +28,13 @@ import {
   FileText,
   Phone,
   Focus,
+  Radio,
 } from "lucide-react";
 import "@xyflow/react/dist/style.css";
 import {
   resourceGraph,
   resourceKey,
+  canRelateResources,
   resourceRelationPath,
   relationPaths,
   type ResourceRef,
@@ -40,14 +42,11 @@ import {
   type Relation,
 } from "@/lib/resource-relations.mjs";
 import { updateResourceRelation } from "@/lib/resource-relation-actions";
-import { useDocuments } from "@/lib/documents";
-import type { AssetKind } from "@/lib/types";
+import { openResource, resourceKindLabel } from "@/lib/resource-inventory";
 import { toast } from "sonner";
-import { KIND_LABEL } from "@/lib/status";
 import { t } from "@/lib/i18n";
-import { reduceMotion } from "@/lib/motion";
+import { useMotionPolicy } from "@/lib/motion";
 import { useSettings } from "@/lib/settings";
-import { openFromEvent } from "./asset-card";
 import { StatusBadge } from "./ui/status-badge";
 import { Button } from "./ui/button";
 import { useAppStore } from "@/lib/store";
@@ -69,6 +68,7 @@ const ICONS = {
   service: Globe,
   document: FileText,
   phone: Phone,
+  node: Radio,
 };
 function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
   const updateNodeInternals = useUpdateNodeInternals();
@@ -85,13 +85,7 @@ function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
       <div className="graph-node-meta">
         <span>
           <Icon className="size-4" />
-          {t(
-            asset.kind === "document"
-              ? "文档"
-              : asset.kind === "phone"
-                ? "号码"
-                : KIND_LABEL[asset.kind],
-          )}
+          {t(resourceKindLabel(asset))}
         </span>
         {asset.kind !== "document" && <StatusBadge status={asset.status} pending={asset.pending} />}
       </div>
@@ -99,14 +93,10 @@ function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
         className="nodrag asset-name"
         title={t("查看 {0}", asset.name)}
         onClick={(e) => {
-          if (asset.kind === "document") {
-            void useDocuments
-              .getState()
-              .open(asset.id)
-              .then(() => useAppStore.getState().setView("docs"))
-              .catch((error) => toast.error(String(error.message)));
-          } else if (asset.kind === "phone") useAppStore.getState().openPhones({ id: asset.id });
-          else openFromEvent(e, asset.kind as AssetKind, asset.id);
+          const rect = e.currentTarget.getBoundingClientRect();
+          void openResource(asset, { x: rect.x, y: rect.y, w: rect.width, h: rect.height }).catch(
+            (error) => toast.error(String(error.message)),
+          );
         }}
       >
         <span>{asset.name}</span>
@@ -164,7 +154,7 @@ export default function AssetGraph(props: {
   return (
     <div className="resource-graph-workspace">
       <div className="resource-graph-intro">
-        <p>{t("实线表示已保存关联，虚线表示文档绑定；号码展示已保存的订阅绑定。")}</p>
+        <p>{t("实线表示已保存关联，虚线表示文档绑定；号码和节点可直接关联其他资源。")}</p>
         <Button
           variant="outline"
           size="sm"
@@ -226,7 +216,8 @@ function GraphCanvas({
   }, [graph.edges, nodes, vertical]);
   const { fitBounds, getNodes, getNodesBounds, zoomIn, zoomOut } = useReactFlow();
   const theme = useSettings((s) => s.resolved);
-  const duration = reduceMotion() ? 0 : 180;
+  const motionMode = useMotionPolicy();
+  const duration = motionMode === "full" ? 180 : 0;
   const topology = JSON.stringify([vertical, graph.nodes.map((node) => node.id)]);
   const previousTopology = useRef(topology);
   const routeMargin = Math.max(
@@ -306,6 +297,11 @@ function GraphCanvas({
         minZoom={0.1}
         maxZoom={1.8}
         nodesConnectable={linkMode}
+        isValidConnection={({ source, target }) => {
+          const from = rows.find((row) => encodeURIComponent(resourceKey(row)) === source);
+          const to = rows.find((row) => encodeURIComponent(resourceKey(row)) === target);
+          return Boolean(from && to && canRelateResources(from, to));
+        }}
         onConnect={({ source, target }) => {
           if (!linkMode) return;
           const from = rows.find((row) => encodeURIComponent(resourceKey(row)) === source);

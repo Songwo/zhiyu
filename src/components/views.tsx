@@ -1,4 +1,6 @@
 import { isWeb } from "@/lib/web";
+import { m } from "motion/react";
+import { useMotionPreset } from "@/lib/motion";
 import { hasServerMetrics, hasServerObservation } from "@/lib/server-observation.mjs";
 import { subscriptionCost } from "@/lib/subscription-cost";
 const DocumentsWorkspace = lazy(() =>
@@ -62,15 +64,14 @@ const ManagedCardsWorkspace = lazy(() =>
 
 export function MainView() {
   const view = useAppStore((s) => s.view);
+  const animation = useMotionPreset("view");
   // Re-keying replays the entrance, so switching views reads as a change of
   // place rather than a silent content swap.
   return (
-    <div
+    <m.div
       key={view}
-      className={cn(
-        view === "docs" ? "documents-view" : "view-in",
-        view === "agent" && "agent-view-frame",
-      )}
+      {...animation}
+      className={cn(view === "docs" && "documents-view", view === "agent" && "agent-view-frame")}
     >
       <Suspense
         fallback={
@@ -83,7 +84,7 @@ export function MainView() {
         {view === "domains" && <DomainsCloudflareEntry />}
         <ViewBody />
       </Suspense>
-    </div>
+    </m.div>
   );
 }
 

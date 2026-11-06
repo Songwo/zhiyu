@@ -1,5 +1,7 @@
 import { isWeb } from "./web";
-import { webStorage } from "./web-store";
+import { webStorage, flushWebStore } from "./web-store";
+import { trackPersistence } from "./persist-barrier.mjs";
+import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { selectiveStorage } from "./selective-storage";
@@ -20,6 +22,7 @@ import type {
   AssetType,
   Reminder,
   Snapshot,
+  ResourceRef,
   ViewId,
 } from "./types";
 import { uid } from "./utils";
@@ -29,7 +32,7 @@ import {
   leaveTerminalSession,
   disconnectTerminalSession,
 } from "./terminal-sessions.mjs";
-import { normalizeLinks, refKey, type AssetRef, type AssetLink } from "./operations";
+import { normalizeLinks, refKey, type AssetLink } from "./operations";
 import type { AiAccount } from "./ai-accounts";
 import { subscriptionFromAccount } from "./ai-subscriptions";
 import { normalizeSnapshotImages } from "../../electron/services/image-data.mjs";
@@ -40,6 +43,10 @@ import {
   normalizePhoneNumbers,
 } from "../../electron/services/phone-numbers.mjs";
 import { normalizeUsageDraft } from "./usage-setup.mjs";
+import {
+  mutateResourceRelation,
+  replacePhoneRelations,
+} from "../../electron/services/resource-links.mjs";
 import { calendarDay, normalizeBilling } from "../../electron/services/renewals.mjs";
 import { normalizeAssetType, normalizeAssetTypes } from "../../electron/services/asset-types.mjs";
 import {
@@ -59,7 +66,8 @@ export interface UsageSetupDraft {
 export interface ExpandState {
   kind: AssetKind;
   id: string;
-  focus?: "account";
+  focus?: "account" | "nodes";
+  nodeId?: string;
   origin: {
     x: number;
     y: number;
@@ -91,11 +99,12 @@ export interface AppState extends Snapshot {
     attention?: boolean;
     create?: boolean;
   }) => void;
-  upsertPhoneNumber: (record: PhoneNumber) => void;
+  upsertPhoneNumber: (record: PhoneNumber, targets?: ResourceRef[]) => void;
   removePhoneNumber: (id: string) => void;
   links: AssetLink[];
-  linkAssets: (from: AssetRef, to: AssetRef) => void;
-  unlinkAssets: (from: AssetRef, to: AssetRef) => void;
+  linkAssets: (from: ResourceRef, to: ResourceRef) => void;
+  unlinkAssets: (from: ResourceRef, to: ResourceRef) => void;
+  removeResourceLinks: (ref: ResourceRef) => void;
   view: ViewId;
   filter: "all" | "attention";
   query: string;
@@ -105,7 +114,7 @@ export interface AppState extends Snapshot {
   groupByTag: boolean;
   activity: ActivityItem[];
   expanded: ExpandState | null;
-  relationFocus: { kind: AssetKind | "document" | "phone"; id: string } | null;
+  relationFocus: ResourceRef | null;
   sshServerId: string | null;
   sshSessionIds: string[];
   commandOpen: boolean;
@@ -152,7 +161,7 @@ export interface AppState extends Snapshot {
     editingId?: string | null,
     preset?: Record<string, string>,
   ) => void;
-  linkAssetsMany: (from: AssetRef, targets: AssetRef[]) => void;
+  linkAssetsMany: (from: ResourceRef, targets: ResourceRef[]) => void;
   closeComposer: () => void;
   setMobileNav: (v: boolean) => void;
   setHydrated: (v: boolean) => void;
@@ -239,6 +248,18 @@ function pickStorage(): StateStorage {
   return isDesktop() ? diskStorage : isWeb() ? webStorage : window.localStorage;
 }
 
+const assetPersistence = trackPersistence(
+  selectiveStorage(createJSONStorage<Snapshot & { activity: ActivityItem[] }>(pickStorage)!),
+  {
+    onError: (error) =>
+      toast.error(t("保存失败：{0}", error instanceof Error ? error.message : String(error))),
+  },
+);
+export async function flushAssetPersistence() {
+  await assetPersistence.flush();
+  if (isWeb()) await flushWebStore();
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -251,20 +272,19 @@ export const useAppStore = create<AppState>()(
       secretFolders: normalizeSecretFolders(undefined),
       ...emptyUi,
       links: [],
-      linkAssets: (from, to) =>
-        set({ links: normalizeLinks([...get().links, { from, to }], get()) }),
-      linkAssetsMany: (from, targets) =>
-        set({
-          links: normalizeLinks([...get().links, ...targets.map((to) => ({ from, to }))], get()),
-        }),
-      unlinkAssets: (from, to) =>
+      linkAssets: (from, to) => set(mutateResourceRelation(get(), from, to)),
+      linkAssetsMany: (from, targets) => {
+        const initial = get();
+        let next = { links: initial.links, phoneNumbers: initial.phoneNumbers };
+        for (const target of targets)
+          next = mutateResourceRelation({ ...initial, ...next }, from, target);
+        set(next);
+      },
+      unlinkAssets: (from, to) => set(mutateResourceRelation(get(), from, to, true)),
+      removeResourceLinks: (ref) =>
         set({
           links: get().links.filter(
-            (link) =>
-              !(
-                (refKey(link.from) === refKey(from) && refKey(link.to) === refKey(to)) ||
-                (refKey(link.from) === refKey(to) && refKey(link.to) === refKey(from))
-              ),
+            (link) => refKey(link.from) !== refKey(ref) && refKey(link.to) !== refKey(ref),
           ),
         }),
       activity: initialActivity(),
@@ -395,18 +415,18 @@ export const useAppStore = create<AppState>()(
       setMobileNav: (mobileNav) => set({ mobileNav }),
       setHydrated: (hydrated) => set({ hydrated }),
 
-      upsertPhoneNumber: (record) =>
-        set({
-          phoneNumbers: normalizePhoneNumbers(
-            upsert(get().phoneNumbers, normalizePhoneNumber(record)),
-          ),
-        }),
-      removePhoneNumber: (id) =>
-        set({ phoneNumbers: get().phoneNumbers.filter((record) => record.id !== id) }),
-      upsertServer: (s) =>
-        set({
-          servers: upsert(get().servers, s),
-        }),
+      upsertPhoneNumber: (record, targets) =>
+        set(replacePhoneRelations(get(), normalizePhoneNumber(record), targets)),
+      removePhoneNumber: (id) => {
+        const state = get();
+        const phoneNumbers = state.phoneNumbers.filter((record) => record.id !== id);
+        set({ phoneNumbers, links: normalizeLinks(state.links, { ...state, phoneNumbers }) });
+      },
+      upsertServer: (s) => {
+        const state = get(),
+          servers = upsert(state.servers, s);
+        set({ servers, links: normalizeLinks(state.links, { ...state, servers }) });
+      },
       upsertDomain: (s) => set({ domains: upsert(get().domains, s) }),
       upsertMail: (s) => set({ mailboxes: upsert(get().mailboxes, s) }),
       upsertAi: (s) => set({ aiAssets: upsert(get().aiAssets, s) }),
@@ -455,11 +475,10 @@ export const useAppStore = create<AppState>()(
         ).find((x) => x.id === id);
         set({
           [key]: (get()[key] as { id: string }[]).filter((x) => x.id !== id),
-          links: get().links.filter(
-            (link) =>
-              refKey(link.from) !== refKey({ kind, id }) &&
-              refKey(link.to) !== refKey({ kind, id }),
-          ),
+          links: normalizeLinks(get().links, {
+            ...get(),
+            [key]: (get()[key] as { id: string }[]).filter((x) => x.id !== id),
+          } as AppState),
           expanded: null,
           ...(kind === "ai"
             ? {
@@ -527,9 +546,7 @@ export const useAppStore = create<AppState>()(
     {
       name: "sinan-assets-v1",
       skipHydration: true,
-      storage: selectiveStorage(
-        createJSONStorage<Snapshot & { activity: ActivityItem[] }>(pickStorage)!,
-      ),
+      storage: assetPersistence.storage,
       // Records written before tags existed have no `tags` array, and every
       // reader treats it as required. Normalise once, on the way in.
       merge: (persisted, current) => {
@@ -560,6 +577,7 @@ export const useAppStore = create<AppState>()(
             secrets: saved.secrets ?? [],
             certs: saved.certs ?? [],
             services: saved.services ?? [],
+            phoneNumbers: saved.phoneNumbers ?? [],
           }),
         };
       },

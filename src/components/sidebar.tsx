@@ -37,7 +37,8 @@ import {
 } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { isDesktop } from "@/lib/desktop";
-import { usePresence } from "@/lib/motion";
+import { usePresence, useMotionPolicy } from "@/lib/motion";
+import { m } from "motion/react";
 import { useAppStore, snapshotOf } from "@/lib/store";
 import { attentionOf } from "@/lib/status";
 import type { AssetKind, ViewId } from "@/lib/types";
@@ -230,6 +231,7 @@ export function Sidebar({
 
   // 选中项背后的高亮块随选中项滑动，而不是每个按钮各自闪一下背景。
   const navRef = useRef<HTMLElement>(null);
+  const motionMode = useMotionPolicy();
   const [pill, setPill] = useState<{
     top: number;
     left: number;
@@ -317,18 +319,27 @@ export function Sidebar({
           aria-label={t("主导航")}
           className="sidebar-nav relative flex-1 overflow-y-auto px-3 pb-4"
         >
-          <span
+          <m.span
             aria-hidden="true"
             className="sidebar-active-pill"
+            data-motion-engine="motion"
             data-visible={Boolean(pill)}
-            style={
+            initial={false}
+            animate={
               pill
                 ? {
-                    transform: `translate3d(${pill.left}px, ${pill.top}px, 0)`,
+                    x: pill.left,
+                    y: pill.top,
                     width: pill.width,
                     height: pill.height,
+                    opacity: 1,
                   }
-                : undefined
+                : { opacity: 0 }
+            }
+            transition={
+              motionMode === "full" && motionReady
+                ? { type: "spring", duration: 0.32, bounce: 0 }
+                : { duration: 0 }
             }
           />
           {NAV_GROUPS.map((group) => {

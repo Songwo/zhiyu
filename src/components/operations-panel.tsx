@@ -19,16 +19,17 @@ import { Select } from "./ui/input";
 import { AssetPicker } from "./asset-picker";
 import { desktop, type DesktopPreferences, type SftpEntry } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
-import {
-  assetEntries,
-  calendarItems,
-  createCalendar,
-  refKey,
-  type AssetRef,
-} from "@/lib/operations";
+import { calendarItems, createCalendar, refKey } from "@/lib/operations";
 import { useAppStore } from "@/lib/store";
-import { KIND_LABEL } from "@/lib/status";
 import { useVault } from "@/lib/vault-state";
+import {
+  connectedRefs,
+  openResource,
+  resourceKindLabel,
+  useResourceInventory,
+} from "@/lib/resource-inventory";
+import { updateResourceRelation } from "@/lib/resource-relation-actions";
+import type { ResourceRef } from "@/lib/types";
 import { downloadText, formatDate } from "@/lib/utils";
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -55,21 +56,33 @@ export function CalendarExport() {
   );
 }
 
-export function AssetRelations({ asset }: { asset: AssetRef }) {
+export function AssetRelations({ asset }: { asset: ResourceRef }) {
   const state = useAppStore();
+  const { resources, relations, error: loadError } = useResourceInventory();
   const [selected, setSelected] = useState("");
   const [multiple, setMultiple] = useState<string[]>([]);
   const [batch, setBatch] = useState(false);
-  const entries = assetEntries(state);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const self = refKey(asset);
-  const related = state.links.flatMap((link) =>
-    refKey(link.from) === self ? [link.to] : refKey(link.to) === self ? [link.from] : [],
-  );
+  const related = connectedRefs(asset, relations);
+  const entries = resources.map((row) => ({ ...row, label: row.name }));
   const choices = entries.filter(
     (entry) => refKey(entry) !== self && !related.some((ref) => refKey(ref) === refKey(entry)),
   );
+  const run = async (action: () => Promise<void>) => {
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <section className="detail-section">
+    <section className="detail-section" aria-label={t("关联资产")} aria-busy={busy}>
       <h3 className="tool-heading">
         <Link2 className="size-4" />
         {t("关联资产")}
@@ -84,32 +97,39 @@ export function AssetRelations({ asset }: { asset: AssetRef }) {
       >
         {t("查看完整关联链")}
       </Button>
+      {(error || loadError) && (
+        <p role="alert" className="my-2 text-meta text-crit">
+          {error || loadError}
+        </p>
+      )}
+      {busy && <p role="status" className="my-2 text-meta text-muted">{t("正在保存…")}</p>}
       {related.length === 0 && <p className="tool-empty">{t("尚未关联资产")}</p>}
       <ul className="divide-y divide-line">
         {related.map((ref) => {
-          const entry = entries.find((x) => refKey(x) === refKey(ref));
+          const entry = entries.find((item) => refKey(item) === refKey(ref));
           if (!entry) return null;
           return (
             <li key={refKey(ref)} className="flex min-w-0 items-center gap-2 py-2">
               <button
+                type="button"
                 className="min-w-0 flex-1 text-left text-meta hover:underline"
-                onClick={(e) => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  state.setExpanded({
-                    ...ref,
-                    origin: { x: r.x, y: r.y, w: r.width, h: r.height },
-                  });
+                onClick={(event) => {
+                  const r = event.currentTarget.getBoundingClientRect();
+                  void openResource(ref, { x: r.x, y: r.y, w: r.width, h: r.height }).catch(
+                    (cause) => setError(errorText(cause)),
+                  );
                 }}
               >
-                <span className="mr-2 text-subtle">{t(KIND_LABEL[ref.kind])}</span>
+                <span className="mr-2 text-subtle">{t(resourceKindLabel(entry))}</span>
                 <span className="break-words">{entry.label}</span>
               </button>
               <Button
                 variant="ghost"
                 size="icon-sm"
+                disabled={busy}
                 title={t("解除关联")}
                 aria-label={t("解除关联")}
-                onClick={() => state.unlinkAssets(asset, ref)}
+                onClick={() => void run(() => updateResourceRelation(asset, ref, true))}
               >
                 <Unlink className="size-4" />
               </Button>
@@ -121,30 +141,32 @@ export function AssetRelations({ asset }: { asset: AssetRef }) {
         <Select
           className="min-w-0 flex-1 text-meta"
           aria-label={t("选择关联资产")}
-          value={choices.some((x) => refKey(x) === selected) ? selected : ""}
+          value={choices.some((item) => refKey(item) === selected) ? selected : ""}
           onValueChange={setSelected}
           options={[
             { value: "", label: t("选择关联资产") },
             ...choices.map((entry) => ({
               value: refKey(entry),
               label: entry.label,
-              description: t(KIND_LABEL[entry.kind]),
+              description: t(resourceKindLabel(entry)),
             })),
           ]}
         />
         <Button
           variant="outline"
           size="icon-sm"
-          disabled={!choices.some((x) => refKey(x) === selected)}
+          disabled={busy || !choices.some((entry) => refKey(entry) === selected)}
           title={t("添加关联")}
           aria-label={t("添加关联")}
-          onClick={() => {
-            const target = choices.find((x) => refKey(x) === selected);
-            if (target) {
-              state.linkAssets(asset, target);
-              setSelected("");
-            }
-          }}
+          onClick={() =>
+            void run(async () => {
+              const target = choices.find((entry) => refKey(entry) === selected);
+              if (target) {
+                await updateResourceRelation(asset, target);
+                setSelected("");
+              }
+            })
+          }
         >
           <Plus className="size-4" />
         </Button>
@@ -166,14 +188,23 @@ export function AssetRelations({ asset }: { asset: AssetRef }) {
             onChange={setMultiple}
           />
           <Button
-            disabled={!choices.some((entry) => multiple.includes(refKey(entry)))}
-            onClick={() => {
-              state.linkAssetsMany(
-                asset,
-                choices.filter((entry) => multiple.includes(refKey(entry))),
-              );
-              setMultiple([]);
-            }}
+            disabled={busy || !choices.some((entry) => multiple.includes(refKey(entry)))}
+            onClick={() =>
+              void run(async () => {
+                let done = 0;
+                try {
+                  for (const target of choices.filter((entry) =>
+                    multiple.includes(refKey(entry)),
+                  )) {
+                    await updateResourceRelation(asset, target);
+                    done += 1;
+                  }
+                  setMultiple([]);
+                } catch (cause) {
+                  throw Error(t("已保存 {0} 项关联，后续失败：{1}", done, errorText(cause)));
+                }
+              })
+            }
           >
             <Plus className="mr-2 size-4" />
             {t("添加所选关联")}

@@ -1,0 +1,7 @@
+[
+  ["wait", "[data-app-ready=true]"],
+  ["find", "role", "button", "click", "--name", "系统设置…"],
+  ["wait", ".settings-dialog[data-shown=true]"],
+  ["find", "role", "button", "click", "--name", "预览动效"],
+  ["wait", ".motion-demo-open"]
+]

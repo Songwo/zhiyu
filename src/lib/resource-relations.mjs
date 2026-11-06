@@ -1,9 +1,10 @@
 import { phoneExpiry } from "../../electron/services/phone-numbers.mjs";
+import { isResourceRef, nodeResourceId } from "../../electron/services/resource-links.mjs";
 /** @typedef {import('./asset-view').AssetRow} AssetRow */
 /** @typedef {import('./types').Snapshot} Snapshot */
 /** @typedef {import('./documents').DocumentSummary} DocumentSummary */
-/** @typedef {{kind: import('./types').AssetKind | 'document' | 'phone', id: string}} ResourceRef */
-/** @typedef {Omit<AssetRow, 'kind'> & ResourceRef & {demo?: boolean, host?: string, subscriptionIds?: string[]}} ResourceRow */
+/** @typedef {import('./types').ResourceRef} ResourceRef */
+/** @typedef {Omit<AssetRow, 'kind'> & ResourceRef & {demo?: boolean, host?: string, typeLabel?:string, subscriptionIds?: string[]}} ResourceRow */
 /** @typedef {{id: string, from: ResourceRef, to: ResourceRef, type: 'asset' | 'document' | 'phone'}} Relation */
 
 /** @param {ResourceRef} ref */
@@ -40,6 +41,12 @@ export function resourceRows(rows, documents, snapshot) {
         resourceKey({ kind: "service", id: x.id }),
         {
           demo: x.demo,
+          typeLabel:
+            x.card?.kind === "payment"
+              ? "U 卡与支付卡"
+              : x.card?.kind === "esim"
+                ? "eSIM 卡"
+                : (snapshot.assetTypes ?? []).find((type) => type.id === x.typeId)?.name,
           host: (() => {
             try {
               return new URL(x.url).hostname;
@@ -50,10 +57,26 @@ export function resourceRows(rows, documents, snapshot) {
         },
       ]),
       ...snapshot.secrets.map((x) => [resourceKey({ kind: "secret", id: x.id }), { demo: x.demo }]),
-    ].map(([key, value]) => /** @type {[string, {demo?:boolean,host?:string}]} */ ([key, value])),
+    ].map(
+      ([key, value]) =>
+        /** @type {[string, {demo?:boolean,host?:string,typeLabel?:string}]} */ ([key, value]),
+    ),
   );
   return [
     ...rows.map((row) => ({ ...row, ...inventory.get(resourceKey(row)) })),
+    ...snapshot.servers.flatMap((server) =>
+      (server.nodes ?? []).map((node) => ({
+        kind: /** @type {const} */ ("node"),
+        id: nodeResourceId(server.id, node.id),
+        name: node.name || node.protocol,
+        detail: server.name,
+        tags: [],
+        status: /** @type {'online'|'warning'} */ (node.checkError ? "warning" : "online"),
+        pending: !node.checkedAt,
+        demo: server.demo,
+        search: `${node.name} ${node.protocol} ${server.name}`.toLocaleLowerCase(),
+      })),
+    ),
     ...(snapshot.phoneNumbers ?? []).map((phone) => ({
       kind: /** @type {const} */ ("phone"),
       id: phone.id,
@@ -137,10 +160,7 @@ export function relatedResources(rows, relations, anchors) {
 
 /** @param {ResourceRef} from @param {ResourceRef} to */
 export function canRelateResources(from, to) {
-  if (resourceKey(from) === resourceKey(to) || (from.kind === "document" && to.kind === "document"))
-    return false;
-  if (from.kind === "phone" || to.kind === "phone") return from.kind === "ai" || to.kind === "ai";
-  return true;
+  return isResourceRef(from) && isResourceRef(to) && resourceKey(from) !== resourceKey(to);
 }
 
 /** 只沿已保存关系计算最短链路，不读取凭据、文档正文或自动确认建议。
@@ -208,7 +228,7 @@ export function suggestRelations(rows, relations) {
       exists.has(id) ||
       suggestions.has(id) ||
       resourceKey(from) === resourceKey(to) ||
-      (from.kind === "document" && to.kind === "document")
+      !canRelateResources(from, to)
     )
       return;
     if (!canRelateResources(from, to)) return;
@@ -276,6 +296,7 @@ export function resourceGraph(rows, relations, vertical) {
   const kinds = [
     "secret",
     "server",
+    "node",
     "service",
     "domain",
     "cert",

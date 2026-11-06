@@ -24,6 +24,11 @@ export type ViewId =
   | "host";
 
 export type AssetKind = "server" | "domain" | "mail" | "ai" | "secret" | "cert" | "service";
+export type ResourceKind = AssetKind | "phone" | "document" | "node";
+export interface ResourceRef {
+  kind: ResourceKind;
+  id: string;
+}
 
 export type BillingCurrency = "CNY" | "USD";
 /** 一次性费用（如买断、永久号码）不计入月度和年度支出。 */

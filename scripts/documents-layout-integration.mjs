@@ -55,6 +55,11 @@ async function scenario(name, viewport, run) {
       timeout: 60000,
     });
     await page.locator('[data-app-ready="true"]').waitFor({ timeout: 60000 });
+    if (viewport.width >= 768) {
+      // 导航分组默认折叠，先走用户实际的展开操作再打开文档。
+      const workspace = page.getByRole("button", { name: "工作台", exact: true });
+      if ((await workspace.getAttribute("aria-expanded")) !== "true") await workspace.click();
+    }
     await page
       .getByRole("button", { name: viewport.width < 768 ? "文档" : "文档资产", exact: true })
       .click();

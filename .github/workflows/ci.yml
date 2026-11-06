@@ -92,6 +92,7 @@ jobs:
       - name: 验证关联、容器告警、云备份与 AI 底部布局
         run: |
           node scripts/web-relations-integration.mjs
+          node scripts/phone-editor-layout-integration.mjs
           node scripts/web-container-alerts-integration.mjs
           node scripts/web-s3-backup-integration.mjs
           node scripts/web-agent-layout-integration.mjs

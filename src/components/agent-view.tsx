@@ -44,6 +44,7 @@ import {
 } from "@/lib/agent-retry.mjs";
 import { usePresence } from "@/lib/motion";
 import { useDocuments } from "@/lib/documents";
+import { openResource } from "@/lib/resource-inventory";
 import "./agent-workspace.css";
 import { LogoMark } from "./logo";
 import { Button } from "./ui/button";
@@ -1513,17 +1514,16 @@ function SourceItem({ source, compact = false }: { source: Source; compact?: boo
         useAppStore.getState().setView("docs");
       } else if (source.assetId && source.kind) {
         const width = Math.min(560, window.innerWidth - 48);
-        useAppStore.getState().setExpanded({
-          kind: source.kind,
-          id: source.assetId,
-          focus: source.focus,
-          origin: {
+        await openResource(
+          { kind: source.kind, id: source.assetId },
+          {
             x: (window.innerWidth - width) / 2,
             y: window.innerHeight * 0.3,
             w: width,
             h: 180,
           },
-        });
+          source.focus,
+        );
       }
     } catch (reason) {
       toast.error(

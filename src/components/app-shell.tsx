@@ -62,6 +62,7 @@ import { useVault } from "@/lib/vault-state";
 import { useDocuments } from "@/lib/documents";
 import { t, subscribeLocale, getLocale } from "@/lib/i18n";
 import { useBrowserReminders } from "@/lib/browser-reminders";
+import { WorkspaceMotion } from "./motion-provider";
 
 /** 首次打开才加载，之后保留挂载，使原有关闭动画与事件订阅继续工作。 */
 function DeferredOverlay({
@@ -79,6 +80,14 @@ function DeferredOverlay({
 }
 
 export function AppShell() {
+  return (
+    <WorkspaceMotion>
+      <WorkspaceShell />
+    </WorkspaceMotion>
+  );
+}
+
+function WorkspaceShell() {
   useEffect(() => startContainerAlertClock(), []);
   useEffect(() => startUpdateNotices(), []);
   useEffect(() => startWebExtensionBroker(), []);

@@ -73,7 +73,7 @@ test("邮箱—账号—主机—文档链双向最短路径，环路/孤立/悬
   assert.deepEqual(relationPaths(resources, relations, { kind: "server", id: "missing" }), []);
 });
 
-test("号码按已有订阅绑定进入图，号码密文不进入节点，仅支持真实可保存的号码关联", () => {
+test("号码兼容已有订阅绑定，隐私不进入节点，并允许通用资源关联", () => {
   const s = {
     ...snapshot,
     phoneNumbers: [
@@ -94,7 +94,9 @@ test("号码按已有订阅绑定进入图，号码密文不进入节点，仅�
   const links = confirmedRelations(resources, [], []);
   assert.equal(links.length, 1);
   assert.equal(links[0].type, "phone");
-  assert.equal(canRelateResources(phone, { kind: "document", id: "d" }), false);
+  // 新需求允许号码关联文档与服务器，旧版拒绝该组合的断言不再适用。
+  assert.equal(canRelateResources(phone, { kind: "document", id: "d" }), true);
+  assert.equal(canRelateResources(phone, { kind: "server", id: "s" }), true);
   assert.equal(canRelateResources(phone, { kind: "ai", id: "ai-1" }), true);
 });
 

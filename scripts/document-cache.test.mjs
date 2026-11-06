@@ -305,7 +305,8 @@ await test("保存失败后保留最新草稿，重试只保存最新内容并�
   assert.equal(useDocuments.getState().status[id], "error");
   await useDocuments.getState().flush(id);
   assert.equal(writes.length, 2);
-  assert.equal(writes[1], latest);
+  // 请求新增了保护关联的控制字段，不再与草稿共享对象；仍逐字段确认最新正文完整提交。
+  assert.deepEqual(writes[1], { ...latest, preserveBindings: true });
   assert.equal(useDocuments.getState().drafts[id].markdown, latest.markdown);
   assert.equal(useDocuments.getState().errors[id], "");
   assert.equal(useDocuments.getState().status[id], "saved");

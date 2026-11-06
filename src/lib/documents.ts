@@ -8,6 +8,7 @@ import type { JSONContent } from "@tiptap/react";
 import type { AssetRef } from "./operations";
 import { desktop } from "./desktop";
 import { markdownContent } from "./document-markdown.mjs";
+import { useAppStore } from "./store";
 
 export interface DocumentAsset {
   id: string;
@@ -30,8 +31,11 @@ export interface DocumentsBridge {
   onChanged?(handler: (change: DocumentChange) => void): () => void;
   list(): Promise<DocumentSummary[]>;
   get(id: string): Promise<DocumentAsset>;
-  save(doc: DocumentAsset & { createOnly?: boolean }): Promise<DocumentAsset>;
+  save(
+    doc: DocumentAsset & { createOnly?: boolean; preserveBindings?: boolean },
+  ): Promise<DocumentAsset>;
   remove(id: string): Promise<void>;
+  bind?(id: string, ref: AssetRef, remove?: boolean): Promise<DocumentAsset>;
 }
 /** 自托管网页版：文档存在服务器的 documents/ 目录（与桌面版相同）。 */
 const webDocuments: DocumentsBridge = {
@@ -39,6 +43,11 @@ const webDocuments: DocumentsBridge = {
   get: (id) => webApi<DocumentAsset>(`documents/${encodeURIComponent(id)}`),
   save: (doc) =>
     webApi<DocumentAsset>(`documents/${encodeURIComponent(doc.id)}`, { method: "PUT", body: doc }),
+  bind: (id, ref, remove = false) =>
+    webApi<DocumentAsset>(`documents/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: { binding: ref, remove },
+    }),
   remove: async (id) => {
     await webApi(`documents/${encodeURIComponent(id)}`, { method: "DELETE", body: {} });
   },
@@ -58,9 +67,11 @@ const local: DocumentsBridge = {
   async save(doc) {
     const existing = localStorage.getItem("nanpad-doc:" + doc.id);
     if (doc.createOnly && existing) return JSON.parse(existing);
-    const { createOnly: _createOnly, ...content } = doc;
+    if (doc.preserveBindings && !existing) throw Error("文档已删除，未保存修改。");
+    const { createOnly: _createOnly, preserveBindings: _preserveBindings, ...content } = doc;
     const next = {
       ...content,
+      ...(doc.preserveBindings && existing ? { bindings: JSON.parse(existing).bindings } : {}),
       ...(typeof content.markdown === "string"
         ? { content: markdownContent(content.markdown) }
         : {}),
@@ -71,6 +82,18 @@ const local: DocumentsBridge = {
   },
   async remove(id) {
     localStorage.removeItem("nanpad-doc:" + id);
+  },
+  async bind(id, ref, remove = false) {
+    const raw = localStorage.getItem("nanpad-doc:" + id);
+    if (!raw) throw Error("文档不存在");
+    const before = JSON.parse(raw);
+    const bindings = before.bindings.filter(
+      (item: AssetRef) => item.kind !== ref.kind || item.id !== ref.id,
+    );
+    if (!remove) bindings.push({ kind: ref.kind, id: ref.id });
+    const document = { ...before, bindings, updatedAt: new Date().toISOString() };
+    localStorage.setItem("nanpad-doc:" + id, JSON.stringify(document));
+    return document;
   },
 };
 function api() {
@@ -129,6 +152,7 @@ export const useDocuments = create<State>((set, get) => ({
   acceptChange({ document, removedId }) {
     const id = document?.id ?? removedId;
     if (!id) return;
+    if (removedId) useAppStore.getState().removeResourceLinks({ kind: "document", id: removedId });
     set((state) => {
       // 自身保存的通知早于响应；正在编辑/保存的草稿由原保存队列收尾。
       if (state.drafts[id] && state.status[id] !== "saved") return state;
@@ -279,7 +303,7 @@ export const useDocuments = create<State>((set, get) => ({
         if (!draft) return;
         set((s) => ({ status: { ...s.status, [id]: "saving" } }));
         try {
-          const saved = await api().save(draft);
+          const saved = await api().save({ ...draft, preserveBindings: true });
           if (get().drafts[id] === draft) {
             set((s) => ({
               drafts: { ...s.drafts, [id]: saved },
@@ -304,6 +328,7 @@ export const useDocuments = create<State>((set, get) => ({
   async remove(id) {
     await get().flush(id);
     await api().remove(id);
+    useAppStore.getState().removeResourceLinks({ kind: "document", id });
     set((s) => {
       const drafts = { ...s.drafts },
         status = { ...s.status },

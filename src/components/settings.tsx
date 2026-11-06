@@ -41,6 +41,12 @@ import { cn, downloadJson } from "@/lib/utils";
 import { useVault } from "@/lib/vault-state";
 import { t, type LocaleChoice } from "@/lib/i18n";
 import { TERMINAL_CURSORS, TERMINAL_FONTS, TERMINAL_THEMES } from "@/lib/terminal-appearance.mjs";
+import type { MotionMode } from "@/lib/motion-policy.mjs";
+import { EditorDialog } from "./ui/editor-dialog";
+
+const MotionPreview = lazy(() =>
+  import("./motion-preview").then((module) => ({ default: module.MotionPreview })),
+);
 
 const IntegrationsSettings = lazy(() =>
   import("./integrations/integrations-settings").then((module) => ({
@@ -330,6 +336,9 @@ const THEMES: Array<{ id: ThemeChoice; label: string; icon: LucideIcon }> = [
 ];
 
 function Appearance() {
+  const motionMode = useSettings((s) => s.motionMode);
+  const setMotionMode = useSettings((s) => s.setMotionMode);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const zoomPercent = useSettings((s) => s.zoomPercent);
   const zoomReady = useSettings((s) => s.zoomReady);
   const setZoomPercent = useSettings((s) => s.setZoomPercent);
@@ -367,6 +376,35 @@ function Appearance() {
           ]}
         />
       </Row>
+      <Row
+        label={t("界面动效")}
+        hint={t("完整动效自动遵循系统的减少动态效果设置，修改后立即生效。")}
+      >
+        <Select
+          className="w-36 text-meta"
+          aria-label={t("界面动效")}
+          value={motionMode}
+          onValueChange={(value) => setMotionMode(value as MotionMode)}
+          options={[
+            { value: "full", label: t("完整动效") },
+            { value: "reduced", label: t("轻量动效") },
+            { value: "off", label: t("关闭动效") },
+          ]}
+        />
+      </Row>
+      <div className="flex items-center justify-between gap-3 border-b border-line py-3">
+        <span className="text-meta text-muted">{t("体验关联展开、卡片翻转与步骤衔接")}</span>
+        <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+          {t("预览动效")}
+        </Button>
+      </div>
+      {previewOpen && (
+        <EditorDialog title={t("知屿动效预览")} onClose={() => setPreviewOpen(false)}>
+          <Suspense fallback={<p className="p-5 text-sm text-muted">{t("正在加载…")}</p>}>
+            <MotionPreview />
+          </Suspense>
+        </EditorDialog>
+      )}
       <div className="border-b border-line py-3">
         <div className="text-meta font-medium">{t("界面大小")}</div>
         <p className="mt-1 text-2xs leading-relaxed text-muted">

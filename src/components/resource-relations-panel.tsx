@@ -9,7 +9,7 @@ import {
   type ResourceRow,
 } from "@/lib/resource-relations.mjs";
 import { updateResourceRelation } from "@/lib/resource-relation-actions";
-import { KIND_LABEL } from "@/lib/status";
+import { resourceKindLabel } from "@/lib/resource-inventory";
 import { Button } from "./ui/button";
 import { Select } from "./ui/select";
 
@@ -30,7 +30,7 @@ export function ResourceRelationsPanel({
   const suggestions = useMemo(() => suggestRelations(resources, relations), [resources, relations]);
   const options = resources.map((row) => ({
     value: resourceKey(row),
-    label: `${row.name} · ${t(row.kind === "document" ? "文档" : row.kind === "phone" ? "号码" : KIND_LABEL[row.kind])}`,
+    label: `${row.name} · ${t(resourceKindLabel(row))}`,
   }));
   const names = new Map(resources.map((row) => [resourceKey(row), row.name]));
   const choices = suggestions.filter((item) => selected.has(item.id));
@@ -48,7 +48,7 @@ export function ResourceRelationsPanel({
     }
   }
   return (
-    <section className="resource-relations-panel" aria-label={t("管理资源关联")}>
+    <section className="resource-relations-panel" aria-label={t("管理资源关联")} aria-busy={busy}>
       <div className="resource-panel-tabs" role="group" aria-label={t("关联操作")}>
         <Button
           variant={tab === "saved" ? "solid" : "ghost"}
@@ -79,7 +79,11 @@ export function ResourceRelationsPanel({
             <Select
               aria-label={t("起始资源")}
               value={from}
-              onValueChange={setFrom}
+              onValueChange={(value) => {
+                setFrom(value);
+                setTo("");
+                setError("");
+              }}
               placeholder={t("选择资源")}
               options={options}
             />
@@ -96,7 +100,16 @@ export function ResourceRelationsPanel({
               })}
             />
             <Button
-              disabled={busy || !from || !to || from === to}
+              disabled={
+                busy ||
+                !resources.some(
+                  (source) =>
+                    resourceKey(source) === from &&
+                    resources.some(
+                      (target) => resourceKey(target) === to && canRelateResources(source, target),
+                    ),
+                )
+              }
               onClick={() =>
                 void run(async () => {
                   const source = resources.find((row) => resourceKey(row) === from),
@@ -108,7 +121,7 @@ export function ResourceRelationsPanel({
                 })
               }
             >
-              {t("保存关联")}
+              {busy ? t("正在保存…") : t("保存关联")}
             </Button>
           </div>
         </div>

@@ -4,7 +4,9 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { assetRows, filterAssetRows } from "@/lib/asset-view";
-import { assetEntries, refKey, updateAssetTags } from "@/lib/operations";
+import { refKey, updateAssetTags } from "@/lib/operations";
+import { useResourceInventory } from "@/lib/resource-inventory";
+import { updateResourceRelation } from "@/lib/resource-relation-actions";
 import { parseTags } from "@/lib/tags";
 import { t } from "@/lib/i18n";
 import { AssetPicker } from "./asset-picker";
@@ -42,6 +44,7 @@ export function AssetOrganizer() {
 }
 
 function OrganizerBody({ close }: { close: () => void }) {
+  const { resources } = useResourceInventory();
   const state = useAppStore();
   const [selected, setSelected] = useState<string[]>([]);
   const [mode, setMode] = useState<"tags" | "links">("tags");
@@ -57,9 +60,9 @@ function OrganizerBody({ close }: { close: () => void }) {
     state.tagFilter,
   ).map((row) => ({ ...row, label: row.name }));
   const refs = entries.filter((entry) => selected.includes(refKey(entry)));
-  const targets = assetEntries(state).filter(
-    (entry) => !refs.some((ref) => refKey(ref) === refKey(entry)),
-  );
+  const targets = resources
+    .map((row) => ({ ...row, label: row.name }))
+    .filter((entry) => !refs.some((ref) => refKey(ref) === refKey(entry)));
   const valid =
     refs.length > 0 &&
     (mode === "tags"
@@ -77,7 +80,23 @@ function OrganizerBody({ close }: { close: () => void }) {
             await useAppStore.setState((latest) => updateAssetTags(latest, refs, tags, tagMode));
           else {
             const to = targets.find((entry) => refKey(entry) === target);
-            if (to) await state.linkAssetsMany(to, refs);
+            if (to) {
+              let done = 0;
+              try {
+                for (const ref of refs) {
+                  await updateResourceRelation(to, ref);
+                  done++;
+                }
+              } catch (cause) {
+                throw Error(
+                  t(
+                    "已保存 {0} 项关联，后续失败：{1}",
+                    done,
+                    cause instanceof Error ? cause.message : String(cause),
+                  ),
+                );
+              }
+            }
           }
           state.log(t("已整理 {0} 项资产", refs.length));
           toast.success(t("已整理 {0} 项资产", refs.length));

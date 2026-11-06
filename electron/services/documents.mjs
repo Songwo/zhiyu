@@ -260,13 +260,25 @@ export class DocumentsStore {
     const doc = JSON.parse(await readFile(this.#path(id), "utf8"));
     return { ...normalizeDocument(doc), createdAt: doc.createdAt, updatedAt: doc.updatedAt };
   }
+  async exists(id) {
+    await this.#queue;
+    try {
+      const file = await lstat(this.#path(id));
+      return file.isFile() && !file.isSymbolicLink();
+    } catch (error) {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    }
+  }
   save(input, { assertCurrent = null, expectedRevision = null } = {}) {
     const clean = normalizeDocument(input);
     const createOnly = input.createOnly === true;
+    const preserveBindings = input.preserveBindings === true;
     const job = this.#queue.then(async () => {
       assertCurrent?.();
       const path = this.#path(clean.id);
       let createdAt = new Date().toISOString();
+      let bindings = clean.bindings;
       try {
         const existing = JSON.parse(await readFile(path, "utf8"));
         if (expectedRevision && documentRevision(existing) !== expectedRevision)
@@ -279,11 +291,13 @@ export class DocumentsStore {
             updatedAt: existing.updatedAt,
           };
         createdAt = existing.createdAt || createdAt;
+        if (preserveBindings) bindings = normalizeDocument(existing).bindings;
       } catch (error) {
         if (error.code !== "ENOENT") throw error;
         if (expectedRevision) throw new Error("文档已删除，未应用修改建议。");
+        if (preserveBindings) throw new Error("文档已删除，未保存修改。");
       }
-      const doc = { ...clean, createdAt, updatedAt: new Date().toISOString() };
+      const doc = { ...clean, bindings, createdAt, updatedAt: new Date().toISOString() };
       await mkdir(this.#directory, { recursive: true });
       await writeFile(path + ".tmp", JSON.stringify(doc), "utf8");
       try {
@@ -306,7 +320,45 @@ export class DocumentsStore {
     const path = this.#path(id);
     const job = this.#queue.then(async () => {
       this.#metadata.delete(id);
-      await unlink(path);
+      await unlink(path).catch((error) => {
+        if (error.code !== "ENOENT") throw error;
+      });
+    });
+    this.#queue = job.catch(() => {});
+    return job;
+  }
+  /** 只修改绑定元信息，在同一保存队列内读取和提交，不覆盖其他窗口刚保存的正文。 */
+  bind(id, ref, remove = false) {
+    const path = this.#path(id);
+    if (
+      !KINDS.has(ref?.kind) ||
+      typeof ref.id !== "string" ||
+      !ref.id ||
+      ref.id.length > 256 ||
+      typeof remove !== "boolean"
+    )
+      throw new Error("关联资产无效");
+    const job = this.#queue.then(async () => {
+      const before = JSON.parse(await readFile(path, "utf8"));
+      const bindings = (before.bindings ?? []).filter(
+        (item) => item.kind !== ref.kind || item.id !== ref.id,
+      );
+      if (!remove) bindings.push({ kind: ref.kind, id: ref.id });
+      const clean = normalizeDocument({ ...before, bindings });
+      const document = {
+        ...clean,
+        createdAt: before.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
+      await writeFile(path + ".tmp", JSON.stringify(document), "utf8");
+      try {
+        await rename(path + ".tmp", path);
+      } catch (error) {
+        await unlink(path + ".tmp").catch(() => {});
+        throw error;
+      }
+      this.#metadata.delete(id);
+      return document;
     });
     this.#queue = job.catch(() => {});
     return job;

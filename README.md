@@ -28,7 +28,16 @@
 
 [社区友链 · LINUX DO](https://linux.do/) · 真诚、友善、团结、专业。
 
-## 最新版本：1.17.8
+## 最新版本：1.17.9
+
+- **通用关联**：手机号可直接关联服务器、邮箱、卡片、eSIM、节点和文档；文档之间也可关联。详情、关系图与批量整理使用统一规则，支持双向跳转、解除与删除清理。
+- **保存更可靠**：关联等待实际落盘，失败保留草稿并可重试；文档绑定只改元信息，保护原文及并发编辑。新关系的同步设备请全部升级至 1.17.9。
+- **动效可调**：桌面与 Web 共用完整、轻量、关闭三档动效，跟随系统减少动态效果；设置中可预览，不读取私有资产或消耗 AI 额度。
+- **长表单修复**：号码编辑仅滚动字段区，标题与保存栏始终可见；同时修复 AI 号码/节点来源跳转及嵌套弹窗焦点。
+- **全平台下载**：继续提供 Windows 安装、在线安装与便携版，以及 Mac Apple Silicon / Intel 各自的 DMG、ZIP；Mac 未签名、未公证。
+- **验证与范围**：[发布说明](docs/releases/v1.17.9.md)、[通用关联约定](docs/RESOURCE-RELATIONS.md)、[Web 能力对照](docs/WEB-PARITY.md)。
+
+### 1.17.8
 
 - **容器告警可配置**：主机默认规则与单容器覆盖、累计重启阈值、启动宽限、确认本次异常、定时维护静音；新事件重新提醒，真实状态保留。
 - **同步更稳**：修复 Windows 自托管服务因文件短暂占用而保存失败的问题；失败保留原资料，启动初始化错误直接返回。
@@ -207,7 +216,7 @@
 
 不想安装？Releases 同时提供 Windows 便携版 `Zhiyu-x.y.z-portable-x64.zip`：解压即用，资料保存在程序旁的 `data` 文件夹，详见 [使用教程 · 便携版](docs/USER-GUIDE.md#便携版免安装)。
 
-macOS 下载：[Apple Silicon DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.8/Zhiyu-1.17.8-mac-arm64.dmg) · [Apple Silicon ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.8/Zhiyu-1.17.8-mac-arm64.zip) · [Intel DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.8/Zhiyu-1.17.8-mac-x64.dmg) · [Intel ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.8/Zhiyu-1.17.8-mac-x64.zip)。后续版本以 [Release](https://github.com/Songwo/zhiyu/releases/latest) 和[下载页](https://songwo.github.io/zhiyu/#download)为准。
+macOS 下载：[Apple Silicon DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.9/Zhiyu-1.17.9-mac-arm64.dmg) · [Apple Silicon ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.9/Zhiyu-1.17.9-mac-arm64.zip) · [Intel DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.9/Zhiyu-1.17.9-mac-x64.dmg) · [Intel ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.9/Zhiyu-1.17.9-mac-x64.zip)。后续版本以 [Release](https://github.com/Songwo/zhiyu/releases/latest) 和[下载页](https://songwo.github.io/zhiyu/#download)为准。
 
 安装软件无需 Node.js。Windows 提供 x64 安装包和便携版；自 1.17.8 起，每次正式版也提供 macOS Apple Silicon arm64 与 Intel x64 的 DMG、ZIP。Mac 包未签名、未公证，安装与源码构建见 [macOS 说明](docs/MAC-BUILD.md)。Linux 有构建配置，发布验证范围以 Release 记录为准。
 
@@ -412,7 +421,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-安装包输出到 `release/v版本号/`，本版为 `release/v1.17.5/`。`npm run desktop:online` 在离线包完成后生成原生在线安装器，`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及验证要求见 [发布说明](docs/RELEASING.md)，本版变化见 [v1.17.5 发布说明](docs/releases/v1.17.5.md)。原生终端需单独编译时运行 `npm run terminal:build`。
+安装包输出到 `release/v版本号/`，本版为 `release/v1.17.9/`。`npm run desktop:online` 在离线包完成后生成原生在线安装器，`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及验证要求见 [发布说明](docs/RELEASING.md)，本版变化见 [v1.17.9 发布说明](docs/releases/v1.17.9.md)。原生终端需单独编译时运行 `npm run terminal:build`。
 
 ## 项目结构
 

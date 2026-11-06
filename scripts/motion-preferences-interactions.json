@@ -1,0 +1,64 @@
+[
+  ["find", "role", "combobox", "click", "--name", "界面动效"],
+  ["find", "role", "option", "click", "--name", "轻量动效"],
+  ["wait", "--fn", "document.documentElement.dataset.motionMode === 'reduced'"],
+  [
+    "eval",
+    "(() => { if(JSON.parse(localStorage.getItem('sinan-settings-v1')).state.motionMode !== 'reduced') throw Error('轻量偏好未保存'); })()"
+  ],
+  ["find", "role", "button", "click", "--name", "预览动效"],
+  ["wait", ".motion-preview"],
+  ["find", "role", "button", "click", "--name", "卡片翻转"],
+  ["click", ".motion-demo-flip"],
+  ["wait", "100"],
+  [
+    "eval",
+    "(() => { const m = new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.motion-demo-card-object')).transform); if(m.m11 > -0.99) throw Error('轻量模式没有即时翻面'); })()"
+  ],
+  ["press", "Escape"],
+  ["wait", ".settings-dialog[data-shown=true]"],
+  ["find", "role", "combobox", "click", "--name", "界面动效"],
+  ["find", "role", "option", "click", "--name", "关闭动效"],
+  ["wait", "--fn", "document.documentElement.dataset.motionMode === 'off'"],
+  ["find", "role", "button", "click", "--name", "预览动效"],
+  ["wait", ".motion-preview"],
+  ["find", "role", "button", "click", "--name", "卡片翻转"],
+  ["click", ".motion-demo-flip"],
+  ["wait", "100"],
+  [
+    "eval",
+    "(() => { const el = document.querySelector('.motion-demo-card-object'); if(new DOMMatrixReadOnly(getComputedStyle(el).transform).m11 > -0.99) throw Error('关闭动效后卡面状态不正确'); if(el.getAnimations().some(a => a.playState === 'running')) throw Error('关闭动效后仍在播放'); })()"
+  ],
+  ["press", "Escape"],
+  ["reload"],
+  ["wait", "[data-app-ready=true]"],
+  ["wait", "--fn", "document.documentElement.dataset.motionMode === 'off'"],
+  ["set", "media", "light", "reduced-motion"],
+  ["find", "role", "button", "click", "--name", "系统设置…"],
+  ["wait", ".settings-dialog[data-shown=true]"],
+  ["find", "role", "combobox", "click", "--name", "界面动效"],
+  ["find", "role", "option", "click", "--name", "完整动效"],
+  ["wait", "--fn", "document.documentElement.dataset.motionMode === 'reduced'"],
+  [
+    "eval",
+    "(() => { if(JSON.parse(localStorage.getItem('sinan-settings-v1')).state.motionMode !== 'full') throw Error('系统降级错误地改写了用户选择'); })()"
+  ],
+  ["set", "media", "light"],
+  ["wait", "--fn", "document.documentElement.dataset.motionMode === 'full'"],
+  ["find", "role", "button", "click", "--name", "预览动效"],
+  ["wait", ".motion-demo-open"],
+  ["set", "viewport", "390", "844"],
+  ["wait", "300"],
+  [
+    "eval",
+    "(() => { const r = document.querySelector('.editor-dialog').getBoundingClientRect(); if(r.left < -1 || r.right > innerWidth + 1 || r.top < -1 || r.bottom > innerHeight + 1 || document.documentElement.scrollWidth > innerWidth + 1) throw Error('手机动效预览越界'); })()"
+  ],
+  ["screenshot", "screenshots/motion-preview-mobile.png"],
+  ["find", "role", "button", "click", "--name", "卡片翻转"],
+  ["wait", "400"],
+  ["screenshot", "screenshots/motion-card-mobile.png"],
+  ["set", "viewport", "1360", "900"],
+  ["wait", "300"],
+  ["screenshot", "screenshots/motion-card-desktop.png"],
+  ["errors"]
+]

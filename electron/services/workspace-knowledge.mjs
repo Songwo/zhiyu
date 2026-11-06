@@ -1,4 +1,5 @@
 import { tokenize } from "./rag.mjs";
+import { isResourceRef } from "./resource-links.mjs";
 
 export const WORKSPACE_LIMITS = {
   documents: 6000,
@@ -10,12 +11,24 @@ export const WORKSPACE_LIMITS = {
   toolCharacters: 40000,
   nodes: 20000,
 };
-const KINDS = new Set(["server", "domain", "mail", "ai", "secret", "cert", "service"]);
+const KINDS = new Set([
+  "server",
+  "domain",
+  "mail",
+  "ai",
+  "secret",
+  "cert",
+  "service",
+  "phone",
+  "node",
+  "document",
+]);
 const DOCUMENT_ID = /^doc-[a-zA-Z0-9-]{1,80}$/;
 const PREFIX = "workspace-document:";
 const safeString = (value, max) => (typeof value === "string" ? value.slice(0, max) : "");
 const sourceId = (id) => PREFIX + id;
-const assetSourceId = (ref) => `asset:${ref.kind}:${ref.id}`;
+const assetSourceId = (ref) =>
+  ref.kind === "document" ? sourceId(ref.id) : `asset:${ref.kind}:${ref.id}`;
 
 export function validWorkspaceArgs(name, args) {
   const page = () =>
@@ -41,7 +54,7 @@ export function validWorkspaceArgs(name, args) {
       Object.keys(args).every((key) => ["sourceId", "offset", "limit"].includes(key)) &&
       typeof args.sourceId === "string" &&
       args.sourceId.length > 0 &&
-      args.sourceId.length <= 300 &&
+      args.sourceId.length <= 2048 &&
       page()
     );
   return false;
@@ -352,6 +365,16 @@ export class WorkspaceKnowledge {
       };
     const related = new Map();
     const addAsset = (target, relationship) => {
+      if (target.startsWith(PREFIX)) {
+        const found = this.byId.get(target.slice(PREFIX.length));
+        related.set(target, {
+          sourceId: target,
+          relationship,
+          exists: Boolean(found),
+          ...(found ? { title: found.title, documentId: found.documentId } : {}),
+        });
+        return;
+      }
       const found = this.index.byId.get(target);
       related.set(target, {
         sourceId: target,
@@ -374,23 +397,22 @@ export class WorkspaceKnowledge {
             exists: true,
             relationship: "document_binding",
           });
-      for (const link of Array.isArray(this.snapshot.links) ? this.snapshot.links : []) {
-        if (
-          !link?.from ||
-          !link?.to ||
-          !KINDS.has(link.from.kind) ||
-          !KINDS.has(link.to.kind) ||
-          typeof link.from.id !== "string" ||
-          typeof link.to.id !== "string" ||
-          link.from.id.length > 256 ||
-          link.to.id.length > 256
-        )
-          continue;
-        const from = assetSourceId(link.from),
-          to = assetSourceId(link.to);
-        if (from === id && to !== id) addAsset(to, "asset_link");
-        else if (to === id && from !== id) addAsset(from, "asset_link");
-      }
+    }
+    const links = [
+      ...(Array.isArray(this.snapshot.links) ? this.snapshot.links : []),
+      ...(this.snapshot.phoneNumbers ?? []).flatMap((phone) =>
+        (phone.subscriptionIds ?? []).map((target) => ({
+          from: { kind: "phone", id: phone.id },
+          to: { kind: "ai", id: target },
+        })),
+      ),
+    ];
+    for (const link of links) {
+      if (!isResourceRef(link?.from) || !isResourceRef(link?.to)) continue;
+      const from = assetSourceId(link.from),
+        to = assetSourceId(link.to);
+      if (from === id && to !== id) addAsset(to, "asset_link");
+      else if (to === id && from !== id) addAsset(from, "asset_link");
     }
     const resources = [...related.values()].slice(offset, offset + limit);
     const origin = document

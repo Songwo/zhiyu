@@ -91,6 +91,7 @@
     "lucide-react": "^0.510.0",
     "mailparser": "^3.9.23",
     "minisearch": "^7.2.0",
+    "motion": "^14.9.1",
     "nodemailer": "^10.0.1",
     "openai": "^7.10.0",
     "pg": "^8.16.3",
@@ -140,7 +141,7 @@
     "vite": "^8.2.0"
   },
   "productName": "知屿 Zhiyu",
-  "version": "1.17.8",
+  "version": "1.17.9",
   "author": "Songwo",
   "homepage": "https://github.com/Songwo/zhiyu",
   "repository": {

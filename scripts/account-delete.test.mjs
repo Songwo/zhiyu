@@ -45,3 +45,35 @@ test("成功时先删除指定账号加密记录，再移除资料", async () =>
   );
   assert.deepEqual(calls, ["account:one", "one"]);
 });
+
+test("删除等待资料和关联实际落盘，落盘失败不能返回成功", async () => {
+  let finish;
+  const pending = new Promise((resolve) => {
+    finish = resolve;
+  });
+  let completed = false;
+  const task = deleteEncryptedAccount({
+    id: "one",
+    requireUnlocked: async () => true,
+    removeCredential: async () => {},
+    removeAsset: () => pending,
+  }).then(() => {
+    completed = true;
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(completed, false);
+  finish();
+  await task;
+  assert.equal(completed, true);
+  await assert.rejects(
+    deleteEncryptedAccount({
+      id: "one",
+      requireUnlocked: async () => true,
+      removeCredential: async () => {},
+      removeAsset: async () => {
+        throw Error("关联落盘失败");
+      },
+    }),
+    /关联落盘失败/,
+  );
+});

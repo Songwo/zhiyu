@@ -12,17 +12,27 @@
   font-size: 12px;
   line-height: 1.6;
 }
-.ai-task-progress li > svg {
+.ai-task-progress .ai-task-icon {
+  position: relative;
+  display: inline-flex;
+  flex: none;
   width: 15px;
   height: 15px;
-  flex: none;
   margin-top: 3px;
   color: var(--color-muted);
 }
-.ai-task-progress li[data-status="done"] > svg {
+.ai-task-icon > span {
+  display: inline-flex;
+}
+.ai-task-icon svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.ai-task-progress li[data-status="done"] .ai-task-icon {
   color: var(--color-ok);
 }
-.ai-task-progress li[data-status="error"] > svg {
+.ai-task-progress li[data-status="error"] .ai-task-icon {
   color: var(--color-danger);
 }
 .ai-task-progress li > div {

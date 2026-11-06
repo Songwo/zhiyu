@@ -1,9 +1,40 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { Transition } from "motion/react";
+import { useSettings } from "./settings";
+import { effectiveMotionMode, motionPreset } from "./motion-policy.mjs";
+
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const systemReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia(REDUCED_MOTION_QUERY).matches;
+const serverReducedMotion = () => false;
+function subscribeReducedMotion(listener: () => void) {
+  const media = window.matchMedia(REDUCED_MOTION_QUERY);
+  media.addEventListener("change", listener);
+  return () => media.removeEventListener("change", listener);
+}
+
+export function useMotionPolicy() {
+  const preference = useSettings((state) => state.motionMode);
+  const systemReduced = useSyncExternalStore(
+    subscribeReducedMotion,
+    systemReducedMotion,
+    serverReducedMotion,
+  );
+  return effectiveMotionMode(preference, systemReduced);
+}
+
+export function useMotionPreset(kind: "view" | "panel" | "step" = "panel") {
+  const preset = motionPreset(useMotionPolicy(), kind);
+  return {
+    ...preset,
+    transition: preset.transition as Transition,
+    initial: preset.initial === false ? (false as const) : preset.initial,
+  };
+}
 
 /** Read live so a mid-session OS toggle takes effect without a reload. */
 export function reduceMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return effectiveMotionMode(useSettings.getState().motionMode, systemReducedMotion()) !== "full";
 }
 
 /**
@@ -15,13 +46,14 @@ export function reduceMotion(): boolean {
  * the panel also has to lay out.
  */
 export function usePresence(open: boolean, exitMs = 170) {
+  const mode = useMotionPolicy();
   const [mounted, setMounted] = useState(false);
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
     if (open) {
       setMounted(true);
-      if (reduceMotion()) {
+      if (mode !== "full") {
         setShown(true);
         return;
       }
@@ -35,9 +67,9 @@ export function usePresence(open: boolean, exitMs = 170) {
       };
     }
     setShown(false);
-    const t = window.setTimeout(() => setMounted(false), reduceMotion() ? 0 : exitMs);
+    const t = window.setTimeout(() => setMounted(false), mode !== "full" ? 0 : exitMs);
     return () => window.clearTimeout(t);
-  }, [open, exitMs]);
+  }, [open, exitMs, mode]);
 
   return { mounted, shown };
 }
@@ -48,11 +80,12 @@ export function usePresence(open: boolean, exitMs = 170) {
  * hydration still matches.
  */
 export function useCountUp(value: number, ms = 800): number {
+  const mode = useMotionPolicy();
   const [n, setN] = useState(0);
   const from = useRef(0);
 
   useEffect(() => {
-    if (reduceMotion()) {
+    if (mode !== "full") {
       from.current = value;
       setN(value);
       return;
@@ -68,7 +101,7 @@ export function useCountUp(value: number, ms = 800): number {
       if (p < 1) raf = requestAnimationFrame(step);
     });
     return () => cancelAnimationFrame(raf);
-  }, [value, ms]);
+  }, [value, ms, mode]);
 
   return n;
 }
@@ -111,10 +144,11 @@ export function cardRect(id: string): Rect | null {
  * 只写 CSS 变量，由样式里的 transform 消费；减少动态效果时不做任何事。
  */
 export function useTilt(ref: { current: HTMLElement | null }, maxDeg = 4) {
+  const mode = useMotionPolicy();
   useEffect(() => {
     const el = ref.current;
     const host = el?.parentElement;
-    if (!el || !host || reduceMotion()) return;
+    if (!el || !host || mode !== "full") return;
     let frame = 0;
     const move = (event: PointerEvent) => {
       cancelAnimationFrame(frame);
@@ -139,6 +173,8 @@ export function useTilt(ref: { current: HTMLElement | null }, maxDeg = 4) {
       cancelAnimationFrame(frame);
       host.removeEventListener("pointermove", move);
       host.removeEventListener("pointerleave", leave);
+      el.style.setProperty("--tilt-x", "0deg");
+      el.style.setProperty("--tilt-y", "0deg");
     };
-  }, [ref, maxDeg]);
+  }, [ref, maxDeg, mode]);
 }

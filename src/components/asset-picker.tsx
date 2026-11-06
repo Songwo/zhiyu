@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Input } from "./ui/input";
-import { refKey, type AssetEntry } from "@/lib/operations";
-import { KIND_LABEL } from "@/lib/status";
+import { refKey } from "@/lib/operations";
+import type { ResourceRef } from "@/lib/types";
+import { resourceKindLabel } from "@/lib/resource-inventory";
 import { t } from "@/lib/i18n";
 
 export function AssetPicker({
@@ -10,14 +11,14 @@ export function AssetPicker({
   onChange,
   label,
 }: {
-  entries: AssetEntry[];
+  entries: (ResourceRef & { label: string })[];
   selected: string[];
   onChange: (keys: string[]) => void;
   label: string;
 }) {
   const [query, setQuery] = useState("");
   const visible = entries.filter((entry) =>
-    `${entry.label} ${t(KIND_LABEL[entry.kind])}`
+    `${entry.label} ${t(resourceKindLabel(entry))}`
       .toLocaleLowerCase()
       .includes(query.trim().toLocaleLowerCase()),
   );
@@ -68,7 +69,7 @@ export function AssetPicker({
               }
             />
             <span className="min-w-0 flex-1 break-words">{entry.label}</span>
-            <span className="shrink-0 text-subtle">{t(KIND_LABEL[entry.kind])}</span>
+            <span className="shrink-0 text-subtle">{t(resourceKindLabel(entry))}</span>
           </label>
         ))}
       </div>

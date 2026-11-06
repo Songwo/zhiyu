@@ -13,6 +13,7 @@ import {
 export { ZOOM_PERCENTS, type ZoomPercent } from "../../electron/services/display.mjs";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { normalizeMotionMode, type MotionMode } from "./motion-policy.mjs";
 import { resolveLocale, setLocale, type LocaleChoice } from "./i18n";
 import {
   normalizeTerminalAppearance,
@@ -25,6 +26,8 @@ export type ThemeChoice = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
 interface SettingsState {
+  motionMode: MotionMode;
+  setMotionMode: (mode: MotionMode) => void;
   terminalAppearance: TerminalAppearance;
   setTerminalAppearance: (value: Partial<TerminalAppearance>) => void;
   serverMonitorMinutes: number;
@@ -95,6 +98,8 @@ export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
+      motionMode: "full",
+      setMotionMode: (mode) => set({ motionMode: normalizeMotionMode(mode) }),
       terminalAppearance: initialTerminalAppearance(),
       setTerminalAppearance: (value) =>
         set((state) => ({
@@ -160,6 +165,7 @@ export const useSettings = create<SettingsState>()(
       partialize: (s) =>
         ({
           theme: s.theme,
+          motionMode: s.motionMode,
           terminalAppearance: s.terminalAppearance,
           serverMonitorMinutes: s.serverMonitorMinutes,
           language: s.language,
@@ -177,6 +183,7 @@ export const useSettings = create<SettingsState>()(
         return {
           ...current,
           ...saved,
+          motionMode: normalizeMotionMode(saved?.motionMode),
           terminalAppearance: saved?.terminalAppearance
             ? migrateTerminalAppearance(saved.terminalAppearance)
             : initialTerminalAppearance(),

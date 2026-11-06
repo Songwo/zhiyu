@@ -8,12 +8,11 @@ import {
   type ResourceRef,
 } from "@/lib/resource-relations.mjs";
 import { t } from "@/lib/i18n";
-import { KIND_LABEL } from "@/lib/status";
+import { resourceKindLabel } from "@/lib/resource-inventory";
 import { Button } from "./ui/button";
 import { Select } from "./ui/select";
 
-const resourceKindName = (row: ResourceRef) =>
-  row.kind === "document" ? "文档" : row.kind === "phone" ? "号码" : KIND_LABEL[row.kind];
+const resourceKindName = resourceKindLabel;
 export function ResourceChainPanel({
   resources,
   relations,

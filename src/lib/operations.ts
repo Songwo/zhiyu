@@ -1,7 +1,8 @@
 import { phoneExpiry } from "../../electron/services/phone-numbers.mjs";
 import { extraExpiryCandidates } from "../../electron/services/renewals.mjs";
 import { serverNeedsAttention } from "./server-observation.mjs";
-import type { AssetKind, Snapshot } from "./types.ts";
+import type { AssetKind, ResourceRef, Snapshot } from "./types.ts";
+import { normalizeResourceLinks, resourceRefKey } from "../../electron/services/resource-links.mjs";
 import { t } from "./i18n.ts";
 import { parseTags } from "./tags.ts";
 
@@ -10,8 +11,8 @@ export interface AssetRef {
   id: string;
 }
 export interface AssetLink {
-  from: AssetRef;
-  to: AssetRef;
+  from: ResourceRef;
+  to: ResourceRef;
 }
 export interface AssetEntry extends AssetRef {
   label: string;
@@ -61,28 +62,12 @@ export function assetEntries(s: Snapshot): AssetEntry[] {
   ];
 }
 
-export function refKey(ref: AssetRef): string {
-  return JSON.stringify([ref.kind, ref.id]);
+export function refKey(ref: ResourceRef): string {
+  return resourceRefKey(ref);
 }
 
 export function normalizeLinks(value: unknown, snapshot: Snapshot): AssetLink[] {
-  if (!Array.isArray(value)) return [];
-  const known = new Set(assetEntries(snapshot).map(refKey));
-  const seen = new Set<string>();
-  return value
-    .filter((link): link is AssetLink => {
-      if (!link || !link.from || !link.to) return false;
-      const from = refKey(link.from),
-        to = refKey(link.to);
-      const key = [from, to].sort().join("\n");
-      if (from === to || !known.has(from) || !known.has(to) || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map(({ from, to }) => ({
-      from: { kind: from.kind, id: from.id },
-      to: { kind: to.kind, id: to.id },
-    }));
+  return normalizeResourceLinks(value, snapshot);
 }
 
 export interface CalendarItem {

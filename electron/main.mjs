@@ -5,6 +5,12 @@ import {
   zoomCommandForKey,
 } from "./services/display.mjs";
 import {
+  isResourceRef,
+  snapshotResourceKeys,
+  resourceRefKey,
+  assertDocumentLinks,
+} from "./services/resource-links.mjs";
+import {
   windowsAppId,
   initializeAppIdentity,
   migrateLegacyWindowsShortcut,
@@ -335,10 +341,11 @@ function enqueueAssets(work) {
   return task;
 }
 
-function mutateWorkspaceAssets(mutate) {
+function mutateWorkspaceAssets(mutate, documents = null) {
   return enqueueAssets(async () => {
     const before = currentSnapshot;
     const next = mutate(before);
+    if (documents) await assertDocumentLinks(next, documents);
     await writeJson(dataFile(), { state: next, version: 0 });
     currentSnapshot = next;
     emit("assets:changed", { before, snapshot: next });
@@ -584,12 +591,29 @@ function registerIpc() {
     handle("images:" + method, (...args) => images[method](...args));
   handle("nodes:check", checkNode);
   const documents = new DocumentsStore(join(app.getPath("userData"), "documents"));
-  for (const method of ["list", "get", "save", "remove"])
+  for (const method of ["list", "get", "save", "remove", "bind"])
     handle("documents:" + method, async (...args) => {
-      const result = await documents[method](...args);
-      if (method === "save") emit("documents:changed", { document: result });
-      if (method === "remove") emit("documents:changed", { removedId: args[0] });
-      if (method === "save" || method === "remove") syncClient?.notifyLocalChange();
+      const result =
+        method === "bind"
+          ? await enqueueAssets(async () => {
+              if (!isResourceRef(args[1])) throw Error("关联资产无效");
+              if (!args[2] && !snapshotResourceKeys(currentSnapshot).has(resourceRefKey(args[1])))
+                throw Error("关联资源已不存在，请刷新后重试。");
+              return documents.bind(...args);
+            })
+          : await documents[method](...args);
+      if (method === "save" || method === "bind") emit("documents:changed", { document: result });
+      if (method === "remove") {
+        await mutateWorkspaceAssets((snapshot) => ({
+          ...snapshot,
+          links: (snapshot.links ?? []).filter(
+            (link) =>
+              ![link.from, link.to].some((ref) => ref.kind === "document" && ref.id === args[0]),
+          ),
+        }));
+        emit("documents:changed", { removedId: args[0] });
+      }
+      if (["save", "remove", "bind"].includes(method)) syncClient?.notifyLocalChange();
       return result;
     });
   handle("capture:list", () => captures.list());
@@ -627,6 +651,13 @@ function registerIpc() {
         },
         remove: async (id) => {
           await documents.remove(id);
+          await mutateWorkspaceAssets((snapshot) => ({
+            ...snapshot,
+            links: (snapshot.links ?? []).filter(
+              (link) =>
+                ![link.from, link.to].some((ref) => ref.kind === "document" && ref.id === id),
+            ),
+          }));
           emit("documents:changed", { removedId: id });
         },
       },
@@ -1208,7 +1239,7 @@ function registerIpc() {
   const workspaceActions = new WorkspaceActions({
     getSnapshot: () => currentSnapshot,
     documents,
-    mutateAssets: mutateWorkspaceAssets,
+    mutateAssets: (mutate) => mutateWorkspaceAssets(mutate, documents),
   });
   documentAnalysis = new DocumentAnalysisService({
     file: join(app.getPath("userData"), "document-analysis.json"),
@@ -1564,6 +1595,7 @@ function registerIpc() {
     enqueueAssets(async () => {
       const normalized = normalizeSnapshotImages(snapshot, { normalize: normalizeImage });
       const next = await mergeBrowserAssets(normalized?.state ?? normalized ?? {});
+      await assertDocumentLinks(next, documents);
       for (const mailbox of next.mailboxes ?? []) {
         if (mailbox.imap) mailbox.imap = validateMailboxConnection(mailbox.imap);
         if (mailbox.smtp) mailbox.smtp = validateSmtp(mailbox.smtp);

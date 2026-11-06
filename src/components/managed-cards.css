@@ -697,7 +697,7 @@
   transform-style: preserve-3d;
   transform: rotateX(var(--card-tilt-x, 0deg))
     rotateY(calc(var(--card-side) + var(--card-tilt-y, 0deg)));
-  transition: transform 680ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--motion-card-duration, 520ms) cubic-bezier(0.22, 1, 0.36, 1);
 }
 .card-flip-front,
 .card-flip-back {

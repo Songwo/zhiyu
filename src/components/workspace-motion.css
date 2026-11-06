@@ -1,0 +1,308 @@
+/* 与现有主题共用表面和文字色，只有动作节奏使用独立令牌。 */
+:root {
+  --motion-demo-perspective: 1200px;
+  --motion-card-duration: 520ms;
+}
+.sidebar-active-pill[data-motion-engine="motion"] {
+  transition: none;
+}
+.motion-asset-detail .detail-bar {
+  animation: none;
+}
+
+/* 老界面和 Motion 共用偏好；不能把翻到背面的卡片强制转回正面。 */
+:root[data-motion-mode="reduced"] *,
+:root[data-motion-mode="reduced"] *::before,
+:root[data-motion-mode="reduced"] *::after,
+:root[data-motion-mode="off"] *,
+:root[data-motion-mode="off"] *::before,
+:root[data-motion-mode="off"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+:root:not([data-motion-mode="full"]) .card-3d-object {
+  transform: rotateY(var(--card-side));
+}
+:root:not([data-motion-mode="full"]) .depth-panel {
+  transform: none;
+}
+
+.motion-preview {
+  padding: 0 20px 20px;
+  overflow-y: auto;
+}
+.motion-preview-note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.motion-preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 16px 0 0;
+}
+.motion-preview-stage {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 285px;
+  padding: 24px 16px;
+  margin: 14px 0;
+  overflow: clip;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.motion-demo-asset {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  text-align: left;
+  box-shadow: var(--shadow-card);
+}
+.motion-demo-asset > div {
+  min-width: 0;
+  flex: 1;
+}
+.motion-demo-asset strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.motion-demo-asset small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.motion-demo-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--color-ink);
+  background: var(--color-selected);
+}
+.motion-demo-icon svg {
+  width: 19px;
+  height: 19px;
+}
+.motion-demo-arrow {
+  width: 17px;
+  height: 17px;
+  color: var(--color-muted);
+}
+.motion-demo-check {
+  width: 17px;
+  height: 17px;
+  color: var(--color-ok);
+  flex: none;
+}
+.motion-demo-detail {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+.motion-demo-detail > button {
+  justify-self: start;
+}
+.motion-demo-relations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.motion-demo-relations span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-card);
+}
+.motion-demo-relations svg {
+  width: 15px;
+  height: 15px;
+}
+.motion-demo-card-scene {
+  perspective: var(--motion-demo-perspective);
+  width: min(100%, 340px);
+  justify-self: center;
+}
+.motion-demo-flip {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.586;
+  perspective: var(--motion-demo-perspective);
+  border: 0;
+  background: transparent;
+}
+.motion-demo-card-object {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+.motion-demo-card-front,
+.motion-demo-card-back {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  inset: 0;
+  padding: 22px;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  color: var(--color-canvas);
+  background: var(--color-ink);
+  box-shadow: var(--shadow-float);
+  overflow: hidden;
+  text-align: left;
+}
+.motion-demo-card-front {
+  background: linear-gradient(
+    125deg,
+    var(--color-ink),
+    color-mix(in srgb, var(--color-ink) 78%, var(--color-ok))
+  );
+}
+.motion-demo-card-front::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    color-mix(in srgb, var(--color-canvas) 12%, transparent) 45%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.motion-demo-card-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+}
+.motion-demo-card-brand svg {
+  width: 21px;
+  height: 21px;
+}
+.motion-demo-card-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+.motion-demo-card-chip svg:first-child {
+  width: 32px;
+  height: 32px;
+  opacity: 0.8;
+}
+.motion-demo-card-chip svg:last-child {
+  width: 18px;
+  height: 18px;
+  rotate: 90deg;
+  opacity: 0.5;
+}
+.motion-demo-card-number {
+  margin-top: 12px;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+.motion-demo-card-caption {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  gap: 8px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+.motion-demo-card-back {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  transform: rotateY(180deg);
+  padding-bottom: 24px;
+}
+.motion-demo-card-back strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.motion-demo-card-back small {
+  font-size: 10px;
+  opacity: 0.65;
+}
+.motion-demo-stripe {
+  position: absolute;
+  inset: 20px 0 auto;
+  height: 30px;
+  background: var(--color-muted);
+  opacity: 0.3;
+}
+.motion-demo-caption {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.6;
+  text-align: center;
+}
+.motion-demo-task {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: var(--color-card);
+}
+.motion-demo-task-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-ink);
+  font-size: 14px;
+}
+@media (max-width: 480px) {
+  .motion-preview {
+    padding: 0 14px 16px;
+  }
+  .motion-preview-stage {
+    min-height: 260px;
+    padding: 18px 12px;
+  }
+  .motion-demo-card-front,
+  .motion-demo-card-back {
+    padding: 16px;
+  }
+  .motion-demo-card-number {
+    font-size: 15px;
+  }
+  .motion-demo-card-chip {
+    margin-top: 14px;
+  }
+}

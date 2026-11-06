@@ -1,0 +1,11 @@
+[
+  ["wait", "[aria-label=选择号码关联资源]"],
+  ["scrollintoview", "[aria-label=选择号码关联资源] > label"],
+  ["check", "[aria-label=选择号码关联资源] > label input"],
+  ["eval", "(() => { const inputs = document.querySelectorAll('[aria-label=选择号码关联资源] .h-56 input'); if(inputs.length !== 22 || [...inputs].some(input=>!input.checked)) throw Error('没有覆盖所有22个目标'); return {selected:inputs.length}; })()"],
+  ["find", "role", "button", "click", "--name", "保存号码", "--exact"],
+  ["wait", "--fn", "!document.querySelector('form[aria-label=编辑号码]')"],
+  ["eval", "(async () => { const raw = window.sinan?.store?.load ? await window.sinan.store.load() : (await (await fetch('/api/web/store')).json()).data; const state=raw.state??raw; const edges=state.links.filter(link=>[link.from,link.to].some(ref=>ref.kind==='phone'&&ref.id==='phone-a')); if(edges.length!==22)throw Error('关系未真实保存22条'); const phone=state.phoneNumbers.find(record=>record.id==='phone-a'); if(phone.subscriptionIds.length!==2)throw Error('旧订阅兼容字段不一致'); const required=['card-payment','card-esim','card-custom','doc-a','doc-b','server-a','phone-b']; for(const id of required)if(!edges.some(link=>link.from.id===id||link.to.id===id))throw Error('遗漏目标：'+id); return {saved:edges.length,aiBindings:phone.subscriptionIds.length}; })()"],
+  ["screenshot", "screenshots/universal-relations-phone-saved.png"],
+  ["errors"]
+]

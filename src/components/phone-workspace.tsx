@@ -19,7 +19,20 @@ import { billingFormValues, formatBilling } from "@/lib/billing";
 import { BillingFields } from "./billing-fields";
 import { phonePage, visiblePhoneNumbers, type PhoneFilter } from "@/lib/phone-view.mjs";
 import { useAppStore } from "@/lib/store";
-import type { PhoneNumber } from "@/lib/types";
+import type { PhoneNumber, ResourceRef } from "@/lib/types";
+import { refKey } from "@/lib/operations";
+import {
+  connectedRefs,
+  openResource,
+  resourceKindLabel,
+  useResourceInventory,
+} from "@/lib/resource-inventory";
+import {
+  savePhoneRelations,
+  updateResourceRelation,
+  commitResourceChanges,
+} from "@/lib/resource-relation-actions";
+import { AssetPicker } from "./asset-picker";
 import { randomId } from "@/lib/random-id";
 import { t } from "@/lib/i18n";
 import { Button } from "./ui/button";
@@ -59,6 +72,7 @@ function ExpiryLabel({ expiresAt }: { expiresAt: string }) {
 }
 
 export function PhoneWorkspace() {
+  const { resources, relations, loaded, error: relationError } = useResourceInventory();
   const records = useAppStore((s) => s.phoneNumbers);
   const accounts = useAppStore((s) => s.aiAssets);
   const remove = useAppStore((s) => s.removePhoneNumber);
@@ -289,25 +303,28 @@ export function PhoneWorkspace() {
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {record.subscriptionIds.length ? (
-                  record.subscriptionIds.map((id) => {
-                    const account = accountById.get(id);
+                {connectedRefs({ kind: "phone", id: record.id }, relations).length ? (
+                  connectedRefs({ kind: "phone", id: record.id }, relations).map((ref) => {
+                    const entry = resources.find((resource) => refKey(resource) === refKey(ref));
+                    const account = ref.kind === "ai" ? accountById.get(ref.id) : null;
+                    if (!entry) return null;
                     return (
                       <button
-                        key={id}
+                        key={refKey(ref)}
                         type="button"
-                        disabled={!account}
-                        aria-label={t("查看订阅 {0}", account?.name ?? t("已删除的账号"))}
+                        aria-label={
+                          account
+                            ? t("查看订阅 {0}", account.name)
+                            : t("打开关联资源 {0}", entry.name)
+                        }
                         onClick={(event) => {
-                          if (!account) return;
                           const rect = event.currentTarget.getBoundingClientRect();
-                          const state = useAppStore.getState();
-                          state.setView("ai");
-                          state.setExpanded({
-                            kind: "ai",
-                            id: account.id,
-                            origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
-                          });
+                          void openResource(ref, {
+                            x: rect.x,
+                            y: rect.y,
+                            w: rect.width,
+                            h: rect.height,
+                          }).catch((cause) => toast.error(errorText(cause)));
                         }}
                         className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-md bg-canvas px-2 py-1 text-meta text-muted hover:text-ink disabled:cursor-default"
                       >
@@ -315,16 +332,23 @@ export function PhoneWorkspace() {
                         <span className="min-w-0 break-words">
                           {account
                             ? [account.name, account.accountEmail].filter(Boolean).join(" · ")
-                            : t("已删除的账号")}
+                            : `${entry.name} · ${t(resourceKindLabel(entry))}`}
                         </span>
-                        {account && <ArrowUpRight className="size-3.5 shrink-0" />}
+                        <ArrowUpRight className="size-3.5 shrink-0" />
                       </button>
                     );
                   })
                 ) : (
-                  <span className="text-meta text-muted">{t("尚未关联订阅账号")}</span>
+                  <span className="text-meta text-muted">
+                    {loaded ? t("尚未关联资产") : t("正在加载…")}
+                  </span>
                 )}
               </div>
+              {relationError && (
+                <p role="alert" className="mt-2 text-meta text-crit">
+                  {relationError}
+                </p>
+              )}
               {record.notes && (
                 <p className="mt-3 whitespace-pre-wrap break-words text-meta leading-relaxed text-muted">
                   {record.notes}
@@ -336,14 +360,15 @@ export function PhoneWorkspace() {
                   role="group"
                   aria-label={t("确认删除号码")}
                 >
-                  <p className="text-meta">{t("删除此号码及其账号关联？订阅账号本身会保留。")}</p>
+                  <p className="text-meta">{t("删除此号码及其全部关联？其他资产和文档会保留。")}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button
                       variant="danger"
                       className="min-h-11"
-                      onClick={() => {
+                      onClick={async () => {
                         try {
                           remove(record.id);
+                          await commitResourceChanges();
                           setDeleting(null);
                           if (editing !== "new" && editing?.id === record.id) setEditing(null);
                           toast.success(t("号码已删除"));
@@ -405,8 +430,35 @@ export function PhoneWorkspace() {
 }
 
 function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () => void }) {
-  const accounts = useAppStore((s) => s.aiAssets);
-  const save = useAppStore((s) => s.upsertPhoneNumber);
+  const { resources, loaded, error: loadError } = useResourceInventory();
+  const [id] = useState(() => record?.id ?? randomId());
+  const [saving, setSaving] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const [targets, setTargets] = useState<ResourceRef[]>(() => {
+    const owner = refKey({ kind: "phone", id: record?.id ?? id });
+    const direct = useAppStore
+      .getState()
+      .links.flatMap(({ from, to }) =>
+        refKey(from) === owner ? [to] : refKey(to) === owner ? [from] : [],
+      );
+    return [
+      ...new Map(
+        [
+          ...direct,
+          ...(record?.subscriptionIds ?? []).map((id) => ({ kind: "ai" as const, id })),
+        ].map((ref) => [refKey(ref), ref]),
+      ).values(),
+    ];
+  });
+  const options = resources
+    .filter((ref) => refKey(ref) !== refKey({ kind: "phone", id }))
+    .map((ref) => ({ ...ref, label: ref.name }));
   const [form, setForm] = useState(() => ({
     number: record?.number ?? "",
     label: record?.label ?? "",
@@ -417,49 +469,43 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
     ...billingFormValues(record?.billing),
   }));
   const [error, setError] = useState("");
-  const [accountQuery, setAccountQuery] = useState("");
-  const matchingAccounts = useMemo(() => {
-    const needle = accountQuery.trim().toLocaleLowerCase();
-    return accounts.filter((account) =>
-      [account.name, account.accountEmail, account.provider]
-        .join(" ")
-        .toLocaleLowerCase()
-        .includes(needle),
-    );
-  }, [accounts, accountQuery]);
-  const toggle = (id: string) =>
-    setForm((value) => ({
-      ...value,
-      subscriptionIds: value.subscriptionIds.includes(id)
-        ? value.subscriptionIds.filter((item) => item !== id)
-        : [...value.subscriptionIds, id],
-    }));
-  const missing = form.subscriptionIds.filter(
-    (id) => !accounts.some((account) => account.id === id),
-  );
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
+    if (saving || !loaded) return;
+    toast.dismiss("phone-saved");
     setError("");
+    setSaving(true);
     try {
       const now = new Date().toISOString();
       const { billingAmount, billingCurrency, billingCycle, ...fields } = form;
-      save({
-        ...fields,
-        billing: billingFromForm({
-          amount: billingAmount,
-          currency: billingCurrency,
-          cycle: billingCycle,
-        }),
-        id: record?.id ?? randomId(),
-        createdAt: record?.createdAt ?? now,
-        updatedAt: now,
-      });
+      await savePhoneRelations(
+        {
+          ...fields,
+          id,
+          createdAt: record?.createdAt ?? now,
+          updatedAt: now,
+          billing: billingFromForm({
+            amount: billingAmount,
+            currency: billingCurrency,
+            cycle: billingCycle,
+          }),
+        },
+        targets,
+        Boolean(record),
+        () => {
+          if (!alive.current) throw Error("操作已取消");
+        },
+      );
+      if (!alive.current) return;
       toast.success(t("号码已保存"), { id: "phone-saved", position: "top-center" });
       onClose();
-    } catch (error) {
-      const message = errorText(error);
-      setError(message);
-      toast.error(message);
+    } catch (cause) {
+      if (alive.current) {
+        setError(errorText(cause));
+        toast.error(errorText(cause));
+      }
+    } finally {
+      if (alive.current) setSaving(false);
     }
   }
   return (
@@ -469,128 +515,118 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
       onClose={onClose}
     >
       <form
+        aria-busy={saving}
         aria-label={record ? t("编辑号码") : t("添加号码")}
         className="editor-form"
         onSubmit={submit}
       >
         <div className="editor-scroll">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t("号码")}>
-              <Input
-                autoFocus
-                required
-                type="tel"
-                aria-label={t("号码")}
-                placeholder="+86 138 0000 0000"
-                value={form.number}
-                onChange={(e) => setForm({ ...form, number: e.target.value })}
+          <fieldset className="min-w-0" disabled={saving}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t("号码")}>
+                <Input
+                  autoFocus
+                  required
+                  type="tel"
+                  aria-label={t("号码")}
+                  placeholder="+86 138 0000 0000"
+                  value={form.number}
+                  onChange={(e) => setForm({ ...form, number: e.target.value })}
+                />
+              </Field>
+              <Field label={t("名称（可选）")}>
+                <Input
+                  aria-label={t("号码名称")}
+                  value={form.label}
+                  onChange={(e) => setForm({ ...form, label: e.target.value })}
+                />
+              </Field>
+              <Field label={t("服务商（可选）")}>
+                <Input
+                  aria-label={t("号码服务商")}
+                  value={form.provider}
+                  onChange={(e) => setForm({ ...form, provider: e.target.value })}
+                />
+              </Field>
+              <Field label={t("到期日（可选）")}>
+                <Input
+                  type="date"
+                  aria-label={t("号码到期日")}
+                  value={form.expiresAt}
+                  onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                />
+              </Field>
+              <BillingFields
+                values={form}
+                set={(key, value) => setForm((current) => ({ ...current, [key]: value }))}
               />
-            </Field>
-            <Field label={t("名称（可选）")}>
-              <Input
-                aria-label={t("号码名称")}
-                value={form.label}
-                onChange={(e) => setForm({ ...form, label: e.target.value })}
-              />
-            </Field>
-            <Field label={t("服务商（可选）")}>
-              <Input
-                aria-label={t("号码服务商")}
-                value={form.provider}
-                onChange={(e) => setForm({ ...form, provider: e.target.value })}
-              />
-            </Field>
-            <Field label={t("到期日（可选）")}>
-              <Input
-                type="date"
-                aria-label={t("号码到期日")}
-                value={form.expiresAt}
-                onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-              />
-            </Field>
-            <BillingFields
-              values={form}
-              set={(key, value) => setForm((current) => ({ ...current, [key]: value }))}
-            />
-          </div>
-          <fieldset className="mt-4">
-            <legend className="text-meta font-medium text-muted">
-              {t("关联订阅账号（可多选）")}
-            </legend>
-            {accounts.length > 0 && (
-              <Input
-                className="mt-2 min-h-11"
-                aria-label={t("搜索关联订阅")}
-                placeholder={t("按名称、邮箱或服务商搜索订阅")}
-                value={accountQuery}
-                onChange={(event) => setAccountQuery(event.target.value)}
-              />
-            )}
-            {form.subscriptionIds.length > 0 && (
-              <p className="mt-2 text-2xs text-muted">
-                {t("已选择 {0} 个订阅，搜索不会清除已选项。", form.subscriptionIds.length)}
+            </div>
+            <fieldset className="mt-4" disabled={saving}>
+              <legend className="mb-2 text-meta font-medium text-muted">
+                {t("关联资源（可多选）")}
+              </legend>
+              <p className="mb-3 text-2xs leading-relaxed text-muted">
+                {t("可关联服务器、账号、邮箱、卡片、节点和文档，搜索不会清除已选项。")}
               </p>
-            )}
-            <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-line p-2">
-              {!accounts.length && !missing.length && (
-                <p className="p-2 text-meta text-muted">
-                  {t("暂无 AI 订阅账号，可先保存号码，之后再关联。")}
+              <AssetPicker
+                label={t("选择号码关联资源")}
+                entries={options}
+                selected={targets.map(refKey)}
+                onChange={(keys) => {
+                  const all = new Map([...resources, ...targets].map((ref) => [refKey(ref), ref]));
+                  setTargets(keys.flatMap((key) => (all.has(key) ? [all.get(key)!] : [])));
+                }}
+              />
+              {loaded &&
+                targets
+                  .filter((ref) => !resources.some((row) => refKey(row) === refKey(ref)))
+                  .map((ref) => (
+                    <label
+                      key={refKey(ref)}
+                      className="mt-2 flex items-center gap-2 text-meta text-warn"
+                    >
+                      <input
+                        type="checkbox"
+                        checked
+                        onChange={() =>
+                          setTargets(targets.filter((item) => refKey(item) !== refKey(ref)))
+                        }
+                      />
+                      {t("移除已不存在的关联")}
+                    </label>
+                  ))}
+              {loadError && (
+                <p role="alert" className="mt-2 text-meta text-crit">
+                  {loadError}
                 </p>
               )}
-              {accounts.length > 0 && matchingAccounts.length === 0 && (
-                <p className="p-2 text-meta text-muted">{t("没有匹配的订阅")}</p>
-              )}
-              {matchingAccounts.map((account) => (
-                <label
-                  key={account.id}
-                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-canvas"
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.subscriptionIds.includes(account.id)}
-                    onChange={() => toggle(account.id)}
-                    className="size-4 shrink-0"
-                  />
-                  <span className="min-w-0 break-words text-meta">
-                    {account.name}
-                    {account.accountEmail && (
-                      <span className="ml-2 text-muted">{account.accountEmail}</span>
-                    )}
-                  </span>
-                </label>
-              ))}
-              {missing.map((id) => (
-                <label
-                  key={id}
-                  className="flex min-h-11 cursor-pointer items-center gap-3 px-2 py-2 text-meta text-muted"
-                >
-                  <input type="checkbox" checked onChange={() => toggle(id)} className="size-4" />
-                  {t("已删除的账号")}
-                </label>
-              ))}
+            </fieldset>
+            <div className="mt-4">
+              <Field label={t("备注（可选）")}>
+                <Textarea
+                  aria-label={t("号码备注")}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                />
+              </Field>
             </div>
+            {error && (
+              <p role="alert" className="mt-3 break-words text-meta text-crit">
+                {error}
+              </p>
+            )}
           </fieldset>
-          <div className="mt-4">
-            <Field label={t("备注（可选）")}>
-              <Textarea
-                aria-label={t("号码备注")}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
-            </Field>
-          </div>
-          {error && (
-            <p role="alert" className="mt-3 break-words text-meta text-crit">
-              {error}
-            </p>
-          )}
         </div>
         <div className="editor-footer">
           <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
             {t("取消")}
           </Button>
-          <Button type="submit" className="min-h-11">
-            {t("保存号码")}
+          <Button
+            type="submit"
+            className="min-h-11"
+            disabled={saving || !loaded || Boolean(loadError)}
+          >
+            {saving ? t("正在保存…") : t("保存号码")}
           </Button>
         </div>
       </form>
@@ -600,18 +636,30 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
 
 export function PhoneBindings({ subscriptionId }: { subscriptionId: string }) {
   const numbers = useAppStore((s) => s.phoneNumbers);
-  const upsert = useAppStore((s) => s.upsertPhoneNumber);
+  const links = useAppStore((s) => s.links);
+  const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState("");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const linked = useMemo(
-    () => numbers.filter((number) => number.subscriptionIds.includes(subscriptionId)),
-    [numbers, subscriptionId],
-  );
-  const available = useMemo(
-    () => numbers.filter((number) => !number.subscriptionIds.includes(subscriptionId)),
-    [numbers, subscriptionId],
-  );
+  const linked = useMemo(() => {
+    const target = refKey({ kind: "ai", id: subscriptionId });
+    const ids = new Set(
+      links.flatMap((link) =>
+        refKey(link.from) === target && link.to.kind === "phone"
+          ? [link.to.id]
+          : refKey(link.to) === target && link.from.kind === "phone"
+            ? [link.from.id]
+            : [],
+      ),
+    );
+    return numbers.filter(
+      (number) => number.subscriptionIds.includes(subscriptionId) || ids.has(number.id),
+    );
+  }, [numbers, subscriptionId, links]);
+  const available = useMemo(() => {
+    const ids = new Set(linked.map((number) => number.id));
+    return numbers.filter((number) => !ids.has(number.id));
+  }, [numbers, linked]);
   const matches = useMemo(
     () => visiblePhoneNumbers(available, deferredQuery, "all"),
     [available, deferredQuery],
@@ -620,20 +668,22 @@ export function PhoneBindings({ subscriptionId }: { subscriptionId: string }) {
   const manage = () => {
     useAppStore.getState().openPhones();
   };
-  function bind(record: PhoneNumber, enabled: boolean) {
+  async function bind(record: PhoneNumber, enabled: boolean) {
+    if (busy) return;
+    setBusy(true);
     try {
-      upsert({
-        ...record,
-        subscriptionIds: enabled
-          ? [...record.subscriptionIds, subscriptionId]
-          : record.subscriptionIds.filter((id) => id !== subscriptionId),
-        updatedAt: new Date().toISOString(),
-      });
+      await updateResourceRelation(
+        { kind: "phone", id: record.id },
+        { kind: "ai", id: subscriptionId },
+        !enabled,
+      );
       setSelected("");
       setQuery("");
       toast.success(enabled ? t("号码已关联") : t("号码已解绑"));
     } catch (error) {
       toast.error(errorText(error));
+    } finally {
+      setBusy(false);
     }
   }
   return (
@@ -681,7 +731,8 @@ export function PhoneBindings({ subscriptionId }: { subscriptionId: string }) {
                   variant="ghost"
                   className="min-h-11"
                   aria-label={t("解绑号码 {0}", record.number)}
-                  onClick={() => bind(record, false)}
+                  disabled={busy}
+                  onClick={() => void bind(record, false)}
                 >
                   {t("解绑")}
                 </Button>
@@ -721,7 +772,9 @@ export function PhoneBindings({ subscriptionId }: { subscriptionId: string }) {
           <Button
             variant="outline"
             className="min-h-11"
-            disabled={query !== deferredQuery || !choices.some((record) => record.id === selected)}
+            disabled={
+              busy || query !== deferredQuery || !choices.some((record) => record.id === selected)
+            }
             onClick={() => {
               const record = available.find((item) => item.id === selected);
               if (record) bind(record, true);

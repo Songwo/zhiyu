@@ -1,5 +1,5 @@
 /** 自托管网页版：页面由 selfhost/server.mjs 提供，资料通过同源接口读写。 */
-export const isWeb = () => import.meta.env.VITE_ZHIYU_WEB === "1";
+export const isWeb = () => import.meta.env?.VITE_ZHIYU_WEB === "1";
 
 export class WebConflictError extends Error {}
 

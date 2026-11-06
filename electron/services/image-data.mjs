@@ -4,6 +4,7 @@ import { normalizeReminders } from "./reminders.mjs";
 import { normalizeIntegrationRef } from "./integration-ref.mjs";
 import { normalizePhoneNumbers } from "./phone-numbers.mjs";
 import { hostedImageUrl } from "./hosted-image.mjs";
+import { normalizeResourceLinks } from "./resource-links.mjs";
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 export const MAX_IMAGE_BYTES = 1024 * 1024;
 export const MAX_IMAGE_EDGE = 512;
@@ -147,6 +148,11 @@ export function normalizeSnapshotImages(
   if ("reminders" in state) result.reminders = normalizeReminders(state.reminders, strict);
   if ("phoneNumbers" in state)
     result.phoneNumbers = normalizePhoneNumbers(state.phoneNumbers, strict);
+  if ("links" in state)
+    result.links = normalizeResourceLinks(
+      state.links,
+      /** @type {Partial<import('../../src/lib/types').Snapshot>} */ (result),
+    );
   for (const key of [
     "servers",
     "domains",

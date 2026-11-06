@@ -1,18 +1,31 @@
 import { hostBridge } from "@/lib/web-bridge";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { randomId } from "@/lib/random-id";
 import { t } from "@/lib/i18n";
 import { type UsageSource } from "@/lib/usage";
-import { Plus, Copy, Trash2, RefreshCw, Pencil, Activity } from "lucide-react";
+import { Plus, Copy, Trash2, RefreshCw, Pencil, Activity, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Select } from "./ui/select";
 import { useAppStore } from "@/lib/store";
 import { type ProxyNode, type ProxyProtocol, type Server } from "@/lib/types";
 import { formatProxyUri, parseProxyUri, validateProxyNode } from "@/lib/proxy-nodes";
+import { nodeResourceId } from "../../electron/services/resource-links.mjs";
+import { AssetRelations } from "./operations-panel";
+import { EditorDialog } from "./ui/editor-dialog";
+import { reduceMotion } from "@/lib/motion";
+import { commitResourceChanges } from "@/lib/resource-relation-actions";
 
 const protocols: ProxyProtocol[] = ["vless", "vmess", "trojan", "ss", "hysteria2"];
-export function ServerNodesPanel({ server }: { server: Server }) {
+export function ServerNodesPanel({ server, focusId }: { server: Server; focusId?: string }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusId)
+      panelRef.current
+        ?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(focusId)}"]`)
+        ?.scrollIntoView({ block: "center", behavior: reduceMotion() ? "auto" : "smooth" });
+  }, [focusId, server.id]);
+  const [relating, setRelating] = useState<string | null>(null);
   const [show, setShow] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [sources, setSources] = useState<UsageSource[]>([]);
@@ -147,7 +160,14 @@ export function ServerNodesPanel({ server }: { server: Server }) {
     ["flow", "Flow"],
   ];
   return (
-    <div className="space-y-4 p-4">
+    <div ref={panelRef} className="space-y-4 p-4">
+      {relating && server.nodes?.some((node) => node.id === relating) && (
+        <EditorDialog title={t("节点关联")} onClose={() => setRelating(null)}>
+          <div className="editor-scroll">
+            <AssetRelations asset={{ kind: "node", id: nodeResourceId(server.id, relating) }} />
+          </div>
+        </EditorDialog>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-semibold">{server.name} · 节点管理</h3>
@@ -318,7 +338,11 @@ export function ServerNodesPanel({ server }: { server: Server }) {
                   ? t("流量来源已保存，等待连接")
                   : t("尚未连接流量统计");
           return (
-            <div key={node.id} className="rounded-lg border border-line bg-card p-4">
+            <div
+              key={node.id}
+              data-node-id={node.id}
+              className={`rounded-lg border border-line bg-card p-4 ${focusId === node.id ? "outline outline-2 outline-offset-2 outline-line-strong" : ""}`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h4 className="break-words text-sm font-semibold">{node.name}</h4>
@@ -381,18 +405,35 @@ export function ServerNodesPanel({ server }: { server: Server }) {
                   </Button>
                   <Button
                     size="icon-sm"
+                    variant="ghost"
+                    aria-label={t("管理 {0} 的关联", node.name)}
+                    onClick={() => setRelating(node.id)}
+                  >
+                    <Link2 />
+                  </Button>
+                  <Button
+                    size="icon-sm"
                     variant="danger-ghost"
                     aria-label={"删除 " + node.name}
-                    onClick={() => {
+                    disabled={busy !== null}
+                    onClick={async () => {
                       if (window.confirm("删除这个节点？")) {
-                        const current = useAppStore
-                          .getState()
-                          .servers.find((s) => s.id === server.id);
-                        if (current)
-                          useAppStore.getState().upsertServer({
-                            ...current,
-                            nodes: (current.nodes ?? []).filter((n) => n.id !== node.id),
-                          });
+                        try {
+                          setBusy(node.id);
+                          const current = useAppStore
+                            .getState()
+                            .servers.find((s) => s.id === server.id);
+                          if (current)
+                            useAppStore.getState().upsertServer({
+                              ...current,
+                              nodes: (current.nodes ?? []).filter((n) => n.id !== node.id),
+                            });
+                          await commitResourceChanges();
+                        } catch (cause) {
+                          toast.error(cause instanceof Error ? cause.message : String(cause));
+                        } finally {
+                          setBusy(null);
+                        }
                       }
                     }}
                   >

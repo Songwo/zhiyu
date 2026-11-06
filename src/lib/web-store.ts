@@ -14,11 +14,13 @@ let pending: string | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let writing: Promise<void> | null = null;
 let reload: (() => Promise<void>) | null = null;
+let writeError: unknown = null;
 
 async function flush() {
   if (writing || pending === null) return;
   const value = pending;
   pending = null;
+  writeError = null;
   writing = (async () => {
     try {
       const res = await webApi<{ revision: string }>("store", {
@@ -28,6 +30,7 @@ async function flush() {
       revision = res.revision;
       lastSent = value;
     } catch (error) {
+      writeError = error;
       if (error instanceof WebConflictError) {
         toast.warning("资料已在另一台设备更新，已载入最新内容；刚才的修改请再做一次");
         await reload?.();
@@ -37,6 +40,23 @@ async function flush() {
   await writing;
   writing = null;
   if (pending !== null) void flush();
+}
+
+/** 显式关联保存必须等到服务器应答，不能把安排了后台任务当作已经落盘。 */
+export async function flushWebStore() {
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  while (writing || pending !== null) {
+    if (writing) await writing;
+    else await flush();
+  }
+  if (writeError) {
+    const error = writeError;
+    writeError = null;
+    throw error;
+  }
 }
 
 export const webStorage: StateStorage = {

@@ -20,6 +20,12 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { normalizeSnapshotImages } from "../electron/services/image-data.mjs";
 import { DocumentsStore } from "../electron/services/documents.mjs";
+import {
+  isResourceRef,
+  snapshotResourceKeys,
+  resourceRefKey,
+  assertDocumentLinks,
+} from "../electron/services/resource-links.mjs";
 import { ReminderPushError, WebReminderPush } from "./reminder-push.mjs";
 import { BridgeError, createWebBridge } from "./bridge.mjs";
 import { HostStats } from "./host-stats.mjs";
@@ -201,6 +207,7 @@ export async function createWebServer({
       const raw = await readJson(files.store);
       const before = raw?.state && typeof raw.state === "object" ? raw.state : (raw ?? {});
       const next = await mutate(before);
+      await assertDocumentLinks(next, documents);
       await writeAtomic(
         files.store,
         JSON.stringify({ ...(raw ?? {}), state: next, version: raw?.version ?? 0 }),
@@ -783,6 +790,11 @@ export async function createWebServer({
       await serial(async () => {
         const current = await fileRevision(files.store);
         if ((input.revision ?? null) !== current) throw new HttpError(409, "资料已在其他设备更新");
+        try {
+          await assertDocumentLinks(normalized?.state ?? normalized, documents);
+        } catch (error) {
+          throw new HttpError(400, error.message);
+        }
         const text = JSON.stringify(normalized);
         await writeAtomic(files.store, text);
         currentSnapshot =
@@ -933,8 +945,30 @@ export async function createWebServer({
       emit("documents:changed", { document: saved });
       return send(res, 200, saved);
     }
+    if (req.method === "PATCH") {
+      const input = await json(req);
+      if (!input || !input.binding || typeof input.remove !== "boolean")
+        throw new HttpError(400, "关联资产无效");
+      return serial(async () => {
+        if (!isResourceRef(input.binding)) throw new HttpError(400, "关联资产无效");
+        if (
+          !input.remove &&
+          !snapshotResourceKeys(currentSnapshot).has(resourceRefKey(input.binding))
+        )
+          throw new HttpError(400, "关联资源已不存在，请刷新后重试。");
+        const saved = await documents.bind(id, input.binding, input.remove);
+        emit("documents:changed", { document: saved });
+        return send(res, 200, saved);
+      });
+    }
     if (req.method === "DELETE") {
       await documents.remove(id);
+      await mutateAssets((snapshot) => ({
+        ...snapshot,
+        links: (snapshot.links ?? []).filter(
+          (link) => ![link.from, link.to].some((ref) => ref.kind === "document" && ref.id === id),
+        ),
+      }));
       emit("documents:changed", { removedId: id });
       return send(res, 200, { ok: true });
     }

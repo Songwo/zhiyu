@@ -1,4 +1,4 @@
-import type { AssetKind } from "./types";
+import type { AssetKind, ResourceKind } from "./types";
 
 export interface ModelConfig {
   baseUrl: string;
@@ -17,7 +17,7 @@ export interface Source {
   id: string;
   citation: string;
   title: string;
-  kind?: AssetKind;
+  kind?: ResourceKind;
   assetId?: string;
   documentId?: string;
   focus?: "account";

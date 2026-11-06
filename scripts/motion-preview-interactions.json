@@ -1,0 +1,56 @@
+[
+  ["wait", ".motion-demo-open"],
+  [
+    "eval",
+    "(() => { if(document.documentElement.dataset.motionMode !== 'full') throw Error('需要完整动效档位'); })()"
+  ],
+  ["click", ".motion-demo-open"],
+  ["wait", ".motion-demo-detail"],
+  ["wait", "400"],
+  [
+    "eval",
+    "(() => { const d = document.querySelector('.motion-demo-detail'); if(!d.innerText.includes('演示邮箱') || !d.innerText.includes('部署文档')) throw Error('关联展开缺失'); })()"
+  ],
+  ["find", "role", "button", "click", "--name", "返回示例"],
+  ["wait", ".motion-demo-open"],
+  ["find", "role", "button", "click", "--name", "卡片翻转"],
+  ["click", ".motion-demo-flip"],
+  ["wait", "750"],
+  [
+    "eval",
+    "(() => { const b = document.querySelector('.motion-demo-flip'); const m = new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.motion-demo-card-object')).transform); if(b.getAttribute('aria-pressed') !== 'true' || m.m11 > -0.99) throw Error('卡片背面未完成翻转'); })()"
+  ],
+  ["click", ".motion-demo-flip"],
+  ["wait", "60"],
+  ["click", ".motion-demo-flip"],
+  ["wait", "750"],
+  [
+    "eval",
+    "(() => { const b = document.querySelector('.motion-demo-flip'); const m = new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.motion-demo-card-object')).transform); if(b.getAttribute('aria-pressed') !== 'true' || m.m11 > -0.99) throw Error('快速反向点击后翻转状态错误'); })()"
+  ],
+  ["find", "role", "button", "click", "--name", "任务进度"],
+  ["find", "role", "button", "click", "--name", "播放步骤演示"],
+  ["wait", ".ai-task-progress li"],
+  [
+    "eval",
+    "(() => { window.__motionFirstStep = document.querySelector('.ai-task-progress li'); return true; })()"
+  ],
+  ["wait", "2800"],
+  [
+    "eval",
+    "(() => { const items = [...document.querySelectorAll('.ai-task-progress li')]; if(items.length !== 3 || items.some(n => n.dataset.status !== 'done')) throw Error('任务没有逐项完成'); if(items[0] !== window.__motionFirstStep) throw Error('步骤更新错误地重新挂载'); const labels = items.map(n => n.querySelector('div > span').textContent); if(JSON.stringify(labels) !== JSON.stringify(['读取演示资产','查找已保存的关联','整理关联路径'])) throw Error('任务标签顺序错误'); })()"
+  ],
+  ["find", "role", "button", "click", "--name", "播放步骤演示"],
+  ["find", "role", "button", "click", "--name", "关联展开"],
+  ["wait", "1000"],
+  [
+    "eval",
+    "(() => { if(document.querySelector('.ai-task-progress li') || !document.querySelector('.motion-demo-open')) throw Error('离开演示后仍有任务更新'); })()"
+  ],
+  ["press", "Escape"],
+  ["wait", "250"],
+  [
+    "eval",
+    "(() => { if(document.querySelector('.motion-preview')) throw Error('对话框未关闭'); if(document.activeElement?.textContent !== '预览动效') throw Error('关闭后没有还原焦点'); })()"
+  ]
+]

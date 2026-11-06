@@ -7,6 +7,7 @@ import { useAppStore } from "@/lib/store";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { t } from "@/lib/i18n";
+import { updateResourceRelation } from "@/lib/resource-relation-actions";
 const fail = (e: unknown) => toast.error(String(e));
 export function AssetDocuments({ asset }: { asset: AssetRef }) {
   const [busy, setBusy] = useState(false);
@@ -14,6 +15,7 @@ export function AssetDocuments({ asset }: { asset: AssetRef }) {
   const [query, setQuery] = useState("");
   const list = useDocuments((s) => s.list);
   const load = useDocuments((s) => s.load);
+  const links = useAppStore((s) => s.links);
   const account = useAppStore((s) =>
     asset.kind === "secret"
       ? s.secrets.find((item) => item.id === asset.id && item.kind === "account")
@@ -23,8 +25,21 @@ export function AssetDocuments({ asset }: { asset: AssetRef }) {
     void load().catch(fail);
   }, [load]);
   const bound = useMemo(
-    () => list.filter((doc) => doc.bindings.some((ref) => refKey(ref) === refKey(asset))),
-    [list, asset],
+    () =>
+      list.filter(
+        (doc) =>
+          doc.bindings.some((ref) => refKey(ref) === refKey(asset)) ||
+          links.some(
+            (link) =>
+              (link.from.kind === "document" &&
+                link.from.id === doc.id &&
+                refKey(link.to) === refKey(asset)) ||
+              (link.to.kind === "document" &&
+                link.to.id === doc.id &&
+                refKey(link.from) === refKey(asset)),
+          ),
+      ),
+    [list, asset, links],
   );
   const available = list.filter(
     (doc) =>
@@ -58,14 +73,7 @@ export function AssetDocuments({ asset }: { asset: AssetRef }) {
     if (busy) return;
     setBusy(true);
     try {
-      // 复用文档草稿与保存队列，避免覆盖用户尚未落盘的正文。
-      await useDocuments.getState().open(id);
-      const state = useDocuments.getState();
-      const doc = state.drafts[id];
-      const bindings = doc.bindings.filter((ref) => refKey(ref) !== refKey(asset));
-      if (linked) bindings.push({ kind: asset.kind, id: asset.id });
-      state.change({ ...doc, bindings });
-      await useDocuments.getState().flush(id);
+      await updateResourceRelation({ kind: "document", id }, asset, !linked);
       setChoosing(false);
       setQuery("");
       toast.success(t(linked ? "已关联文档" : "已解除关联，文档仍保留"));

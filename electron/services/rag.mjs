@@ -1,5 +1,6 @@
 import MiniSearch from "minisearch";
 import { createHash } from "node:crypto";
+import { isResourceRef, nodeResourceId } from "./resource-links.mjs";
 
 const COLLECTIONS = {
   server: "servers",
@@ -214,6 +215,42 @@ export function assetDocuments(
       });
     }
   }
+  // 号码和节点只提供关联所需元信息，不能展开号码、密码或节点配置。
+  for (const phone of snapshot.phoneNumbers ?? []) {
+    if (!isResourceRef({ kind: "phone", id: phone?.id })) continue;
+    const fields = Object.fromEntries(
+      ["label", "provider", "expiresAt"]
+        .filter((key) => typeof phone[key] === "string")
+        .map((key) => [key, phone[key].slice(0, 160)]),
+    );
+    docs.push({
+      id: `asset:phone:${phone.id}`,
+      title: fields.label || "已保存号码",
+      kind: "phone",
+      assetId: phone.id,
+      fields,
+      text: "号码\n" + JSON.stringify(fields),
+    });
+  }
+  for (const server of snapshot.servers ?? [])
+    for (const node of server.nodes ?? []) {
+      const id = nodeResourceId(server.id, node.id);
+      if (!isResourceRef({ kind: "node", id })) continue;
+      const fields = {
+        name: String(node.name ?? "").slice(0, 160),
+        protocol: String(node.protocol ?? "").slice(0, 40),
+        serverId: server.id,
+        serverName: String(server.name ?? "").slice(0, 160),
+      };
+      docs.push({
+        id: `asset:node:${id}`,
+        title: fields.name || "自建节点",
+        kind: "node",
+        assetId: id,
+        fields,
+        text: "自建节点\n" + JSON.stringify(fields),
+      });
+    }
   const ids = new Set(docs.map((doc) => doc.id));
   for (const doc of docs) {
     const links = (snapshot.links ?? []).flatMap(({ from, to }) => {
@@ -370,13 +407,22 @@ export class LocalIndex {
     };
   }
   summary() {
-    const assets = this.docs.filter((x) => x.assetId);
+    const resources = this.docs.filter((x) => x.assetId);
+    // 节点隶属于服务器，号码也是独立资源；不重复计入原七类资产的费用和异常统计。
+    const assets = resources.filter((x) => Object.hasOwn(COLLECTIONS, x.kind));
     const counts = Object.fromEntries(
       Object.keys(COLLECTIONS).map((kind) => [kind, assets.filter((x) => x.kind === kind).length]),
     );
     return {
       counts,
       total: assets.length,
+      resourceTotal: resources.length,
+      resourceCounts: Object.fromEntries(
+        [...Object.keys(COLLECTIONS), "phone", "node"].map((kind) => [
+          kind,
+          resources.filter((x) => x.kind === kind).length,
+        ]),
+      ),
       demo: assets.filter((x) => x.fields.demo).length,
       monthlyUsd: assets.reduce((sum, x) => sum + (Number(x.fields.monthlyUsd) || 0), 0),
       attention: assets

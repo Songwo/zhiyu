@@ -88,6 +88,27 @@ const assetReference = {
   required: ["kind", "id"],
   additionalProperties: false,
 };
+const resourceReference = {
+  ...assetReference,
+  properties: {
+    kind: {
+      type: "string",
+      enum: [
+        "server",
+        "domain",
+        "mail",
+        "ai",
+        "secret",
+        "cert",
+        "service",
+        "phone",
+        "document",
+        "node",
+      ],
+    },
+    id: { type: "string", maxLength: 1024 },
+  },
+};
 export const AGENT_TOOLS = [
   tool(
     "request_workspace_access",
@@ -145,8 +166,8 @@ export const AGENT_TOOLS = [
   ),
   tool(
     "propose_asset_link",
-    "Propose an explicit relationship between two saved assets using retrieved evidence. NEVER writes. Clearly label it as an unconfirmed suggestion, not an existing link. Cite the evidence in reason.",
-    { from: assetReference, to: assetReference, reason: { type: "string", maxLength: 1200 } },
+    "Propose an explicit relationship between two saved resources, including assets, phone records, proxy nodes or documents, using retrieved evidence. NEVER writes. Use the exact kind and assetId/documentId from sources. Clearly label it as an unconfirmed suggestion, not an existing link. Cite the evidence in reason.",
+    { from: resourceReference, to: resourceReference, reason: { type: "string", maxLength: 1200 } },
     ["from", "to", "reason"],
   ),
   tool(

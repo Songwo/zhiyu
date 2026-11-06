@@ -6,6 +6,8 @@ import { SERVICES_EN } from "./i18n-services-en.ts";
 import { BACKUP_EN } from "./i18n-backup-en.ts";
 import { SECURITY_EN } from "./i18n-security-en.ts";
 import { WEB_EN } from "./i18n-web-en.ts";
+import { MOTION_EN } from "./i18n-motion-en.ts";
+import { RELATIONS_EN } from "./i18n-relations-en.ts";
 
 /**
  * English strings, keyed by the Chinese source text.
@@ -18,6 +20,8 @@ import { WEB_EN } from "./i18n-web-en.ts";
  * not agree on where a possessive or a count belongs.
  */
 export const EN: Record<string, string> = {
+  ...MOTION_EN,
+  ...RELATIONS_EN,
   ...CARDS_EN,
   ...RESEARCH_EN,
   ...INTEGRATIONS_EN,

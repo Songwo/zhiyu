@@ -41,16 +41,13 @@ import {
   ScanText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useShallow } from "zustand/react/shallow";
 import {
   useDocuments,
   documentImage,
   type DocumentAsset,
   type DocumentSummary,
 } from "@/lib/documents";
-import { assetEntries, refKey } from "@/lib/operations";
-import { useAppStore } from "@/lib/store";
-import { KIND_LABEL } from "@/lib/status";
+import { refKey } from "@/lib/operations";
 import { desktop } from "@/lib/desktop";
 import { downloadJson, downloadText } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -72,12 +69,26 @@ import { NetworkResearch } from "./network-research";
 import { documentLink } from "../../electron/services/document-links.mjs";
 import "./document-reading.css";
 import "./document-actions.css";
+import {
+  connectedRefs,
+  openResource,
+  resourceKindLabel,
+  useResourceInventory,
+} from "@/lib/resource-inventory";
+import { updateResourceRelation } from "@/lib/resource-relation-actions";
+import type { ResourceRef } from "@/lib/types";
 
 const fail = (error: unknown) =>
   toast.error(error instanceof Error ? error.message : String(error));
 type DeleteTarget = Pick<DocumentAsset, "id" | "title"> & { returnFocus: HTMLElement | null };
 export function DocumentsWorkspace() {
   const { list, selected, drafts, load, open, create } = useDocuments();
+  const { relations } = useResourceInventory();
+  const connectionCounts = new Map<string, number>();
+  for (const relation of relations)
+    for (const ref of [relation.from, relation.to])
+      if (ref.kind === "document")
+        connectionCounts.set(ref.id, (connectionCounts.get(ref.id) ?? 0) + 1);
   const listCollapsed = useSettings((s) => s.documentListCollapsed);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -141,7 +152,7 @@ export function DocumentsWorkspace() {
   }, [load]);
   const filtered = list.filter(
     (doc) =>
-      (filter !== "unbound" || doc.bindings.length === 0) &&
+      (filter !== "unbound" || !connectionCounts.get(doc.id)) &&
       (doc.title + doc.excerpt).toLocaleLowerCase().includes(query.toLocaleLowerCase()),
   );
   return (
@@ -224,6 +235,7 @@ export function DocumentsWorkspace() {
             <DocumentListRow
               key={doc.id}
               doc={doc}
+              relationCount={connectionCounts.get(doc.id) ?? 0}
               selected={selected === doc.id}
               onOpen={() =>
                 void open(doc.id)
@@ -284,11 +296,13 @@ export function DocumentsWorkspace() {
 
 function DocumentListRow({
   doc,
+  relationCount,
   selected,
   onOpen,
   onDelete,
 }: {
   doc: DocumentSummary;
+  relationCount: number;
   selected: boolean;
   onOpen: () => void;
   onDelete: (returnFocus: HTMLElement | null) => void;
@@ -338,9 +352,7 @@ function DocumentListRow({
             {doc.excerpt || t("开始记录你的想法")}
           </span>
           <span className="mt-3 flex justify-between text-xs text-muted">
-            <span>
-              {doc.bindings.length ? t("关联 {0} 项资产", doc.bindings.length) : t("独立文档")}
-            </span>
+            <span>{relationCount ? t("关联 {0} 项资产", relationCount) : t("独立文档")}</span>
             <span>
               {doc.imageCount > 0
                 ? t("{0} 张图片", doc.imageCount)
@@ -529,18 +541,22 @@ function DocumentEditor({
   const flush = useDocuments((s) => s.flush);
   const status = useDocuments((s) => s.status[doc.id]);
   const error = useDocuments((s) => s.errors[doc.id]);
-  const snapshot = useAppStore(
-    useShallow((s) => ({
-      servers: s.servers,
-      domains: s.domains,
-      mailboxes: s.mailboxes,
-      aiAssets: s.aiAssets,
-      secrets: s.secrets,
-      certs: s.certs,
-      services: s.services,
-    })),
-  );
-  const assets = assetEntries(snapshot);
+  const { resources, relations } = useResourceInventory();
+  const assets = resources
+    .filter((ref) => !(ref.kind === "document" && ref.id === doc.id))
+    .map((ref) => ({ ...ref, label: ref.name }));
+  const related = connectedRefs({ kind: "document", id: doc.id }, relations);
+  const [bindingBusy, setBindingBusy] = useState(false);
+  const changeBinding = async (ref: ResourceRef, remove: boolean) => {
+    setBindingBusy(true);
+    try {
+      await updateResourceRelation({ kind: "document", id: doc.id }, ref, remove);
+    } catch (cause) {
+      fail(cause);
+    } finally {
+      setBindingBusy(false);
+    }
+  };
   const [bindingQuery, setBindingQuery] = useState("");
   const [infoOpen, setInfoOpen] = useState(false);
   const [link, setLink] = useState<string | null>(null);
@@ -952,9 +968,7 @@ function DocumentEditor({
         <Button variant="ghost" size="sm" onClick={() => setInfoOpen(true)} aria-haspopup="dialog">
           <Paperclip />
           {t("关联与设置")}
-          {doc.bindings.length > 0 && (
-            <span className="documents-count">{doc.bindings.length}</span>
-          )}
+          {related.length > 0 && <span className="documents-count">{related.length}</span>}
         </Button>
       </div>
       {editing && (
@@ -1328,21 +1342,16 @@ function DocumentEditor({
                     <label className="document-binding min-w-0 flex-1">
                       <input
                         type="checkbox"
-                        checked={doc.bindings.some((ref) => refKey(ref) === refKey(asset))}
-                        onChange={(e) =>
-                          update({
-                            bindings: e.target.checked
-                              ? [...doc.bindings, { kind: asset.kind, id: asset.id }]
-                              : doc.bindings.filter((ref) => refKey(ref) !== refKey(asset)),
-                          })
-                        }
+                        disabled={bindingBusy}
+                        checked={related.some((ref) => refKey(ref) === refKey(asset))}
+                        onChange={(event) => void changeBinding(asset, !event.target.checked)}
                       />
                       <span className="min-w-0">
                         <span className="block truncate text-sm">{asset.label}</span>
-                        <span className="text-xs text-muted">{t(KIND_LABEL[asset.kind])}</span>
+                        <span className="text-xs text-muted">{t(resourceKindLabel(asset))}</span>
                       </span>
                     </label>
-                    {doc.bindings.some((ref) => refKey(ref) === refKey(asset)) && (
+                    {related.some((ref) => refKey(ref) === refKey(asset)) && (
                       <Button
                         size="icon-sm"
                         variant="ghost"
@@ -1352,10 +1361,11 @@ function DocumentEditor({
                           void flush(doc.id)
                             .then(() => {
                               setInfoOpen(false);
-                              useAppStore.getState().setExpanded({
-                                kind: asset.kind,
-                                id: asset.id,
-                                origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
+                              return openResource(asset, {
+                                x: rect.x,
+                                y: rect.y,
+                                w: rect.width,
+                                h: rect.height,
                               });
                             })
                             .catch(fail);
@@ -1379,9 +1389,7 @@ function DocumentEditor({
                     type="button"
                     className="my-2 text-xs text-muted"
                     key={refKey(ref)}
-                    onClick={() =>
-                      update({ bindings: doc.bindings.filter((r) => refKey(r) !== refKey(ref)) })
-                    }
+                    onClick={() => void changeBinding(ref, true)}
                   >
                     {t("移除已不存在的关联")} <X className="inline size-3" />
                   </button>

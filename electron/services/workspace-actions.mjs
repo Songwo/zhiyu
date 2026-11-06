@@ -2,6 +2,12 @@ import { createHash, randomUUID } from "node:crypto";
 import { documentRevision } from "./documents.mjs";
 import { markdownContent } from "./document-markdown.mjs";
 import { calendarDay, normalizeBilling } from "./renewals.mjs";
+import {
+  isResourceRef,
+  nodeOwner,
+  resourcePairKey,
+  mutateResourceRelation,
+} from "./resource-links.mjs";
 
 const COLLECTIONS = {
   server: "servers",
@@ -14,7 +20,7 @@ const COLLECTIONS = {
 };
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const key = (ref) => `${ref.kind}:${ref.id}`;
-const pairKey = (link) => [key(link.from), key(link.to)].sort().join("|");
+const pairKey = (link) => resourcePairKey(link.from, link.to);
 const ownKeys = (value, allowed) =>
   value &&
   typeof value === "object" &&
@@ -35,6 +41,34 @@ function resource(snapshot, ref) {
   const asset = (snapshot[COLLECTIONS[ref.kind]] ?? []).find((asset) => asset.id === ref.id);
   if (!asset) throw new Error("资产已不存在，请重新生成建议。");
   return asset;
+}
+async function linkDocuments(documents, refs) {
+  if (!refs.some((ref) => ref?.kind === "document")) return new Map();
+  if (typeof documents.list !== "function") throw Error("无法读取工作区文档元信息，请刷新后重试。");
+  const result = await documents.list();
+  const rows = Array.isArray(result) ? result : (result?.documents ?? []);
+  return new Map(rows.map((doc) => [doc.id, doc]));
+}
+function linkResource(snapshot, ref, documents) {
+  if (!ownKeys(ref, ["kind", "id"]) || !isResourceRef(ref)) throw Error("资产引用无效。");
+  if (ref.kind === "document") {
+    const doc = documents.get(ref.id);
+    if (!doc) throw Error("关联文档已不存在，请刷新后重试。");
+    return { id: doc.id, name: doc.title };
+  }
+  if (ref.kind === "phone") {
+    const phone = (snapshot.phoneNumbers ?? []).find((item) => item.id === ref.id);
+    if (!phone) throw Error("资产已不存在，请重新生成建议。");
+    return { id: phone.id, name: phone.label || "已保存号码", provider: phone.provider };
+  }
+  if (ref.kind === "node") {
+    const owner = nodeOwner(ref.id);
+    const server = (snapshot.servers ?? []).find((item) => item.id === owner?.serverId);
+    const node = server?.nodes?.find((item) => item.id === owner.nodeId);
+    if (!node) throw Error("资产已不存在，请重新生成建议。");
+    return { id: ref.id, name: node.name, protocol: node.protocol };
+  }
+  return resource(snapshot, ref);
 }
 const label = (asset) => asset.name || asset.address || asset.cn || asset.id;
 const accountPreview = (value) =>
@@ -270,11 +304,26 @@ export class WorkspaceActions {
       };
     } else if (name === "propose_asset_link") {
       if (!ownKeys(args, ["from", "to", "reason"])) throw new Error("不允许的关联字段。");
-      const from = resource(snapshot, args.from),
-        to = resource(snapshot, args.to);
+      const documents = await linkDocuments(this.documents, [args.from, args.to]);
+      const from = linkResource(snapshot, args.from, documents),
+        to = linkResource(snapshot, args.to, documents);
       const link = { from: args.from, to: args.to };
       if (key(args.from) === key(args.to)) throw new Error("不能关联同一资产。");
-      if ((snapshot.links ?? []).some((item) => pairKey(item) === pairKey(link)))
+      const phone =
+        args.from.kind === "phone" ? args.from : args.to.kind === "phone" ? args.to : null;
+      const ai = args.from.kind === "ai" ? args.from : args.to.kind === "ai" ? args.to : null;
+      const doc =
+        args.from.kind === "document" ? args.from : args.to.kind === "document" ? args.to : null;
+      const target = doc === args.from ? args.to : args.from;
+      if (
+        (snapshot.links ?? []).some((item) => pairKey(item) === pairKey(link)) ||
+        (phone &&
+          ai &&
+          snapshot.phoneNumbers
+            ?.find((item) => item.id === phone.id)
+            ?.subscriptionIds.includes(ai.id)) ||
+        (doc && documents.get(doc.id)?.bindings?.some((ref) => key(ref) === key(target)))
+      )
         throw new Error("这两个资产已经关联。");
       details = {
         type: "asset-link",
@@ -418,6 +467,10 @@ export class WorkspaceActions {
         });
         result = { document };
       } else {
+        const documents =
+          proposal.type === "asset-link"
+            ? await linkDocuments(this.documents, [proposal.link.from, proposal.link.to])
+            : new Map();
         result = await this.mutateAssets((snapshot) => {
           if (proposal.type === "asset-update") {
             const asset = resource(snapshot, proposal.asset);
@@ -450,24 +503,14 @@ export class WorkspaceActions {
               ),
             };
           }
-          const from = resource(snapshot, proposal.link.from),
-            to = resource(snapshot, proposal.link.to);
+          const from = linkResource(snapshot, proposal.link.from, documents),
+            to = linkResource(snapshot, proposal.link.to, documents);
           if (hash([from, to]) !== proposal.revision)
             throw new Error("关联资产已变化，请重新生成建议。");
-          const seen = new Set();
-          const links = [...(snapshot.links ?? []), proposal.link].filter((link) => {
-            try {
-              resource(snapshot, link.from);
-              resource(snapshot, link.to);
-            } catch {
-              return false;
-            }
-            const id = pairKey(link);
-            if (key(link.from) === key(link.to) || seen.has(id)) return false;
-            seen.add(id);
-            return true;
-          });
-          return { ...snapshot, links };
+          return {
+            ...snapshot,
+            ...mutateResourceRelation(snapshot, proposal.link.from, proposal.link.to),
+          };
         });
       }
       this.finish(proposal, "applied");

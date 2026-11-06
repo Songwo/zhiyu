@@ -1,5 +1,5 @@
 import { hasServerMetrics, hasServerObservation } from "./server-observation.mjs";
-import type { AssetKind, Billing, Snapshot, Status, ViewId } from "./types.ts";
+import type { AssetKind, Billing, ResourceRef, Snapshot, Status, ViewId } from "./types.ts";
 import type { IntegrationRef } from "./integrations.ts";
 import { refKey, type AssetRef } from "./operations.ts";
 
@@ -160,7 +160,7 @@ export function filterAssetRows(
 // 仅把已保存的关联绘制为边；不依据名称猜测关系，也不暴露凭据。
 export function assetGraph(rows: AssetRow[], links: Snapshot["links"], vertical = false) {
   // 图引擎会把节点 ID 放入选择器，编码后可容纳资产 ID 中的引号等字符。
-  const nodeId = (ref: AssetRef) => encodeURIComponent(refKey(ref));
+  const nodeId = (ref: ResourceRef) => encodeURIComponent(refKey(ref));
   const ids = new Set(rows.map(refKey));
   const columns = GRAPH_KINDS.filter((kind) => rows.some((row) => row.kind === kind));
   const slots = new Map<AssetKind, number>();
