@@ -426,7 +426,7 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-const GRID = "grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3";
+const GRID = "asset-card-grid";
 
 /**
  * One list, two layouts.

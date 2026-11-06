@@ -65,6 +65,8 @@ jobs:
           node scripts/agent-access-ui-integration.mjs &&
           node scripts/usage-live-chart-integration.mjs
           if [ $? -ne 0 ]; then kill $DEV_PID 2>/dev/null || true; exit 1; fi
+          NANPAD_QA_URL=http://127.0.0.1:8080 WORKSPACE_LAYOUT_MODE=desktop node scripts/workspace-layout-integration.mjs
+          if [ $? -ne 0 ]; then kill $DEV_PID 2>/dev/null || true; exit 1; fi
           node scripts/service-assets-ui-integration.mjs &&
           node scripts/document-markdown-integration.mjs &&
           node scripts/document-account-extract-integration.mjs &&
@@ -88,6 +90,8 @@ jobs:
 
       # 自托管网页版：构建同一份界面代码，跑一遍首次设置、跨设备同步与退出登录。
       - run: npm run web:build
+      - name: 验证全部 Web 导航与侧栏布局
+        run: WORKSPACE_LAYOUT_MODE=web node scripts/workspace-layout-integration.mjs
       - run: node scripts/web-selfhost-integration.mjs
       - name: 验证关联、容器告警、云备份与 AI 底部布局
         run: |

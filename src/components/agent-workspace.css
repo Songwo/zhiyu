@@ -204,7 +204,7 @@
 }
 .agent-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) clamp(264px, 22cqi, 320px);
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -492,6 +492,17 @@
   display: none;
 }
 @media (max-width: 1099px) {
+  .agent-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .agent-context-desktop {
+    display: none;
+  }
+  .agent-context-toggle {
+    display: inline-flex;
+  }
+}
+@container workspace (max-width: 1099px) {
   .agent-workspace {
     grid-template-columns: minmax(0, 1fr);
   }

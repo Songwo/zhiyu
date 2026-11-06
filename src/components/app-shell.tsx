@@ -340,13 +340,14 @@ function WorkspaceShell() {
       <div
         ref={workspaceScroll}
         className={cn(
-          "min-h-0 flex-1 overflow-y-auto",
+          "workspace-scroll min-h-0 flex-1 overflow-y-auto",
           web && "web-scroll",
           !detailOpen && view === "docs" && "documents-shell",
           !detailOpen && view === "agent" && "agent-shell",
         )}
       >
         <div
+          data-workspace-view={settingsPage ? "settings" : expanded ? "detail" : view}
           className={cn(
             "page-container flex items-start",
             !detailOpen && (view === "docs" || view === "agent") && "page-container-wide",
@@ -355,9 +356,9 @@ function WorkspaceShell() {
         >
           <main
             className={cn(
-              "@container min-w-0 flex-1",
+              "workspace-main @container min-w-0 flex-1",
               !detailOpen && view === "agent" && "agent-shell-main",
-              !detailOpen && !wideWorkspace && "2xl:border-r 2xl:border-line",
+              !detailOpen && !wideWorkspace && "workspace-main-with-rail",
             )}
           >
             <Suspense
@@ -381,7 +382,7 @@ function WorkspaceShell() {
               <SshTerminal active={terminalOpen && !detailOpen} />
             </div>
           </main>
-          {!detailOpen && !wideWorkspace && <RightRail className="hidden 2xl:block" />}
+          {!detailOpen && !wideWorkspace && <RightRail />}
         </div>
       </div>
     </>

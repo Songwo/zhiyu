@@ -4,6 +4,8 @@
 
 1.17.9 额外验证通用资源关联、正文与绑定并发保护、保存失败重试及长表单布局。运行 `npm test`、`node scripts/phone-editor-layout-integration.mjs` 和既有 Web 关联回归；新布局回归已纳入 CI。实际打包程序还需检查号码关联所有类型、重启保留及文档绑定，不能用开发预览代替正式包验收。动效需核对三档偏好、系统实时降级与嵌套弹窗焦点。
 
+1.17.10 增加全部导航与侧栏布局回归：构建 Web 后，设置 `NANPAD_QA_URL` 为桌面样式预览地址，运行 `node scripts/workspace-layout-integration.mjs`，检查 216 个桌面与 Web 场景。CI 分别在桌面样式开发服务和真实 Web 构建执行相应部分；本地测试不得占用 8080。升级不改变资料格式。
+
 ## 宣传与下载页同步
 
 [GitHub Pages 下载页](https://songwo.github.io/zhiyu/)使用 `site/` 下的模板和图片，版本、日期、更新摘要、安装包、插件及校验文件地址由最新已发布的 GitHub 正式版生成，不读取尚未发布的 `package.json` 版本。
@@ -16,11 +18,11 @@
 
 ## 发布后验收
 
-正式版与镜像推送后，可执行 `gh workflow run verify-release.yml --ref main -f tag=v1.17.6`（替换为当前正式版本）。此只读流程从公开 Release 下载七个实际附件，核对大小、GitHub SHA256、校验清单与更新清单 SHA512；再检查 Web 的 amd64/arm64 索引、latest 一致性并拉取和启动实际公开镜像。验收 JSON 记录保存在 Actions 附件，不上传下载包，不触碰用户部署或数据。它仅适用于当前 latest 所指的稳定版本；本机网络下载中断时也不能把半包当作通过。
+正式版与镜像推送后，可执行 `gh workflow run verify-release.yml --ref main -f tag=v1.17.6`（替换为当前正式版本）。此只读流程从公开 Release 下载全部实际附件（当前共 12 个，含 Mac 四包），核对大小、GitHub SHA256、校验清单与更新清单 SHA512；再检查 Web 的 amd64/arm64 索引、latest 一致性并拉取和启动实际公开镜像。验收 JSON 记录保存在 Actions 附件，不上传下载包，不触碰用户部署或数据。它仅适用于当前 latest 所指的稳定版本；本机网络下载中断时也不能把半包当作通过。
 
 ## 版本准备
 
-更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.6.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
+更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.10.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
 
 1.17.5 还需运行 `node scripts/web-research-ui-integration.mjs`，验证真实 Web 构建中的主身份、弹窗受限回退、Exa 余额与记录、Jev 逐段进度及不改原文、文档账号本地提取与密钥库兼容。该回归只用本机合成供应商，不冒充真实付费 API 验收。升级独立身份服务后健康检查需包含 `webLoginConfigured: true`，实际 `/v1/login/start` 的 `transport: "poll"`、等待状态及取消请求均需核实；同时保留桌面回环协议、会话密钥及检索账本。
 

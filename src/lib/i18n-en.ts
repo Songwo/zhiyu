@@ -20,6 +20,7 @@ import { RELATIONS_EN } from "./i18n-relations-en.ts";
  * not agree on where a possessive or a count belongs.
  */
 export const EN: Record<string, string> = {
+  工作区概览: "Workspace overview",
   ...MOTION_EN,
   ...RELATIONS_EN,
   ...CARDS_EN,

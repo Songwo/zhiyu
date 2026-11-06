@@ -20,9 +20,9 @@
 .web-frame .web-scroll {
   scroll-padding-top: 88px;
 }
-/* 内容区：宽屏放宽到 1440，比桌面版的 1180 更适合仪表盘。 */
+/* 内容区与顶栏都跟随窗口宽度，侧栏不再随居中容器停在页面中间。 */
 .web-frame .page-container {
-  max-width: 1440px;
+  max-width: none;
   padding-inline: 0;
 }
 @media (min-width: 768px) {
@@ -51,7 +51,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: 1440px;
+  max-width: none;
   height: 56px;
   margin-inline: auto;
   padding: 0 8px 0 12px;

@@ -181,7 +181,10 @@ export function RightRail({ className }: { className?: string }) {
   const alerts = useAlerts();
 
   return (
-    <aside className={cn("w-rail shrink-0 px-5 pb-24 pt-3", className)}>
+    <aside
+      aria-label={t("工作区概览")}
+      className={cn("workspace-rail shrink-0 px-4 pb-24 pt-3", className)}
+    >
       <div className="sticky top-3 space-y-4">
         <button type="button" className="rail-search" onClick={() => setCommandOpen(true)}>
           <Search className="size-4 shrink-0" />
