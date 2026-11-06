@@ -1,0 +1,332 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Zhiyu Sans";
+      src: url("assets/fonts/NotoSansSC-subset.woff2");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: "Zhiyu Sans", sans-serif;
+      color: #17263d;
+    }
+    #research-ground { position: absolute; inset: 0; background: #f4f7fc; }
+    .research-title { position: absolute; left: 144px; top: 100px; margin: 0; font-size: 78px; line-height: 1.2; font-weight: 700; letter-spacing: -3px; }
+    .research-title em { font-style: normal; color: #3569e8; }
+    #research-replay { position: absolute; left: 1460px; top: 191px; font-size: 28px; color: #52657e; margin: 0; }
+    #research-context { position: absolute; left: 144px; top: 268px; width: 1632px; height: 650px; overflow: hidden; border-radius: 22px; }
+    #research-context img { position: absolute; width: 1632px; height: 1020px; left: 0; top: -180px; object-fit: cover; }
+    #research-workflow { position: absolute; left: 144px; top: 268px; width: 1632px; height: 650px; }
+    #research-workflow-face { position: absolute; inset: 0; overflow: hidden; border: 1px solid #d9e3f1; border-radius: 22px; background: #ffffff; box-shadow: 0 20px 52px #17263d0a; }
+    #research-console-title { position: absolute; left: 52px; top: 24px; font-size: 36px; font-weight: 700; margin: 0; }
+    #research-console-tab { position: absolute; left: 1380px; top: 33px; font-size: 28px; color: #52657e; margin: 0; }
+    #research-console-divider { position: absolute; left: 0; right: 0; top: 84px; height: 1px; background: #d9e3f1; }
+    #research-query { position: absolute; left: 52px; top: 112px; width: 710px; height: 148px; border: 2px solid #d9e3f1; border-radius: 12px; padding: 23px 22px; background: #ffffff; }
+    #research-query-line-one, #research-query-line-two { display: block; width: 666px; white-space: nowrap; font-size: 32px; line-height: 50px; letter-spacing: -0.6px; }
+    #research-caret { position: absolute; left: 77px; top: 145px; width: 3px; height: 36px; background: #3569e8; }
+    #research-search-button { position: absolute; left: 52px; top: 282px; width: 216px; height: 58px; border-radius: 10px; background: #17263d; color: #ffffff; font-size: 30px; display: flex; align-items: center; justify-content: center; transform-origin: center; }
+    #research-search-label, #research-cancel-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #research-cancel-label { color: #ffffff; }
+    #research-cursor { position: absolute; left: 1500px; top: 600px; width: 34px; height: 46px; z-index: 8; transform-origin: 0 0; }
+    #research-cursor svg { display: block; width: 34px; height: 46px; }
+    #research-public-note { position: absolute; left: 294px; top: 296px; font-size: 26px; line-height: 34px; color: #52657e; margin: 0; }
+    .research-step { position: absolute; left: 52px; width: 710px; height: 58px; display: flex; align-items: center; gap: 18px; border-bottom: 1px solid #d9e3f1; }
+    #research-step-one { top: 365px; }
+    #research-step-two { top: 431px; }
+    #research-step-three { top: 497px; }
+    #research-step-four { top: 563px; }
+    .research-step-label { font-size: 30px; line-height: 40px; }
+    .research-step-state { margin-left: auto; color: #52657e; font-size: 26px; }
+    .research-state-running, .research-state-done { position: absolute; right: 0; top: 15px; }
+    .research-step-icon { position: relative; width: 32px; height: 32px; flex: 0 0 32px; }
+    .research-spinner { position: absolute; inset: 0; border: 3px solid #d9e3f1; border-top-color: #3569e8; border-right-color: #3569e8; border-radius: 50%; }
+    .research-check { position: absolute; inset: 0; width: 32px; height: 32px; color: #3569e8; }
+    .research-check circle { stroke: currentColor; fill: none; stroke-width: 2; }
+    .research-check path { stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; }
+    #research-connections { position: absolute; inset: 0; width: 1632px; height: 650px; overflow: visible; pointer-events: none; }
+    #research-connections path { fill: none; stroke: #3569e8; stroke-width: 3; stroke-dasharray: 1300; stroke-dashoffset: 1300; }
+    #research-search-world { position: absolute; left: 856px; top: 106px; width: 724px; height: 510px; overflow: hidden; }
+    #research-world-label { position: absolute; left: 30px; top: 0; font-size: 26px; color: #52657e; margin: 0; }
+    .research-phase { position: absolute; inset: 0; }
+    .research-term { position: absolute; margin: 0; color: #3569e8; font-size: 44px; font-weight: 700; line-height: 1.5; }
+    #research-term-docker { left: 42px; top: 112px; }
+    #research-term-restart { left: 332px; top: 112px; }
+    #research-term-https { left: 42px; top: 290px; }
+    #research-term-renew { left: 332px; top: 290px; }
+    .research-term-join { position: absolute; left: 42px; width: 620px; height: 2px; background: #d9e3f1; transform-origin: left center; }
+    #research-term-join-one { top: 209px; }
+    #research-term-join-two { top: 387px; }
+    .research-source-site { position: absolute; left: 30px; width: 664px; border-top: 2px solid #d9e3f1; padding-top: 25px; }
+    #research-site-docker { top: 100px; }
+    #research-site-cert { top: 300px; }
+    .research-source-site strong { display: block; font-size: 42px; color: #3569e8; font-weight: 700; line-height: 1.4; }
+    .research-source-site span { display: block; margin-top: 16px; font-size: 30px; color: #52657e; }
+    .research-source-read { position: absolute; left: 30px; width: 664px; }
+    #research-read-one { top: 80px; }
+    #research-read-two { top: 224px; }
+    #research-read-three { top: 368px; }
+    .research-source-read strong { display: block; font-size: 28px; color: #52657e; margin-bottom: 15px; }
+    .research-source-read span { display: inline-block; position: relative; font-size: 34px; color: #17263d; line-height: 1.4; }
+    .research-reading-mark { position: absolute; left: 0; right: 0; bottom: -6px; height: 4px; background: #3569e8; transform-origin: left center; }
+    #research-sort-title { position: absolute; left: 30px; top: 76px; margin: 0; font-size: 36px; line-height: 1.4; }
+    .research-sort-row { position: absolute; left: 30px; width: 664px; border-bottom: 1px solid #d9e3f1; padding-bottom: 22px; font-size: 30px; line-height: 1.5; color: #3569e8; }
+    #research-sort-one { top: 185px; }
+    #research-sort-two { top: 285px; }
+    #research-sort-three { top: 385px; }
+    .research-sort-row span { margin-right: 26px; color: #52657e; }
+    .research-result { position: absolute; left: 856px; width: 724px; height: 158px; padding: 18px 22px 18px 62px; border: 1px solid #d9e3f1; border-radius: 12px; background: #f4f7fc; }
+    #research-result-one { top: 106px; }
+    #research-result-two { top: 282px; }
+    #research-result-three { top: 458px; }
+    .research-result-number { position: absolute; left: 22px; top: 20px; width: 24px; font-size: 28px; color: #52657e; }
+    .research-result-title { display: block; color: #3569e8; font-size: 30px; font-weight: 700; line-height: 40px; }
+    .research-result-domain { display: block; color: #52657e; font-size: 26px; line-height: 37px; }
+    .research-result-excerpt { margin: 6px 0 0; font-size: 27px; line-height: 38px; }
+    #research-reference { position: absolute; left: 52px; top: 110px; width: 710px; height: 510px; padding: 36px; background: #ffffff; }
+    #research-reference-label { color: #52657e; font-size: 28px; margin: 0 0 26px; }
+    #research-reference-title { font-size: 42px; line-height: 1.5; margin: 0 0 32px; font-weight: 700; }
+    #research-reference-copy { color: #52657e; font-size: 30px; line-height: 1.7; margin: 0; }
+    #research-reference-copy span, #research-ai-document p span { display: block; }
+    #research-reference-footer { position: absolute; left: 36px; bottom: 35px; font-size: 28px; color: #3569e8; margin: 0; }
+    #research-reference-line { position: absolute; left: 707px; top: 273px; width: 112px; height: 3px; background: #3569e8; transform-origin: right center; }
+    #research-ai { position: absolute; left: 144px; top: 268px; width: 1632px; height: 650px; }
+    #research-ai-face { position: absolute; inset: 0; overflow: hidden; border: 1px solid #d9e3f1; border-radius: 22px; background: #ffffff; }
+    #research-ai-context-label { position: absolute; left: 48px; top: 35px; font-size: 30px; color: #52657e; margin: 0; }
+    #research-ai-document { position: absolute; left: 48px; top: 102px; width: 594px; padding: 28px; border: 1px solid #d9e3f1; background: #f4f7fc; border-radius: 14px; }
+    #research-ai-document h3 { font-size: 34px; line-height: 1.4; margin: 0 0 18px; }
+    #research-ai-document p { font-size: 27px; line-height: 1.5; margin: 0; color: #52657e; }
+    #research-ai-resource { position: absolute; left: 48px; top: 410px; width: 594px; border-top: 1px solid #d9e3f1; padding-top: 24px; font-size: 28px; line-height: 1.7; }
+    #research-ai-resource b { display: block; font-size: 28px; color: #52657e; font-weight: 400; }
+    #research-ai-resource span { display: block; }
+    #research-ai-model { position: absolute; left: 780px; top: 32px; width: 800px; height: 586px; overflow: hidden; border-left: 1px solid #d9e3f1; padding-left: 42px; }
+    #research-ai-model-title { font-size: 36px; font-weight: 700; margin: 0 0 26px; }
+    #research-ai-source { position: absolute; left: 42px; top: 89px; width: 758px; height: 382px; overflow: hidden; border: 1px solid #d9e3f1; border-radius: 10px; }
+    #research-ai-source img { position: absolute; left: -1132px; top: -540px; width: 3200px; height: 2000px; object-fit: cover; }
+    #research-ai-source-screen { position: absolute; inset: 0; }
+    #research-ai-permission { position: absolute; left: 42px; top: 500px; width: 758px; height: 60px; display: flex; align-items: center; gap: 16px; font-size: 30px; }
+    #research-ai-permission-box { width: 28px; height: 28px; border: 2px solid #3569e8; border-radius: 5px; display: grid; place-items: center; color: #3569e8; }
+    #research-ai-permission-tick { font-size: 24px; line-height: 1; }
+    #research-ai-path { position: absolute; inset: 0; width: 1632px; height: 650px; pointer-events: none; }
+    #research-ai-path path { fill: none; stroke: #3569e8; stroke-width: 4; stroke-dasharray: 800; stroke-dashoffset: 800; }
+    .research-data-fragment { position: absolute; left: 671px; width: 60px; height: 40px; border-radius: 6px; border: 1px solid #3569e8; background: #ffffff; color: #3569e8; font-size: 26px; display: grid; place-items: center; }
+    #research-fragment-one { top: 217px; }
+    #research-fragment-two { top: 299px; }
+    #research-fragment-three { top: 381px; }
+    #research-ai-exit-line { position: absolute; left: 144px; top: 917px; width: 1632px; height: 4px; background: #3569e8; transform-origin: left center; }
+  </style>
+  <div id="root" data-composition-id="research" data-width="1920" data-height="1080" data-duration="30" data-fps="30">
+    <div id="research-ground"></div>
+    <h2 id="research-title-exa" class="clip research-title" data-start="0" data-duration="22">Exa 搜索，<em>过程看得见</em></h2>
+    <p id="research-replay" class="clip" data-start="0" data-duration="22">离线演示回放</p>
+    <div id="research-context" class="clip" data-start="0" data-duration="1.1" data-layout-allow-overflow>
+      <img id="research-context-image" src="assets/exa-query.png" alt="知屿实际 Exa 联网检索对话框" />
+    </div>
+    <div id="research-workflow" class="clip" data-start="0.65" data-duration="21.35">
+      <div id="research-workflow-face">
+        <p id="research-console-title">Exa 联网检索</p>
+        <p id="research-console-tab">检索与进度</p>
+        <div id="research-console-divider" data-layout-ignore></div>
+        <div id="research-query">
+          <span id="research-query-line-one">如何排查 Docker 容器反复重启，</span>
+          <span id="research-query-line-two">并核对 HTTPS 证书续期？</span>
+        </div>
+        <div id="research-caret" data-layout-ignore></div>
+        <div id="research-search-button">
+          <span id="research-search-label">开始检索</span>
+          <span id="research-cancel-label">取消检索</span>
+        </div>
+        <p id="research-public-note">仅发送已确认的公开问题</p>
+        <div id="research-cursor" data-layout-ignore>
+          <svg viewBox="0 0 34 46" aria-hidden="true"><path d="M3 2 L29 25 L17 27 L11 40 Z" fill="#17263d" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" /></svg>
+        </div>
+        <div id="research-step-one" class="research-step">
+          <span class="research-step-icon"><span id="research-spinner-one" class="research-spinner"></span><svg id="research-check-one" class="research-check" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><path d="M9 16 L14 21 L23 11"/></svg></span>
+          <span class="research-step-label">整理检索问题</span>
+          <span class="research-step-state"><span id="research-running-one" class="research-state-running">进行中</span><span id="research-done-one" class="research-state-done">已完成</span></span>
+        </div>
+        <div id="research-step-two" class="research-step">
+          <span class="research-step-icon"><span id="research-spinner-two" class="research-spinner"></span><svg id="research-check-two" class="research-check" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><path d="M9 16 L14 21 L23 11"/></svg></span>
+          <span class="research-step-label">搜索公开资料</span>
+          <span class="research-step-state"><span id="research-running-two" class="research-state-running">进行中</span><span id="research-done-two" class="research-state-done">已完成</span></span>
+        </div>
+        <div id="research-step-three" class="research-step">
+          <span class="research-step-icon"><span id="research-spinner-three" class="research-spinner"></span><svg id="research-check-three" class="research-check" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><path d="M9 16 L14 21 L23 11"/></svg></span>
+          <span class="research-step-label">读取来源摘要</span>
+          <span class="research-step-state"><span id="research-running-three" class="research-state-running">进行中</span><span id="research-done-three" class="research-state-done">已完成</span></span>
+        </div>
+        <div id="research-step-four" class="research-step">
+          <span class="research-step-icon"><span id="research-spinner-four" class="research-spinner"></span><svg id="research-check-four" class="research-check" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><path d="M9 16 L14 21 L23 11"/></svg></span>
+          <span class="research-step-label">整理检索结果</span>
+          <span class="research-step-state"><span id="research-running-four" class="research-state-running">进行中</span><span id="research-done-four" class="research-state-done">已完成</span></span>
+        </div>
+        <svg id="research-connections" viewBox="0 0 1632 650" data-layout-ignore aria-hidden="true">
+          <path id="research-source-path-one" d="M778 592 H822 V184 H856" />
+          <path id="research-source-path-two" d="M822 360 H856" />
+          <path id="research-source-path-three" d="M822 536 H856" />
+        </svg>
+        <div id="research-search-world">
+          <p id="research-world-label">公开资料 · 检索过程示意</p>
+          <div id="research-phase-one" class="research-phase">
+            <p id="research-term-docker" class="research-term">Docker</p>
+            <p id="research-term-restart" class="research-term">容器重启</p>
+            <div id="research-term-join-one" class="research-term-join" data-layout-ignore></div>
+            <p id="research-term-https" class="research-term">HTTPS</p>
+            <p id="research-term-renew" class="research-term">证书续期</p>
+            <div id="research-term-join-two" class="research-term-join" data-layout-ignore></div>
+          </div>
+          <div id="research-phase-two" class="research-phase">
+            <div id="research-site-docker" class="research-source-site"><strong>docs.docker.com</strong><span>容器运行、重启策略与日志</span></div>
+            <div id="research-site-cert" class="research-source-site"><strong>letsencrypt.org</strong><span>HTTPS 证书集成与续期</span></div>
+          </div>
+          <div id="research-phase-three" class="research-phase">
+            <div id="research-read-one" class="research-source-read"><strong>Docker restart policies</strong><span>核对容器重启策略<i id="research-mark-one" class="research-reading-mark" data-layout-ignore></i></span></div>
+            <div id="research-read-two" class="research-source-read"><strong>Docker container logs</strong><span>查看容器日志与应用输出<i id="research-mark-two" class="research-reading-mark" data-layout-ignore></i></span></div>
+            <div id="research-read-three" class="research-source-read"><strong>Let's Encrypt integration guide</strong><span>核对证书续期配置<i id="research-mark-three" class="research-reading-mark" data-layout-ignore></i></span></div>
+          </div>
+          <div id="research-phase-four" class="research-phase">
+            <p id="research-sort-title">把相关来源整理在一起</p>
+            <div id="research-sort-one" class="research-sort-row"><span>1</span>Docker restart policies</div>
+            <div id="research-sort-two" class="research-sort-row"><span>2</span>Docker container logs</div>
+            <div id="research-sort-three" class="research-sort-row"><span>3</span>Let's Encrypt integration guide</div>
+          </div>
+        </div>
+        <article id="research-result-one" class="research-result">
+          <span class="research-result-number">1</span>
+          <strong class="research-result-title">Docker restart policies</strong>
+          <span class="research-result-domain">docs.docker.com</span>
+          <p class="research-result-excerpt">核对容器重启策略与退出状态。</p>
+        </article>
+        <article id="research-result-two" class="research-result">
+          <span class="research-result-number">2</span>
+          <strong class="research-result-title">Docker container logs</strong>
+          <span class="research-result-domain">docs.docker.com</span>
+          <p class="research-result-excerpt">沿着日志，继续排查应用错误。</p>
+        </article>
+        <article id="research-result-three" class="research-result">
+          <span class="research-result-number">3</span>
+          <strong class="research-result-title">Let's Encrypt integration guide</strong>
+          <span class="research-result-domain">letsencrypt.org</span>
+          <p class="research-result-excerpt">对照证书续期与集成说明。</p>
+        </article>
+        <div id="research-reference">
+          <p id="research-reference-label">当前文档</p>
+          <h3 id="research-reference-title">星桥项目<br />部署与维护手册</h3>
+          <p id="research-reference-copy"><span>容器健康状态</span><span>证书续期记录</span><span>每周维护清单</span></p>
+          <p id="research-reference-footer">对照来源，继续处理</p>
+        </div>
+        <div id="research-reference-line" data-layout-ignore></div>
+      </div>
+    </div>
+    <h2 id="research-title-ai" class="clip research-title" data-start="22" data-duration="8">让已有资料，<em>参与下一步</em></h2>
+    <div id="research-ai" class="clip" data-start="22" data-duration="8">
+      <div id="research-ai-face">
+        <p id="research-ai-context-label">对话上下文</p>
+        <article id="research-ai-document">
+          <h3>星桥项目<br />部署与维护手册</h3>
+          <p><span>主机与服务架构</span><span>证书与域名维护</span><span>备份与恢复记录</span></p>
+        </article>
+        <div id="research-ai-resource"><b>关联资料</b><span>hk-api-01 · 香港 API 主节点</span><span>ops@starbridge.example</span></div>
+        <svg id="research-ai-path" viewBox="0 0 1632 650" data-layout-ignore aria-hidden="true"><path id="research-ai-link" d="M642 285 H706 Q742 285 742 321 V530 Q742 558 784 558" /></svg>
+        <span id="research-fragment-one" class="research-data-fragment" data-layout-ignore>文档</span>
+        <span id="research-fragment-two" class="research-data-fragment" data-layout-ignore>主机</span>
+        <span id="research-fragment-three" class="research-data-fragment" data-layout-ignore>关联</span>
+        <div id="research-ai-model">
+          <p id="research-ai-model-title">模型与知识库</p>
+          <div id="research-ai-source" data-layout-allow-overflow>
+            <div id="research-ai-source-screen"><img id="research-ai-models-image" src="assets/models.png" alt="知屿实际模型与知识库设置入口" /></div>
+          </div>
+          <div id="research-ai-permission"><span id="research-ai-permission-box"><span id="research-ai-permission-tick">✓</span></span>本次允许检索文档正文</div>
+        </div>
+      </div>
+    </div>
+    <div id="research-ai-exit-line" class="clip" data-start="28.7" data-duration="1.3" data-layout-ignore></div>
+  </div>
+  <script>
+    const researchTimeline = gsap.timeline({ paused: true });
+    researchTimeline.fromTo("#research-title-exa", { opacity: 0, x: -42 }, { opacity: 1, x: 0, duration: 0.65, ease: "power4.out" }, 0);
+    researchTimeline.fromTo("#research-replay", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.3);
+    researchTimeline.fromTo("#research-context-image", { opacity: 1 }, { opacity: 0, duration: 0.35 }, 0.65);
+    researchTimeline.fromTo("#research-workflow-face", { clipPath: "inset(5% 20% 5% 20% round 22px)" }, { clipPath: "inset(0% 0% 0% 0% round 22px)", duration: 0.65, ease: "power2.inOut" }, 0.65);
+    researchTimeline.fromTo("#research-query-line-one", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 1.4, ease: "steps(20)" }, 1.0);
+    researchTimeline.fromTo("#research-query-line-two", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 1.0, ease: "steps(17)" }, 2.4);
+    researchTimeline.fromTo("#research-caret", { x: 0, y: 0 }, { x: 640, y: 0, duration: 1.4, ease: "steps(20)" }, 1.0);
+    researchTimeline.set("#research-caret", { x: 0, y: 50 }, 2.4);
+    researchTimeline.to("#research-caret", { x: 478, duration: 1.0, ease: "steps(17)" }, 2.4);
+    researchTimeline.to("#research-caret", { opacity: 0, duration: 0.15 }, 3.5);
+    researchTimeline.fromTo("#research-cancel-label", { opacity: 0 }, { opacity: 1, duration: 0.1 }, 4.1);
+    researchTimeline.to("#research-search-label", { opacity: 0, duration: 0.1 }, 4.1);
+    researchTimeline.fromTo("#research-cursor", { opacity: 0, x: 0, y: 0 }, { opacity: 1, x: -1280, y: -284, duration: 0.7, ease: "power4.out" }, 3.1);
+    researchTimeline.to("#research-search-button", { scale: 0.96, duration: 0.1, ease: "power2.in" }, 3.85);
+    researchTimeline.to("#research-cursor", { scale: 0.9, duration: 0.1 }, 3.85);
+    researchTimeline.to("#research-search-button", { scale: 1, duration: 0.18, ease: "power4.out" }, 3.95);
+    researchTimeline.to("#research-cursor", { scale: 1, x: -1180, y: -190, opacity: 0, duration: 0.45, ease: "power2.in" }, 3.95);
+    const researchStepCues = [
+      ["one", 4.3, 7.2],
+      ["two", 7.5, 10.4],
+      ["three", 10.7, 13.6],
+      ["four", 13.9, 16.8],
+    ];
+    for (const [name, start, end] of researchStepCues) {
+      researchTimeline.fromTo(`#research-step-${name}`, { opacity: 0, x: -28 }, { opacity: 1, x: 0, duration: 0.45, ease: "power4.out" }, start);
+      researchTimeline.fromTo(`#research-spinner-${name}`, { rotation: 0 }, { rotation: 900, duration: end - start, ease: "none" }, start);
+      researchTimeline.to(`#research-spinner-${name}`, { opacity: 0, duration: 0.1 }, end);
+      researchTimeline.fromTo(`#research-check-${name}`, { opacity: 0 }, { opacity: 1, duration: 0.12 }, end);
+      researchTimeline.to(`#research-check-${name} path`, { strokeDashoffset: 0, duration: 0.24, ease: "power2.out" }, end);
+      researchTimeline.fromTo(`#research-done-${name}`, { opacity: 0 }, { opacity: 1, duration: 0.12 }, end);
+      researchTimeline.to(`#research-running-${name}`, { opacity: 0, duration: 0.12 }, end);
+    }
+    researchTimeline.fromTo("#research-search-world", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 4.3);
+    researchTimeline.fromTo("#research-phase-one", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 4.3);
+    researchTimeline.fromTo("#research-term-docker", { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" }, 4.5);
+    researchTimeline.fromTo("#research-term-restart", { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" }, 4.9);
+    researchTimeline.fromTo("#research-term-https", { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" }, 5.4);
+    researchTimeline.fromTo("#research-term-renew", { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" }, 5.8);
+    researchTimeline.fromTo("#research-term-join-one", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power2.inOut" }, 5.0);
+    researchTimeline.fromTo("#research-term-join-two", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power2.inOut" }, 5.9);
+    researchTimeline.to("#research-phase-one", { opacity: 0, duration: 0.2 }, 7.2);
+    researchTimeline.fromTo("#research-phase-two", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 7.5);
+    researchTimeline.fromTo("#research-site-docker", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.8, ease: "power2.inOut" }, 7.6);
+    researchTimeline.fromTo("#research-site-cert", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.8, ease: "power2.inOut" }, 8.8);
+    researchTimeline.to("#research-phase-two", { opacity: 0, duration: 0.2 }, 10.4);
+    researchTimeline.fromTo("#research-phase-three", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 10.7);
+    for (const [index, name] of ["one", "two", "three"].entries()) {
+      researchTimeline.fromTo(`#research-read-${name}`, { opacity: 0 }, { opacity: 1, duration: 0.25 }, 10.85 + index * 0.7);
+      researchTimeline.fromTo(`#research-mark-${name}`, { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 11.1 + index * 0.7);
+    }
+    researchTimeline.to("#research-phase-three", { opacity: 0, duration: 0.2 }, 13.6);
+    researchTimeline.fromTo("#research-phase-four", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 13.9);
+    for (const [index, name] of ["one", "two", "three"].entries()) {
+      researchTimeline.fromTo(`#research-sort-${name}`, { opacity: 0, x: 50 }, { opacity: 1, x: 0, duration: 0.5, ease: "power4.out" }, 14.25 + index * 0.65);
+    }
+    researchTimeline.to("#research-search-world", { opacity: 0, duration: 0.25 }, 16.8);
+    researchTimeline.to("#research-source-path-one", { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, 16.85);
+    researchTimeline.to("#research-cancel-label", { opacity: 0, duration: 0.12 }, 16.85);
+    researchTimeline.to("#research-search-label", { opacity: 1, duration: 0.12 }, 16.85);
+    researchTimeline.to("#research-source-path-two", { strokeDashoffset: 0, duration: 0.28, ease: "power2.inOut" }, 17.9);
+    researchTimeline.to("#research-source-path-three", { strokeDashoffset: 0, duration: 0.28, ease: "power2.inOut" }, 18.9);
+    researchTimeline.fromTo("#research-result-one", { opacity: 0, x: -38 }, { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" }, 17.1);
+    researchTimeline.fromTo("#research-result-two", { opacity: 0, x: -38 }, { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" }, 18.1);
+    researchTimeline.fromTo("#research-result-three", { opacity: 0, x: -38 }, { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" }, 19.1);
+    researchTimeline.fromTo("#research-reference", { opacity: 0, x: -52 }, { opacity: 1, x: 0, duration: 0.55, ease: "power4.out" }, 20.0);
+    researchTimeline.fromTo("#research-reference-line", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 20.4);
+    researchTimeline.to("#research-title-exa, #research-replay", { opacity: 0, duration: 0.2 }, 21.65);
+    researchTimeline.to("#research-workflow-face", { x: -1780, duration: 0.35, ease: "power3.in" }, 21.65);
+    researchTimeline.fromTo("#research-title-ai", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power4.out" }, 22.0);
+    researchTimeline.fromTo("#research-ai-face", { x: 1780 }, { x: 0, duration: 0.65, ease: "power4.out" }, 22.0);
+    researchTimeline.fromTo("#research-ai-document", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" }, 22.7);
+    researchTimeline.fromTo("#research-ai-resource", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 23.3);
+    researchTimeline.fromTo("#research-ai-model", { clipPath: "inset(0 0 100% 0)" }, { clipPath: "inset(0 0 0% 0)", duration: 0.8, ease: "power2.inOut" }, 23.8);
+    researchTimeline.fromTo("#research-ai-permission-tick", { opacity: 0, scale: 0.65 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out" }, 25.0);
+    researchTimeline.fromTo("#research-ai-source-screen", { y: 0 }, { y: -300, duration: 0.65, ease: "power2.inOut" }, 25.3);
+    researchTimeline.to("#research-ai-source-screen", { y: -1030, duration: 0.75, ease: "power2.inOut" }, 27.0);
+    researchTimeline.to("#research-ai-link", { strokeDashoffset: 0, duration: 1.0, ease: "power2.inOut" }, 25.25);
+    for (const [index, name] of ["one", "two", "three"].entries()) {
+      researchTimeline.fromTo(`#research-fragment-${name}`, { opacity: 0, x: -35, y: 0 }, { opacity: 1, x: 14, y: 0, duration: 0.25, ease: "power4.out" }, 25.6 + index * 0.4);
+      researchTimeline.to(`#research-fragment-${name}`, { x: 108, y: 263 - index * 82, opacity: 0, duration: 0.7, ease: "power2.inOut" }, 25.85 + index * 0.4);
+    }
+    researchTimeline.fromTo("#research-ai-exit-line", { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: "power2.inOut" }, 28.7);
+    window.__timelines["research"] = researchTimeline;
+  </script>
+</template>

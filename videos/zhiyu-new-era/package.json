@@ -1,0 +1,11 @@
+{
+  "name": "zhiyu-new-era",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.9.18 preview",
+    "check": "npx --yes hyperframes@0.9.18 check",
+    "render": "npx --yes hyperframes@0.9.18 render",
+    "publish": "npx --yes hyperframes@0.9.18 publish"
+  }
+}

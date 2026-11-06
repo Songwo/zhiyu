@@ -1,0 +1,137 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Zhiyu Sans";
+      src: url("assets/fonts/NotoSansSC-subset.woff2");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #f4f7fc;
+      color: #17263d;
+      font-family: "Zhiyu Sans", sans-serif;
+    }
+    #outro-line {
+      position: absolute;
+      left: 340px;
+      top: 420px;
+      width: 1240px;
+      height: 4px;
+      background: #3569e8;
+      transform-origin: 50% 50%;
+    }
+    #outro-lockup {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 304px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 38px;
+    }
+    #outro-icon {
+      width: 170px;
+      height: 170px;
+      object-fit: contain;
+    }
+    #outro-name {
+      font-size: 112px;
+      line-height: 1.3;
+      font-weight: 700;
+      letter-spacing: -3px;
+      margin: 0;
+    }
+    #outro-statement {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 535px;
+      text-align: center;
+      font-size: 43px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    #outro-url {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 635px;
+      text-align: center;
+      font-size: 39px;
+      color: #3569e8;
+    }
+    #outro-platforms {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 712px;
+      text-align: center;
+      font-size: 29px;
+      color: #52657e;
+    }
+    #outro-credits {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 830px;
+      text-align: center;
+      font-size: 28px;
+      line-height: 1.65;
+      color: #52657e;
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="outro"
+    data-duration="10"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div id="outro-line" aria-hidden="true"></div>
+    <div id="outro-lockup">
+      <img id="outro-icon" src="assets/icon.png" alt="知屿品牌图标" />
+      <h1 id="outro-name">知屿 Zhiyu</h1>
+    </div>
+    <p id="outro-statement">把资料连起来，把工作接下去。</p>
+    <div id="outro-url">songwo.github.io/zhiyu</div>
+    <div id="outro-platforms">Windows · macOS · 自托管 Web</div>
+    <div id="outro-credits">
+      Music · “Cipher” — Kevin MacLeod (incompetech.com)<br />CC BY 3.0 ·
+      creativecommons.org/licenses/by/3.0/ · 节选与混音
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#outro-line", { scaleX: 1 }, { scaleX: 0, duration: 1, ease: "power3.inOut" }, 0);
+    tl.fromTo(
+      "#outro-icon",
+      { clipPath: "inset(100% 0 0 0)", y: 20 },
+      { clipPath: "inset(0% 0 0 0)", y: 0, duration: 1.0, ease: "power4.out" },
+      0.5,
+    );
+    tl.fromTo(
+      "#outro-name",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 1.0, ease: "power4.out" },
+      1.2,
+    );
+    tl.fromTo(
+      "#outro-statement",
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.65, ease: "power4.out" },
+      2,
+    );
+    tl.fromTo(
+      "#outro-url",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "power3.out" },
+      2.8,
+    );
+    tl.fromTo("#outro-platforms", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 3.8);
+    tl.fromTo("#outro-credits", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 4.5);
+    window.__timelines["outro"] = tl;
+  </script>
+</template>

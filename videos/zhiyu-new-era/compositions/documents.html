@@ -1,0 +1,436 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Zhiyu Sans";
+      src: url("assets/fonts/NotoSansSC-subset.woff2");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #f4f7fc;
+      color: #17263d;
+      font-family: "Zhiyu Sans", sans-serif;
+    }
+    #documents-title {
+      position: absolute;
+      left: 144px;
+      top: 104px;
+      margin: 0;
+      font-size: 78px;
+      line-height: 1.3;
+      letter-spacing: -2px;
+    }
+    #documents-title strong {
+      color: #3569e8;
+      font-weight: inherit;
+    }
+    #documents-context {
+      position: absolute;
+      left: 144px;
+      top: 268px;
+      width: 1632px;
+      height: 650px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid #d9e3f1;
+      background: white;
+    }
+    #documents-context img {
+      width: 1632px;
+      height: 1020px;
+      max-width: none;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    #documents-paper {
+      position: absolute;
+      left: 144px;
+      top: 268px;
+      width: 1040px;
+      height: 650px;
+      padding: 36px 40px;
+      box-sizing: border-box;
+      background: white;
+      border: 1px solid #d9e3f1;
+      border-radius: 20px;
+      box-shadow: 0 16px 50px #17263d0c;
+    }
+    #documents-paper h2 {
+      font-size: 35px;
+      margin: 0 0 22px;
+      line-height: 1.4;
+    }
+    .documents-paragraph {
+      position: relative;
+      padding: 14px 18px;
+      margin: 12px 0;
+      border-left: 4px solid transparent;
+      box-sizing: border-box;
+    }
+    .documents-paragraph h3 {
+      font-size: 28px;
+      line-height: 1.3;
+      margin: 0 0 8px;
+      color: #52657e;
+      font-weight: 400;
+    }
+    .documents-paragraph p {
+      font-size: 29px;
+      line-height: 1.65;
+      margin: 0;
+    }
+    .documents-marker {
+      position: absolute;
+      inset: 0;
+      background: #e2ebff;
+      z-index: 0;
+      border-radius: 8px;
+      transform-origin: 0 50%;
+    }
+    .documents-paragraph:nth-of-type(n + 3) .documents-marker {
+      background: #fff0d6;
+    }
+    .documents-words {
+      position: relative;
+      z-index: 1;
+    }
+    .documents-underline {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 12px;
+      height: 3px;
+      background: #3569e8;
+      transform-origin: 0 50%;
+    }
+    #documents-scan {
+      position: absolute;
+      left: 40px;
+      right: 40px;
+      top: 122px;
+      height: 112px;
+      background: #3569e80a;
+      border: 2px solid #3569e8;
+      border-radius: 8px;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+    #documents-panel {
+      position: absolute;
+      left: 1240px;
+      top: 268px;
+      width: 536px;
+      height: 650px;
+      background: white;
+      border: 1px solid #d9e3f1;
+      border-radius: 20px;
+      padding: 32px;
+      box-sizing: border-box;
+    }
+    #documents-panel h2 {
+      margin: 0;
+      font-size: 40px;
+      line-height: 1.3;
+    }
+    #documents-model {
+      font-size: 28px;
+      color: #52657e;
+      margin: 12px 0 28px;
+    }
+    #documents-analyze {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 250px;
+      height: 58px;
+      background: #17263d;
+      color: white;
+      border-radius: 10px;
+      font-size: 28px;
+    }
+    #documents-progress-label {
+      font-size: 28px;
+      color: #52657e;
+      margin: 28px 0 18px;
+    }
+    .documents-task {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 28px;
+      height: 66px;
+      border-top: 1px solid #e8edf5;
+    }
+    .documents-task-status {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 3px solid #d9e3f1;
+      box-sizing: border-box;
+      flex: none;
+    }
+    .documents-check {
+      font-size: 28px;
+      color: #218c62;
+      position: absolute;
+      margin-left: 3px;
+    }
+    .documents-score {
+      margin-left: auto;
+      font-size: 28px;
+      color: #3569e8;
+    }
+    #documents-mode {
+      font-size: 28px;
+      color: #52657e;
+      position: absolute;
+      left: 32px;
+      bottom: 35px;
+    }
+    #documents-result {
+      position: absolute;
+      left: 144px;
+      top: 924px;
+      font-size: 28px;
+      color: #3569e8;
+    }
+    #documents-disclosure {
+      position: absolute;
+      right: 144px;
+      top: 207px;
+      font-size: 28px;
+      color: #52657e;
+    }
+    #documents-pointer {
+      position: absolute;
+      width: 30px;
+      height: 42px;
+      left: 1650px;
+      top: 560px;
+      clip-path: polygon(0 0, 100% 66%, 52% 72%, 29% 100%);
+      background: #3569e8;
+      z-index: 8;
+    }
+    #documents-binding {
+      position: absolute;
+      left: 144px;
+      top: 814px;
+      bottom: auto;
+      height: 70px;
+      display: flex;
+      gap: 16px;
+      font-size: 28px;
+    }
+    #documents-binding span {
+      background: #edf3ff;
+      border: 1px solid #b9cbf5;
+      border-radius: 10px;
+      padding: 14px 22px;
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="documents"
+    data-duration="30"
+    data-width="1920"
+    data-height="1080"
+  >
+    <h1 id="documents-title">把重点，<strong>留在原文里。</strong></h1>
+    <div
+      id="documents-context"
+      class="clip"
+      data-start="0"
+      data-duration="5"
+      data-layout-allow-overflow="true"
+    >
+      <img id="documents-screen" src="assets/documents.png" alt="真实的部署与维护手册界面" />
+    </div>
+    <div id="documents-binding" class="clip" data-start="1.1" data-duration="3.2">
+      <span id="documents-bind-host">关联主机 · hk-api-01</span
+      ><span id="documents-bind-domain">关联域名 · api.starbridge.example</span>
+    </div>
+    <div id="documents-demo" class="clip" data-start="4.5" data-duration="25.5">
+      <div id="documents-disclosure">Jev 流程动画 · 离线演示回放</div>
+      <div id="documents-paper">
+        <h2>星桥项目 · 部署与维护手册</h2>
+        <div class="documents-paragraph" id="documents-paragraph-1">
+          <div class="documents-marker" id="documents-mark-1"></div>
+          <div class="documents-words">
+            <h3>项目架构</h3>
+            <p>香港 API 节点承载应用，新加坡主库保存业务资料。</p>
+          </div>
+          <div class="documents-underline" id="documents-under-1"></div>
+        </div>
+        <div class="documents-paragraph" id="documents-paragraph-2">
+          <div class="documents-marker" id="documents-mark-2"></div>
+          <div class="documents-words">
+            <h3>关键配置</h3>
+            <p>服务通过 api.starbridge.example 对外提供访问。</p>
+          </div>
+          <div class="documents-underline" id="documents-under-2"></div>
+        </div>
+        <div class="documents-paragraph" id="documents-paragraph-3">
+          <div class="documents-marker" id="documents-mark-3"></div>
+          <div class="documents-words">
+            <h3>每周维护清单</h3>
+            <p>核对域名与证书到期日，检查容器健康与主机负载。</p>
+          </div>
+          <div class="documents-underline" id="documents-under-3"></div>
+        </div>
+        <div class="documents-paragraph" id="documents-paragraph-4">
+          <div class="documents-marker" id="documents-mark-4"></div>
+          <div class="documents-words">
+            <h3>备份与恢复</h3>
+            <p>验证加密备份，记录恢复演练结果。</p>
+          </div>
+          <div class="documents-underline" id="documents-under-4"></div>
+        </div>
+        <div id="documents-scan" aria-hidden="true"></div>
+      </div>
+      <div id="documents-panel">
+        <h2>Jev 文档提示</h2>
+        <p id="documents-model">TypeSafe · jev-latest</p>
+        <div id="documents-analyze">分析当前文档</div>
+        <p id="documents-progress-label">逐段分析分类与置信度</p>
+        <div class="documents-task" id="documents-task-1">
+          <span class="documents-task-status" id="documents-status-1"></span
+          ><span class="documents-check" id="documents-check-1">✓</span><span>项目架构</span
+          ><span class="documents-score" id="documents-score-1">重要 · 97%</span>
+        </div>
+        <div class="documents-task" id="documents-task-2">
+          <span class="documents-task-status" id="documents-status-2"></span
+          ><span class="documents-check" id="documents-check-2">✓</span><span>关键配置</span
+          ><span class="documents-score" id="documents-score-2">重要 · 94%</span>
+        </div>
+        <div class="documents-task" id="documents-task-3">
+          <span class="documents-task-status" id="documents-status-3"></span
+          ><span class="documents-check" id="documents-check-3">✓</span><span>维护清单</span
+          ><span class="documents-score" id="documents-score-3">待办 · 97%</span>
+        </div>
+        <div class="documents-task" id="documents-task-4">
+          <span class="documents-task-status" id="documents-status-4"></span
+          ><span class="documents-check" id="documents-check-4">✓</span><span>备份记录</span
+          ><span class="documents-score" id="documents-score-4">待办 · 94%</span>
+        </div>
+        <div id="documents-mode">高亮与下划线 · 同一份原文</div>
+      </div>
+      <div id="documents-pointer" aria-hidden="true"></div>
+      <div id="documents-result">保留原文 · 按段定位 · 阅读样式可切换</div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo(
+      "#documents-title",
+      { x: 90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.65, ease: "power4.out" },
+      0,
+    );
+    tl.fromTo(
+      "#documents-context",
+      { clipPath: "inset(0 0 100% 0)" },
+      { clipPath: "inset(0 0 0% 0)", duration: 0.8, ease: "power3.out" },
+      0.2,
+    );
+    tl.fromTo(
+      "#documents-bind-host",
+      { x: -25, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.45, ease: "power4.out" },
+      1.1,
+    );
+    tl.fromTo(
+      "#documents-bind-domain",
+      { x: -25, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.45, ease: "power4.out" },
+      2.2,
+    );
+    tl.to(
+      "#documents-screen",
+      { x: -290, y: -95, scale: 1.28, duration: 1.2, ease: "power2.inOut" },
+      3.0,
+    );
+    tl.fromTo(
+      "#documents-paper",
+      { x: 200, scale: 0.85, opacity: 0 },
+      { x: 0, scale: 1, opacity: 1, duration: 0.8, ease: "power4.out" },
+      4.5,
+    );
+    tl.fromTo(
+      "#documents-panel",
+      { x: 300, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.8, ease: "power4.out" },
+      5.1,
+    );
+    tl.set(".documents-marker", { scaleX: 0 }, 0);
+    tl.set(".documents-underline", { scaleX: 0 }, 0);
+    tl.set(".documents-check,.documents-score", { opacity: 0 }, 0);
+    tl.set("#documents-scan,#documents-result,#documents-mode", { opacity: 0 }, 0);
+    tl.fromTo(
+      ".documents-task",
+      { x: 35, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.4, stagger: 0.12, ease: "power3.out" },
+      6.1,
+    );
+    tl.fromTo(
+      "#documents-pointer",
+      { x: 0, y: 0, opacity: 0 },
+      { x: -270, y: -126, opacity: 1, duration: 0.7, ease: "power3.out" },
+      6.9,
+    );
+    tl.to("#documents-analyze", { scale: 0.96, duration: 0.12 }, 7.65).to(
+      "#documents-analyze",
+      { scale: 1, duration: 0.18 },
+      7.77,
+    );
+    tl.to("#documents-pointer", { opacity: 0, duration: 0.25 }, 8.2);
+    tl.to("#documents-scan", { opacity: 1, duration: 0.2 }, 8.1);
+    [0, 1, 2, 3].forEach((index) => {
+      const time = 8.4 + index * 3.5;
+      const number = index + 1;
+      tl.to("#documents-scan", { y: index * 122, duration: 0.6, ease: "power2.inOut" }, time);
+      tl.to(
+        "#documents-status-" + number,
+        { borderColor: "#3569e8", backgroundColor: "#e2ebff", duration: 0.3 },
+        time + 0.25,
+      );
+      tl.fromTo(
+        "#documents-mark-" + number,
+        { scaleX: 0 },
+        { scaleX: 1, duration: 1.5, ease: "power1.inOut" },
+        time + 0.8,
+      );
+      tl.to(
+        "#documents-status-" + number,
+        { borderColor: "#b7dfcf", backgroundColor: "#e8f5ef", duration: 0.3 },
+        time + 2.5,
+      );
+      tl.to("#documents-check-" + number, { opacity: 1, duration: 0.25 }, time + 2.6);
+      tl.fromTo(
+        "#documents-score-" + number,
+        { x: 25, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.45, ease: "power3.out" },
+        time + 2.6,
+      );
+    });
+    tl.to("#documents-scan", { opacity: 0, duration: 0.3 }, 22.4);
+    tl.to("#documents-mode", { opacity: 1, duration: 0.4 }, 22.7);
+    tl.to(".documents-marker", { opacity: 0.25, duration: 0.6 }, 23.6);
+    tl.to(
+      ".documents-underline",
+      { scaleX: 1, duration: 0.8, stagger: 0.22, ease: "power2.inOut" },
+      23.8,
+    );
+    tl.to("#documents-result", { opacity: 1, duration: 0.5 }, 25.5);
+    tl.to("#documents-paragraph-3", { x: 12, duration: 0.4, ease: "power2.out" }, 26.5).to(
+      "#documents-paragraph-3",
+      { x: 0, duration: 0.4, ease: "power2.inOut" },
+      27,
+    );
+    tl.to("#documents-panel", { x: 650, duration: 0.65, ease: "power3.in" }, 29.15);
+    tl.to("#documents-paper", { x: -1250, duration: 0.65, ease: "power3.in" }, 29.25);
+    window.__timelines["documents"] = tl;
+  </script>
+</template>

@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://songwo.github.io/zhiyu/">产品主页</a> ·
   <a href="https://github.com/Songwo/zhiyu/releases/latest">下载安装包</a> ·
-  <a href="https://songwo.github.io/zhiyu/#video">2 分钟宣传片</a> ·
+  <a href="https://songwo.github.io/zhiyu/#video">2 分 36 秒动画宣传片</a> ·
   <a href="docs/USER-GUIDE.md">使用教程</a> ·
   <a href="docs/SECURITY.md">安全与备份</a> ·
   <a href="CHANGELOG.md">更新日志</a>

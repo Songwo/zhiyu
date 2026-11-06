@@ -1,0 +1,1114 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Zhiyu Sans";
+      src: url("assets/fonts/NotoSansSC-subset.woff2");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      color: #17263d;
+      font-family: "Zhiyu Sans", sans-serif;
+    }
+    #daily-ground {
+      position: absolute;
+      inset: 0;
+      background: #f4f7fc;
+    }
+    .daily-title-slot {
+      position: absolute;
+      left: 144px;
+      top: 104px;
+      width: 1632px;
+      height: 164px;
+      overflow: hidden;
+    }
+    .daily-title {
+      margin: 0;
+      font-size: 76px;
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: -2px;
+    }
+    .daily-accent {
+      color: #3569e8;
+    }
+    .daily-context {
+      margin: 14px 0 0;
+      font-size: 32px;
+      line-height: 1.4;
+      color: #52657e;
+    }
+    .daily-scene {
+      position: absolute;
+      inset: 0;
+    }
+    .daily-line {
+      position: absolute;
+      height: 3px;
+      background: #3569e8;
+      transform-origin: left center;
+    }
+    #daily-card-stage {
+      position: absolute;
+      left: 208px;
+      top: 328px;
+      width: 800px;
+      height: 504px;
+      perspective: 1800px;
+    }
+    #daily-card-assembly,
+    #daily-card-object {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+    }
+    .daily-card-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 36px;
+      overflow: hidden;
+      background: linear-gradient(125deg, #735d8d 0%, #4a3a67 46%, #262139 100%);
+      border: 1px solid #ffffff4a;
+      color: #eff5ff;
+      box-shadow:
+        inset 0 1px 0 #ffffff45,
+        inset 0 -1px 0 #00000045,
+        0 16px 32px #111d3320,
+        0 42px 64px -34px #111d3360;
+    }
+    .daily-card-face::after {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.18;
+      background: repeating-linear-gradient(
+        115deg,
+        transparent 0 4px,
+        #ffffff12 5px,
+        transparent 6px 12px
+      );
+    }
+    .daily-card-engraving {
+      position: absolute;
+      inset: 0;
+      opacity: 0.28;
+      background:
+        repeating-linear-gradient(138deg, transparent 0 48px, #d7c5ed 50px, transparent 52px 120px),
+        linear-gradient(40deg, transparent 50%, #ffffff28 50%, transparent 80%);
+      mask-image: linear-gradient(95deg, transparent 20%, #000 100%);
+    }
+    #daily-card-front-content {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      padding: 44px 48px;
+    }
+    .daily-card-provider {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 29px;
+      font-weight: 700;
+    }
+    .daily-issuer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 68px;
+      height: 58px;
+      border: 1px solid #ffffff66;
+      border-radius: 17px 6px 17px 6px;
+      background: #ffffff10;
+      font-size: 23px;
+    }
+    .daily-card-name {
+      margin-top: 28px;
+      font-size: 30px;
+      color: #eff5ffd6;
+    }
+    .daily-card-region {
+      position: absolute;
+      top: 122px;
+      right: 48px;
+      font-size: 23px;
+      color: #eff5ffd6;
+    }
+    .daily-card-chip {
+      position: absolute;
+      left: 48px;
+      top: 235px;
+      width: 84px;
+      height: 68px;
+      border: 2px solid #9c8c64;
+      border-radius: 13px;
+      background: linear-gradient(125deg, #e7dcba, #d7c593, #a39470);
+    }
+    .daily-card-chip::before,
+    .daily-card-chip::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      top: 20px;
+      background: #7f765c80;
+    }
+    .daily-card-chip::after {
+      top: 42px;
+    }
+    .daily-card-chip span {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 23px;
+      right: 23px;
+      border-inline: 2px solid #7f765c80;
+    }
+    .daily-card-number {
+      position: absolute;
+      left: 160px;
+      top: 244px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      font-size: 34px;
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .daily-card-tail {
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .daily-card-validity {
+      position: absolute;
+      left: 48px;
+      top: 369px;
+      font-size: 25px;
+      line-height: 1.6;
+    }
+    .daily-card-validity small {
+      display: block;
+      font-size: 21px;
+      opacity: 0.8;
+    }
+    .daily-card-network {
+      position: absolute;
+      right: 48px;
+      bottom: 52px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 29px;
+      font-weight: 700;
+    }
+    .daily-card-network img {
+      width: 70px;
+      height: 52px;
+      object-fit: contain;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 6px;
+    }
+    #daily-card-back {
+      transform: rotateY(180deg);
+    }
+    .daily-stripe {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 42px;
+      height: 64px;
+      background: #201b2b;
+    }
+    #daily-private-heading {
+      position: absolute;
+      left: 48px;
+      right: 48px;
+      top: 132px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      font-size: 27px;
+    }
+    .daily-shield {
+      width: 27px;
+      height: 31px;
+      border: 2px solid #eff5ff;
+      border-radius: 10px 10px 14px 14px;
+    }
+    .daily-private-row {
+      position: absolute;
+      left: 48px;
+      right: 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 26px;
+    }
+    .daily-private-label {
+      width: 180px;
+      color: #eff5ffbf;
+    }
+    .daily-private-value {
+      flex: 1;
+      letter-spacing: 2px;
+      font-size: 30px;
+    }
+    #daily-private-number .daily-private-value {
+      font-size: 26px;
+      letter-spacing: 1.5px;
+      white-space: nowrap;
+    }
+    .daily-copy {
+      width: 23px;
+      height: 25px;
+      position: relative;
+      border: 2px solid #eff5ffb3;
+      border-radius: 4px;
+    }
+    .daily-copy::before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 19px;
+      left: -9px;
+      top: -8px;
+      border-left: 2px solid #eff5ffb3;
+      border-top: 2px solid #eff5ffb3;
+      border-radius: 4px 0 0;
+    }
+    #daily-private-number {
+      top: 207px;
+    }
+    #daily-private-holder {
+      top: 282px;
+    }
+    #daily-private-cvv {
+      top: 357px;
+    }
+    #daily-private-edit {
+      position: absolute;
+      left: 48px;
+      bottom: 28px;
+      font-size: 24px;
+      border-bottom: 1px solid #eff5ff80;
+      padding-bottom: 4px;
+    }
+    #daily-card-copy {
+      position: absolute;
+      left: 1100px;
+      top: 350px;
+      width: 640px;
+    }
+    .daily-fact {
+      display: flex;
+      align-items: baseline;
+      gap: 24px;
+      padding: 28px 0;
+      border-bottom: 1px solid #d9e3f1;
+    }
+    .daily-fact-label {
+      width: 170px;
+      font-size: 29px;
+      color: #52657e;
+    }
+    .daily-fact-value {
+      font-size: 35px;
+      font-weight: 600;
+    }
+    #daily-card-note {
+      margin: 34px 0 0;
+      color: #52657e;
+      font-size: 30px;
+      line-height: 1.65;
+    }
+    #daily-card-button {
+      position: absolute;
+      left: 438px;
+      top: 860px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 340px;
+      height: 64px;
+      border: 1px solid #d9e3f1;
+      border-radius: 14px;
+      background: #ffffff;
+      color: #17263d;
+      font-size: 27px;
+    }
+    #daily-card-button-mark {
+      width: 25px;
+      height: 25px;
+      border: 2px solid #52657e;
+      border-left-color: transparent;
+      border-radius: 50%;
+    }
+    #daily-cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 35px;
+      height: 47px;
+      z-index: 10;
+      background: #17263d;
+      clip-path: polygon(0 0, 0 90%, 10% 87%, 31% 66%, 47% 100%, 65% 92%, 49% 58%, 80% 58%);
+      filter: drop-shadow(1px 3px 2px #ffffff);
+    }
+    #daily-proof {
+      position: absolute;
+      left: 1100px;
+      top: 350px;
+      width: 640px;
+      height: 480px;
+    }
+    #daily-proof-window {
+      position: absolute;
+      inset: 0 0 75px;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid #d9e3f1;
+      background: #ffffff;
+    }
+    #daily-proof-image {
+      display: block;
+      width: 640px;
+      height: 400px;
+      object-fit: contain;
+    }
+    #daily-proof-label {
+      position: absolute;
+      left: 0;
+      bottom: 8px;
+      font-size: 28px;
+      color: #52657e;
+    }
+    #daily-mobile-world,
+    #daily-calendar-world {
+      position: absolute;
+      inset: 0;
+    }
+    #daily-esim {
+      position: absolute;
+      left: 208px;
+      top: 342px;
+      width: 670px;
+      height: 420px;
+      border-radius: 30px;
+      overflow: hidden;
+      color: #eff5ff;
+      background: linear-gradient(125deg, #735d8d, #4a3a67 46%, #262139);
+      box-shadow: 0 22px 50px #17263d20;
+    }
+    #daily-esim-engraving {
+      background: repeating-radial-gradient(
+        ellipse at 105% -20%,
+        transparent 0 60px,
+        #d7c5ed 62px,
+        transparent 64px 86px
+      );
+    }
+    #daily-esim-provider {
+      position: absolute;
+      left: 40px;
+      top: 37px;
+      font-size: 31px;
+      font-weight: 700;
+    }
+    #daily-esim-title {
+      position: absolute;
+      left: 40px;
+      top: 112px;
+      font-size: 37px;
+    }
+    #daily-esim-plan {
+      position: absolute;
+      left: 40px;
+      top: 220px;
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+    #daily-esim-gb {
+      font-size: 74px;
+      font-weight: 700;
+    }
+    #daily-esim-unit {
+      font-size: 31px;
+    }
+    #daily-esim-region {
+      position: absolute;
+      left: 40px;
+      top: 339px;
+      font-size: 27px;
+      color: #eff5ffdb;
+    }
+    #daily-esim-mark {
+      position: absolute;
+      right: 42px;
+      top: 40px;
+      display: grid;
+      place-items: center;
+      width: 68px;
+      height: 58px;
+      border: 1px solid #ffffff70;
+      border-radius: 17px 6px 17px 6px;
+      font-size: 25px;
+    }
+    #daily-plan-line {
+      left: 878px;
+      top: 454px;
+      width: 190px;
+    }
+    #daily-keep-line {
+      left: 878px;
+      top: 655px;
+      width: 190px;
+    }
+    .daily-date-detail {
+      position: absolute;
+      left: 1110px;
+      width: 570px;
+    }
+    #daily-plan-detail {
+      top: 382px;
+    }
+    #daily-keep-detail {
+      top: 583px;
+    }
+    .daily-date-label {
+      display: block;
+      color: #52657e;
+      font-size: 29px;
+      margin-bottom: 14px;
+    }
+    .daily-date-value {
+      font-size: 56px;
+      font-weight: 600;
+      letter-spacing: -1px;
+    }
+    .daily-date-dot {
+      position: absolute;
+      left: -55px;
+      top: 59px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #3569e8;
+    }
+    #daily-phone-link {
+      position: absolute;
+      left: 208px;
+      top: 823px;
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      font-size: 31px;
+    }
+    #daily-phone-name {
+      padding: 15px 25px;
+      border: 1px solid #d9e3f1;
+      background: #ffffff;
+      border-radius: 12px;
+    }
+    #daily-phone-line {
+      width: 225px;
+      height: 3px;
+      background: #3569e8;
+      transform-origin: left center;
+    }
+    #daily-phone-account {
+      font-weight: 600;
+      color: #3569e8;
+    }
+    #daily-calendar {
+      position: absolute;
+      left: 144px;
+      top: 310px;
+      width: 800px;
+      height: 560px;
+      box-sizing: border-box;
+      background: #ffffff;
+      border: 1px solid #d9e3f1;
+      border-radius: 25px;
+      padding: 30px 32px;
+      box-shadow: 0 20px 50px #17263d0d;
+    }
+    #daily-calendar-month {
+      font-size: 35px;
+      font-weight: 700;
+      margin: 0 0 22px;
+    }
+    #daily-calendar-week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      text-align: center;
+      color: #52657e;
+      font-size: 27px;
+      margin-bottom: 15px;
+    }
+    #daily-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(6, 52px);
+      gap: 8px;
+    }
+    .daily-calendar-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      border-radius: 11px;
+      position: relative;
+    }
+    .daily-calendar-current {
+      color: #3569e8;
+      background: #edf2fe;
+    }
+    .daily-calendar-marker {
+      position: absolute;
+      inset: 0;
+      border: 3px solid #3569e8;
+      border-radius: 11px;
+    }
+    #daily-inbox {
+      position: absolute;
+      left: 1015px;
+      top: 327px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 32px;
+      font-weight: 600;
+    }
+    #daily-envelope {
+      position: relative;
+      width: 57px;
+      height: 41px;
+      border: 3px solid #3569e8;
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    #daily-envelope::before {
+      content: "";
+      position: absolute;
+      width: 38px;
+      height: 38px;
+      left: 6px;
+      top: -24px;
+      border-right: 3px solid #3569e8;
+      border-bottom: 3px solid #3569e8;
+      transform: rotate(45deg);
+    }
+    #daily-agenda {
+      position: absolute;
+      left: 1020px;
+      top: 432px;
+      width: 715px;
+    }
+    .daily-agenda-row {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 31px;
+      border-bottom: 1px solid #d9e3f1;
+      padding: 24px 0;
+    }
+    .daily-agenda-date {
+      color: #3569e8;
+      font-weight: 600;
+      width: 163px;
+    }
+    #daily-budget {
+      position: absolute;
+      left: 1020px;
+      top: 790px;
+      display: flex;
+      align-items: baseline;
+      gap: 22px;
+    }
+    #daily-budget-label {
+      font-size: 29px;
+      color: #52657e;
+    }
+    #daily-budget-value {
+      font-size: 58px;
+      font-weight: 700;
+      letter-spacing: -2px;
+    }
+    #daily-budget-cycle {
+      color: #52657e;
+      font-size: 28px;
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="daily"
+    data-duration="28"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div id="daily-ground"></div>
+    <div
+      id="daily-card-title-slot"
+      class="clip daily-title-slot"
+      data-start="0"
+      data-duration="14"
+      data-track-index="1"
+    >
+      <div id="daily-card-title-content">
+        <h2 id="daily-card-title" class="daily-title">
+          <span class="daily-accent">U 卡</span>，翻过来就能找到
+        </h2>
+        <p id="daily-card-context" class="daily-context">
+            星桥项目支出卡 · 翻转查看加密资料与快捷操作
+        </p>
+      </div>
+    </div>
+    <div
+      id="daily-mobile-title-slot"
+      class="clip daily-title-slot"
+      data-start="14"
+      data-duration="7"
+      data-track-index="1"
+    >
+      <div id="daily-mobile-title-content">
+        <h2 id="daily-mobile-title" class="daily-title">
+          同一张 eSIM，<span class="daily-accent">两条时间线</span>
+        </h2>
+        <p id="daily-mobile-context" class="daily-context">
+          套餐到期与保号期限分开记录，号码连接相关订阅
+        </p>
+      </div>
+    </div>
+    <div
+      id="daily-renewal-title-slot"
+      class="clip daily-title-slot"
+      data-start="21"
+      data-duration="7"
+      data-track-index="1"
+    >
+      <div id="daily-renewal-title-content">
+        <h2 id="daily-renewal-title" class="daily-title">
+          每次续费，都<span class="daily-accent">落到日历上</span>
+        </h2>
+        <p id="daily-renewal-context" class="daily-context">
+          运维邮箱、到期提醒与订阅费用，在同一个工作空间
+        </p>
+      </div>
+    </div>
+
+    <div
+      id="daily-card-scene"
+      class="clip daily-scene"
+      data-start="0"
+      data-duration="14"
+      data-track-index="2"
+    >
+      <div id="daily-card-stage">
+        <div id="daily-card-assembly">
+          <div id="daily-card-object">
+            <div id="daily-card-front" class="daily-card-face">
+              <div id="daily-card-engraving" class="daily-card-engraving"></div>
+              <div id="daily-card-front-content">
+                <div id="daily-provider" class="daily-card-provider">
+                  <span class="daily-issuer">项目</span><span>项目支出 U 卡</span>
+                </div>
+                <div id="daily-name" class="daily-card-name">星桥项目支出卡</div>
+                <div id="daily-region" class="daily-card-region">香港</div>
+                <div id="daily-chip" class="daily-card-chip"><span></span></div>
+                <div id="daily-number" class="daily-card-number">
+                  <span>•••• •••• ••••</span><span class="daily-card-tail">6088</span>
+                </div>
+                <div id="daily-validity" class="daily-card-validity">
+                  <small>有效期至</small><span>09 / 28</span>
+                </div>
+                <div id="daily-network" class="daily-card-network">
+                  <img src="assets/mastercard.svg" alt="Mastercard" /><span>Mastercard</span>
+                </div>
+              </div>
+            </div>
+            <div id="daily-card-back" class="daily-card-face">
+              <div id="daily-card-stripe" class="daily-stripe"></div>
+              <div id="daily-private-heading">
+                <span class="daily-shield"></span><span>已解锁 · 加密资料</span>
+              </div>
+              <div id="daily-private-number" class="daily-private-row">
+                <span class="daily-private-label">完整卡号</span
+                ><span class="daily-private-value">•••• •••• •••• 6088</span
+                ><span class="daily-copy"></span>
+              </div>
+              <div id="daily-private-holder" class="daily-private-row">
+                <span class="daily-private-label">持卡人</span
+                ><span class="daily-private-value">••••••</span><span class="daily-copy"></span>
+              </div>
+              <div id="daily-private-cvv" class="daily-private-row">
+                <span class="daily-private-label">安全码 CVV</span
+                ><span class="daily-private-value">•••</span><span class="daily-copy"></span>
+              </div>
+              <span id="daily-private-edit">编辑加密资料</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="daily-card-copy">
+        <div id="daily-card-fact-one" class="daily-fact">
+          <span class="daily-fact-label">卡组织</span
+          ><span class="daily-fact-value">Mastercard</span>
+        </div>
+        <div id="daily-card-fact-two" class="daily-fact">
+          <span class="daily-fact-label">资金类型</span
+          ><span class="daily-fact-value">借记卡 · 虚拟卡</span>
+        </div>
+        <div id="daily-card-fact-three" class="daily-fact">
+          <span class="daily-fact-label">费用记录</span
+          ><span class="daily-fact-value">$5 / 月</span>
+        </div>
+        <p id="daily-card-note">完整资料按需查看，卡面只展示尾号。</p>
+      </div>
+      <div id="daily-card-button">
+        <span id="daily-card-button-mark"></span><span id="daily-card-button-text">翻到背面</span>
+      </div>
+      <div id="daily-cursor" data-layout-ignore></div>
+      <div id="daily-proof">
+        <div id="daily-proof-window">
+          <img
+            id="daily-proof-image"
+            src="assets/card-front.png"
+            alt="知屿中这张卡片的真实详情界面"
+          />
+        </div>
+        <span id="daily-proof-label">回到知屿，继续管理这张卡。</span>
+      </div>
+    </div>
+
+    <div
+      id="daily-mobile-scene"
+      class="clip daily-scene"
+      data-start="14"
+      data-duration="7"
+      data-track-index="5"
+    >
+      <div id="daily-mobile-world">
+        <div id="daily-esim">
+          <div id="daily-esim-engraving" class="daily-card-engraving"></div>
+          <span id="daily-esim-provider">区域漫游套餐</span><span id="daily-esim-mark">区域</span
+          ><span id="daily-esim-title">亚洲差旅 eSIM</span>
+          <div id="daily-esim-plan">
+            <span id="daily-esim-gb">20</span><span id="daily-esim-unit">GB · 亚洲 12 地</span>
+          </div>
+          <span id="daily-esim-region">香港、日本、新加坡 · 区域漫游</span>
+        </div>
+        <div id="daily-plan-line" class="daily-line"></div>
+        <div id="daily-keep-line" class="daily-line"></div>
+        <div id="daily-plan-detail" class="daily-date-detail">
+          <span class="daily-date-dot"></span><span class="daily-date-label">套餐到期</span
+          ><span class="daily-date-value">2026 年 11 月 29 日</span>
+        </div>
+        <div id="daily-keep-detail" class="daily-date-detail">
+          <span class="daily-date-dot"></span><span class="daily-date-label">保号截止</span
+          ><span class="daily-date-value">2027 年 05 月 03 日</span>
+        </div>
+        <div id="daily-phone-link">
+          <span id="daily-phone-name">+852 5123 0188</span><span id="daily-phone-line"></span
+          ><span id="daily-phone-account">研发编程助手订阅</span>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="daily-calendar-scene"
+      class="clip daily-scene"
+      data-start="21"
+      data-duration="7"
+      data-track-index="6"
+    >
+      <div id="daily-calendar-world">
+        <div id="daily-calendar">
+          <h3 id="daily-calendar-month">2026 年 11 月</h3>
+          <div id="daily-calendar-week">
+            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span
+            ><span>六</span><span>日</span>
+          </div>
+          <div id="daily-calendar-grid">
+            <span class="daily-calendar-cell"></span><span class="daily-calendar-cell"></span
+            ><span class="daily-calendar-cell"></span><span class="daily-calendar-cell"></span
+            ><span class="daily-calendar-cell"></span><span class="daily-calendar-cell"></span
+            ><span class="daily-calendar-cell">1</span> <span class="daily-calendar-cell">2</span
+            ><span class="daily-calendar-cell">3</span><span class="daily-calendar-cell">4</span
+            ><span class="daily-calendar-cell">5</span
+            ><span class="daily-calendar-cell daily-calendar-current">6</span
+            ><span class="daily-calendar-cell">7</span><span class="daily-calendar-cell">8</span>
+            <span class="daily-calendar-cell">9</span><span class="daily-calendar-cell">10</span
+            ><span class="daily-calendar-cell"
+              >11<span id="daily-marker-cert" class="daily-calendar-marker"></span></span
+            ><span class="daily-calendar-cell">12</span><span class="daily-calendar-cell">13</span
+            ><span class="daily-calendar-cell">14</span
+            ><span class="daily-calendar-cell"
+              >15<span id="daily-marker-ai" class="daily-calendar-marker"></span
+            ></span>
+            <span class="daily-calendar-cell">16</span><span class="daily-calendar-cell">17</span
+            ><span class="daily-calendar-cell"
+              >18<span id="daily-marker-domain" class="daily-calendar-marker"></span></span
+            ><span class="daily-calendar-cell">19</span><span class="daily-calendar-cell">20</span
+            ><span class="daily-calendar-cell">21</span><span class="daily-calendar-cell">22</span>
+            <span class="daily-calendar-cell">23</span><span class="daily-calendar-cell">24</span
+            ><span class="daily-calendar-cell">25</span><span class="daily-calendar-cell">26</span
+            ><span class="daily-calendar-cell">27</span><span class="daily-calendar-cell">28</span
+            ><span class="daily-calendar-cell">29</span> <span class="daily-calendar-cell">30</span
+            ><span class="daily-calendar-cell"></span><span class="daily-calendar-cell"></span
+            ><span class="daily-calendar-cell"></span><span class="daily-calendar-cell"></span
+            ><span class="daily-calendar-cell"></span><span class="daily-calendar-cell"></span>
+          </div>
+        </div>
+        <div id="daily-inbox">
+          <span id="daily-envelope"></span><span>ops@starbridge.example</span>
+        </div>
+        <div id="daily-agenda">
+          <div id="daily-agenda-cert" class="daily-agenda-row">
+            <span class="daily-agenda-date">11 月 11 日</span><span>API 服务证书续期</span>
+          </div>
+          <div id="daily-agenda-ai" class="daily-agenda-row">
+            <span class="daily-agenda-date">11 月 15 日</span><span>研发编程助手订阅</span>
+          </div>
+          <div id="daily-agenda-domain" class="daily-agenda-row">
+            <span class="daily-agenda-date">11 月 18 日</span><span>API 域名续费</span>
+          </div>
+        </div>
+        <div id="daily-budget">
+          <span id="daily-budget-label">已记录 AI 月费</span
+          ><span id="daily-budget-value">$186</span><span id="daily-budget-cycle">/ 月</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo(
+      "#daily-card-title-content",
+      { y: 132 },
+      { y: 0, duration: 0.65, ease: "power4.out" },
+      0,
+    );
+    tl.fromTo(
+      "#daily-card-assembly",
+      { x: 240, y: 100, scale: 0.58, rotationZ: -7, opacity: 0 },
+      { x: 0, y: 0, scale: 1, rotationZ: 0, opacity: 1, duration: 0.9, ease: "power4.out" },
+      0.15,
+    );
+    tl.fromTo(
+      "#daily-card-fact-one",
+      { x: 90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      1.1,
+    );
+    tl.fromTo(
+      "#daily-card-fact-two",
+      { x: 90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      1.8,
+    );
+    tl.fromTo(
+      "#daily-card-fact-three",
+      { x: 90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      2.5,
+    );
+    tl.fromTo("#daily-card-note", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 3.2);
+    tl.fromTo(
+      "#daily-card-button",
+      { y: 25, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.5, ease: "power4.out" },
+      2.8,
+    );
+    tl.fromTo(
+      "#daily-cursor",
+      { x: 1850, y: 870, opacity: 0 },
+      { x: 696, y: 892, opacity: 1, duration: 0.85, ease: "power4.out" },
+      3.3,
+    );
+    tl.fromTo(
+      "#daily-card-button",
+      { scale: 1 },
+      { scale: 0.96, duration: 0.12, ease: "power2.in" },
+      4.2,
+    );
+    tl.to("#daily-card-button", { scale: 1, duration: 0.22, ease: "power3.out" }, 4.32);
+    tl.to("#daily-card-object", { rotationY: 180, duration: 1.1, ease: "power2.inOut" }, 4.32);
+    tl.set("#daily-card-button-text", { textContent: "翻回正面" }, 4.9);
+    tl.to("#daily-cursor", { x: 878, y: 896, opacity: 0, duration: 0.5, ease: "power3.in" }, 4.8);
+    tl.fromTo("#daily-private-heading", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 5.2);
+    tl.fromTo(
+      "#daily-private-number",
+      { x: 35, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.45, ease: "power4.out" },
+      5.5,
+    );
+    tl.fromTo(
+      "#daily-private-holder",
+      { x: 35, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.45, ease: "power4.out" },
+      6.2,
+    );
+    tl.fromTo(
+      "#daily-private-cvv",
+      { x: 35, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.45, ease: "power4.out" },
+      6.9,
+    );
+    tl.fromTo("#daily-private-edit", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 7.6);
+    tl.fromTo(
+      "#daily-cursor",
+      { x: 926, y: 895, opacity: 0 },
+      { x: 693, y: 891, opacity: 1, duration: 0.7, ease: "power4.out", immediateRender: false },
+      8.8,
+    );
+    tl.to("#daily-card-button", { scale: 0.96, duration: 0.12, ease: "power2.in" }, 9.5);
+    tl.to("#daily-card-button", { scale: 1, duration: 0.22, ease: "power3.out" }, 9.62);
+    tl.to("#daily-card-object", { rotationY: 360, duration: 1.05, ease: "power2.inOut" }, 9.62);
+    tl.set("#daily-card-button-text", { textContent: "翻到背面" }, 10.1);
+    tl.to("#daily-cursor", { x: 924, y: 892, opacity: 0, duration: 0.45, ease: "power3.in" }, 10.1);
+    tl.to("#daily-card-copy", { opacity: 0, x: 80, duration: 0.35, ease: "power3.in" }, 10.6);
+    tl.fromTo(
+      "#daily-proof",
+      { opacity: 0, clipPath: "inset(0 100% 0 0 round 18px)" },
+      { opacity: 1, clipPath: "inset(0 0% 0 0 round 18px)", duration: 0.55, ease: "power4.out" },
+      11,
+    );
+    tl.to(
+      "#daily-card-assembly",
+      { x: -30, y: -8, scale: 0.94, duration: 0.7, ease: "power2.inOut" },
+      11.2,
+    );
+    tl.to("#daily-card-title-content", { y: -160, duration: 0.35, ease: "power3.in" }, 13.65);
+    tl.to("#daily-card-stage", { x: -210, opacity: 0, duration: 0.35, ease: "power3.in" }, 13.65);
+    tl.fromTo(
+      "#daily-mobile-title-content",
+      { y: 132 },
+      { y: 0, duration: 0.65, ease: "power4.out" },
+      14,
+    );
+    tl.fromTo(
+      "#daily-esim",
+      { x: 130, y: 120, scale: 0.83, opacity: 0 },
+      { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.8, ease: "power4.out" },
+      14,
+    );
+    tl.fromTo(
+      "#daily-plan-line",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.65, ease: "power2.inOut" },
+      14.9,
+    );
+    tl.fromTo(
+      "#daily-plan-detail",
+      { x: -60, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      15.3,
+    );
+    tl.fromTo(
+      "#daily-keep-line",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.65, ease: "power2.inOut" },
+      16.1,
+    );
+    tl.fromTo(
+      "#daily-keep-detail",
+      { x: -60, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      16.5,
+    );
+    tl.fromTo(
+      "#daily-phone-name",
+      { y: 40, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      17.7,
+    );
+    tl.fromTo(
+      "#daily-phone-line",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.7, ease: "power2.inOut" },
+      18.1,
+    );
+    tl.fromTo(
+      "#daily-phone-account",
+      { x: -45, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      18.6,
+    );
+    tl.to("#daily-mobile-title-content", { y: -160, duration: 0.35, ease: "power3.in" }, 20.65);
+    tl.to("#daily-mobile-world", { x: -180, opacity: 0, duration: 0.35, ease: "power3.in" }, 20.65);
+    tl.fromTo(
+      "#daily-renewal-title-content",
+      { y: 132 },
+      { y: 0, duration: 0.65, ease: "power4.out" },
+      21,
+    );
+    tl.fromTo(
+      "#daily-calendar",
+      { x: 230, scale: 0.9, opacity: 0 },
+      { x: 0, scale: 1, opacity: 1, duration: 0.75, ease: "power4.out" },
+      21,
+    );
+    tl.fromTo(
+      "#daily-inbox",
+      { x: 100, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.6, ease: "power4.out" },
+      21.5,
+    );
+    tl.fromTo(
+      "#daily-marker-cert",
+      { y: -125, scale: 0.6, opacity: 0 },
+      { y: 0, scale: 1, opacity: 1, duration: 0.55, ease: "power4.out" },
+      22.2,
+    );
+    tl.fromTo(
+      "#daily-agenda-cert",
+      { x: -90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      22.4,
+    );
+    tl.fromTo(
+      "#daily-marker-ai",
+      { y: -125, scale: 0.6, opacity: 0 },
+      { y: 0, scale: 1, opacity: 1, duration: 0.55, ease: "power4.out" },
+      23.5,
+    );
+    tl.fromTo(
+      "#daily-agenda-ai",
+      { x: -90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      23.7,
+    );
+    tl.fromTo(
+      "#daily-marker-domain",
+      { y: -125, scale: 0.6, opacity: 0 },
+      { y: 0, scale: 1, opacity: 1, duration: 0.55, ease: "power4.out" },
+      24.8,
+    );
+    tl.fromTo(
+      "#daily-agenda-domain",
+      { x: -90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.55, ease: "power4.out" },
+      25,
+    );
+    tl.fromTo(
+      "#daily-budget",
+      { y: 45, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.65, ease: "power4.out" },
+      26,
+    );
+    window.__timelines["daily"] = tl;
+  </script>
+</template>

@@ -1,0 +1,176 @@
+<template>
+  <style>
+    @font-face { font-family: "Zhiyu Sans"; src: url("assets/fonts/NotoSansSC-subset.woff2"); font-weight: 100 900; }
+    #root { position: absolute; inset: 0; overflow: hidden; color: #17263d; font-family: "Zhiyu Sans", sans-serif; background: #f4f7fc; }
+    .operations-title { position: absolute; left: 144px; top: 102px; margin: 0; font-size: 80px; line-height: 1.28; letter-spacing: -2px; font-weight: 700; }
+    .operations-title strong { color: #3569e8; font-weight: inherit; }
+    #operations-stage { position: absolute; inset: 0; }
+    #operations-establish { position: absolute; left: 144px; top: 268px; width: 1632px; height: 650px; overflow: hidden; border: 1px solid #d9e3f1; border-radius: 20px; background: white; }
+    #operations-establish-image { width: 1600px; height: 1000px; max-width: none; transform-origin: 0 0; }
+    .operations-card { position: absolute; background: #ffffff; border: 1px solid #d9e3f1; border-radius: 24px; box-shadow: 0 16px 40px rgba(23,38,61,.07); }
+    #operations-server-card { left: 144px; top: 294px; width: 712px; height: 546px; padding: 38px; box-sizing: border-box; transform-origin: 0 0; }
+    #operations-server-card h3 { margin: 0 0 10px; font-size: 48px; line-height: 1.25; }
+    #operations-server-subtitle { font-size: 28px; color: #52657e; line-height: 1.45; margin: 0 0 28px; }
+    .operations-status { display: inline-flex; align-items: center; gap: 10px; font-size: 26px; line-height: 1.4; color: #218c62; }
+    .operations-status::before { content: ""; width: 11px; height: 11px; border-radius: 50%; background: #25a66f; }
+    #operations-server-status { position: absolute; right: 38px; top: 42px; }
+    .operations-metric { margin-top: 27px; }
+    .operations-metric-caption { display: flex; justify-content: space-between; font-size: 31px; line-height: 1.3; margin-bottom: 12px; }
+    .operations-metric-caption b { font-weight: 600; }
+    .operations-bar { height: 12px; background: #e9eef6; border-radius: 6px; overflow: hidden; }
+    .operations-fill { height: 100%; background: #25a66f; border-radius: 6px; transform-origin: 0 50%; }
+    #operations-cpu-fill { width: 38%; }
+    #operations-memory-fill { width: 62%; }
+    #operations-disk-fill { width: 46%; }
+    #operations-server-address { margin: 25px 0 0; font-size: 27px; line-height: 1.4; color: #52657e; }
+    #operations-container-card { left: 1010px; top: 294px; width: 766px; height: 546px; box-sizing: border-box; padding: 34px; }
+    #operations-container-title { font-size: 38px; font-weight: 700; margin: 0 0 26px; }
+    .operations-container-row { border-top: 1px solid #d9e3f1; padding: 24px 0; }
+    .operations-container-name { display: flex; align-items: center; justify-content: space-between; font-size: 34px; font-weight: 600; line-height: 1.35; }
+    .operations-container-detail { margin: 13px 0 0; color: #52657e; font-size: 28px; line-height: 1.4; }
+    #operations-port-label { position: absolute; left: 872px; top: 854px; width: 140px; box-sizing: border-box; padding: 12px 10px; border-radius: 10px; background: #3569e8; color: white; font-size: 24px; line-height: 1.35; font-weight: 600; text-align: center; white-space: nowrap; }
+    #operations-links { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; }
+    .operations-line { fill: none; stroke: #3569e8; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+    #operations-service-node { left: 830px; top: 390px; width: 430px; height: 260px; padding: 30px; box-sizing: border-box; }
+    .operations-node-kind { color: #52657e; font-size: 28px; line-height: 1.35; margin: 0 0 16px; }
+    .operations-node-name { color: #17263d; font-size: 40px; font-weight: 700; line-height: 1.3; margin: 0 0 17px; }
+    .operations-node-detail { color: #52657e; font-size: 28px; line-height: 1.4; margin: 0; }
+    #operations-domain-node { left: 1306px; top: 390px; width: 470px; height: 260px; padding: 30px; box-sizing: border-box; }
+    #operations-domain-name { font-size: 31px; }
+    #operations-deploy-line { stroke-width: 5; }
+    #operations-document-node, #operations-mail-node, #operations-graph-server { width: 460px; height: 190px; padding: 24px 28px; box-sizing: border-box; }
+    #operations-graph-server { left: 144px; top: 282px; }
+    #operations-document-node { left: 144px; top: 692px; }
+    #operations-mail-node { left: 1316px; top: 692px; }
+    #operations-document-node .operations-node-name { font-size: 34px; }
+    #operations-mail-node .operations-node-name { font-size: 31px; }
+    #operations-graph-server .operations-node-name { font-size: 38px; }
+    .operations-compact .operations-node-kind { font-size: 25px; margin-bottom: 9px; }
+    .operations-compact .operations-node-name { margin-bottom: 10px; }
+    .operations-compact .operations-node-detail { font-size: 26px; }
+    #operations-confirmed { position: absolute; left: 756px; top: 760px; width: 410px; margin: 0; font-size: 32px; line-height: 1.45; text-align: center; color: #3569e8; }
+    #operations-demo-label { position: absolute; right: 150px; top: 218px; color: #52657e; font-size: 27px; line-height: 1.4; margin: 0; }
+    .operations-traveller { fill: #3569e8; }
+  </style>
+  <div id="root" data-composition-id="operations" data-width="1920" data-height="1080" data-duration="26">
+    <div id="operations-stage" class="clip" data-start="0" data-duration="26" data-track-index="1">
+      <div id="operations-establish" data-layout-allow-overflow>
+        <img id="operations-establish-image" src="assets/server-detail.png" alt="知屿真实主机详情界面" />
+      </div>
+      <svg id="operations-links" viewBox="0 0 1920 1080" aria-hidden="true" data-layout-ignore>
+        <path id="operations-container-line" class="operations-line" pathLength="1" d="M856 550 H1010" />
+        <path id="operations-deploy-line" class="operations-line" pathLength="1" d="M666 586 H830" />
+        <path id="operations-domain-line" class="operations-line" pathLength="1" d="M1260 520 H1306" />
+        <path id="operations-graph-host-line" class="operations-line" pathLength="1" d="M604 377 H665 V500 H735" />
+        <path id="operations-graph-domain-line" class="operations-line" pathLength="1" d="M1165 500 H1230 V377 H1316" />
+        <path id="operations-graph-doc-line" class="operations-line" pathLength="1" d="M604 787 H665 V620 H735" />
+        <path id="operations-graph-mail-line" class="operations-line" pathLength="1" d="M1165 620 H1230 V787 H1316" />
+        <circle id="operations-traveller" class="operations-traveller" cx="0" cy="0" r="8" />
+      </svg>
+      <div id="operations-server-card" class="operations-card">
+        <h3 id="operations-server-name">hk-api-01</h3>
+        <p id="operations-server-subtitle">香港 API 主节点 · Ubuntu 24.04 LTS</p>
+        <span id="operations-server-status" class="operations-status">正常</span>
+        <div id="operations-cpu" class="operations-metric">
+          <div class="operations-metric-caption"><span>CPU</span><b>38%</b></div>
+          <div class="operations-bar"><div id="operations-cpu-fill" class="operations-fill"></div></div>
+        </div>
+        <div id="operations-memory" class="operations-metric">
+          <div class="operations-metric-caption"><span>内存</span><b>62%</b></div>
+          <div class="operations-bar"><div id="operations-memory-fill" class="operations-fill"></div></div>
+        </div>
+        <div id="operations-disk" class="operations-metric">
+          <div class="operations-metric-caption"><span>磁盘</span><b>46%</b></div>
+          <div class="operations-bar"><div id="operations-disk-fill" class="operations-fill"></div></div>
+        </div>
+        <p id="operations-server-address">deploy@192.0.2.10 · 22</p>
+      </div>
+      <div id="operations-container-card" class="operations-card">
+        <h3 id="operations-container-title">端口与容器</h3>
+        <div id="operations-container-api" class="operations-container-row">
+          <div class="operations-container-name"><span>starbridge-api</span><span class="operations-status">运行中</span></div>
+          <p class="operations-container-detail">CPU 12.6% · 内存 24.8% · 健康</p>
+        </div>
+        <div id="operations-container-web" class="operations-container-row">
+          <div class="operations-container-name"><span>edge-caddy</span><span class="operations-status">运行中</span></div>
+          <p class="operations-container-detail">443 / TCP · CPU 1.8% · 对外访问</p>
+        </div>
+      </div>
+      <div id="operations-port-label">443 / TCP</div>
+      <div id="operations-service-node" class="operations-card">
+        <p class="operations-node-kind">服务</p>
+        <h3 class="operations-node-name">星桥 API</h3>
+        <p class="operations-node-detail">hk-api-01 · starbridge-api</p>
+      </div>
+      <div id="operations-domain-node" class="operations-card">
+        <p class="operations-node-kind">域名与证书</p>
+        <h3 id="operations-domain-name" class="operations-node-name">api.starbridge.example</h3>
+        <p class="operations-node-detail">Cloudflare DNS</p>
+      </div>
+      <div id="operations-graph-server" class="operations-card operations-compact">
+        <p class="operations-node-kind">主机</p>
+        <h3 class="operations-node-name">hk-api-01</h3>
+        <p class="operations-node-detail">香港 API 主节点</p>
+      </div>
+      <div id="operations-document-node" class="operations-card operations-compact">
+        <p class="operations-node-kind">关联文档</p>
+        <h3 class="operations-node-name">星桥 · 部署与维护手册</h3>
+        <p class="operations-node-detail">项目架构与每周维护清单</p>
+      </div>
+      <div id="operations-mail-node" class="operations-card operations-compact">
+        <p class="operations-node-kind">运维邮箱</p>
+        <h3 class="operations-node-name">ops@starbridge.example</h3>
+        <p class="operations-node-detail">服务通知与续费资料</p>
+      </div>
+      <p id="operations-confirmed">关联资料，一路可查。</p>
+      <p id="operations-demo-label">演示资料 · 关联动画</p>
+    </div>
+    <h2 id="operations-title-host" class="clip operations-title" data-start="0" data-duration="9" data-track-index="2"><span id="operations-title-host-text">看清<strong>运行现场。</strong></span></h2>
+    <h2 id="operations-title-deploy" class="clip operations-title" data-start="9" data-duration="7" data-track-index="2"><span id="operations-title-deploy-text">找到<strong>部署去向。</strong></span></h2>
+    <h2 id="operations-title-links" class="clip operations-title" data-start="16" data-duration="10" data-track-index="2"><span id="operations-title-links-text">关联，<strong>一路展开。</strong></span></h2>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#operations-establish-image", { x: -204, y: -104, scale: 1.16 }, { x: -204, y: -104, scale: 1.16, duration: 1.6, ease: "none" }, 0);
+    tl.fromTo("#operations-title-host-text", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 0);
+    tl.to("#operations-establish", { clipPath: "inset(0 100% 0 0)", duration: 0.55, ease: "power3.inOut" }, 1.45);
+    tl.fromTo("#operations-server-card", { opacity: 0, x: 250, y: 25, scale: 0.92 }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.65, ease: "power4.out" }, 1.55);
+    tl.fromTo("#operations-cpu-fill", { scaleX: 0 }, { scaleX: 1, duration: 0.65, ease: "power2.out" }, 2.25);
+    tl.fromTo("#operations-memory-fill", { scaleX: 0 }, { scaleX: 1, duration: 0.75, ease: "power2.out" }, 2.6);
+    tl.fromTo("#operations-disk-fill", { scaleX: 0 }, { scaleX: 1, duration: 0.65, ease: "power2.out" }, 2.95);
+    tl.fromTo("#operations-container-card", { opacity: 0, x: -100 }, { opacity: 1, x: 0, duration: 0.65, ease: "power4.out" }, 3.6);
+    tl.to("#operations-container-line", { strokeDashoffset: 0, duration: 0.5, ease: "power2.inOut" }, 3.7);
+    tl.fromTo("#operations-container-api", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power4.out" }, 4.15);
+    tl.fromTo("#operations-container-web", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power4.out" }, 5.25);
+    tl.fromTo("#operations-port-label", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power4.out" }, 6.35);
+    tl.fromTo("#operations-demo-label", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 1.8);
+    tl.to("#operations-container-card", { opacity: 0, x: 80, duration: 0.35, ease: "power3.in" }, 8.55);
+    tl.to("#operations-container-line", { opacity: 0, duration: 0.2, ease: "none" }, 8.55);
+    tl.to("#operations-server-card", { x: 0, y: 55, scale: 0.73, duration: 0.65, ease: "power2.inOut" }, 8.65);
+    tl.to("#operations-port-label", { x: -206, y: -288, duration: 0.45, ease: "power2.inOut" }, 9.3);
+    tl.fromTo("#operations-title-deploy-text", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 9);
+    tl.to("#operations-deploy-line", { strokeDashoffset: 0, duration: 0.55, ease: "power2.inOut" }, 9.6);
+    tl.fromTo("#operations-service-node", { opacity: 0, x: -90 }, { opacity: 1, x: 0, duration: 0.65, ease: "power4.out" }, 10.05);
+    tl.to("#operations-domain-line", { strokeDashoffset: 0, duration: 0.4, ease: "power2.inOut" }, 12.1);
+    tl.fromTo("#operations-domain-node", { opacity: 0, x: -55 }, { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" }, 12.35);
+    tl.fromTo("#operations-traveller", { x: 666, y: 586, opacity: 0 }, { x: 666, y: 586, opacity: 1, duration: 0.15, ease: "none" }, 13.3);
+    tl.to("#operations-traveller", { x: 830, y: 586, duration: 0.4, ease: "none" }, 13.45);
+    tl.to("#operations-traveller", { opacity: 0, duration: 0.15, ease: "none" }, 13.85);
+    tl.to("#operations-server-card", { opacity: 0, duration: 0.25, ease: "none" }, 15.7);
+    tl.to(["#operations-port-label", "#operations-deploy-line", "#operations-domain-line"], { opacity: 0, duration: 0.25, ease: "none" }, 15.7);
+    tl.fromTo("#operations-title-links-text", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 16);
+    tl.to("#operations-service-node", { x: -95, y: 50, duration: 0.65, ease: "power2.inOut" }, 16);
+    tl.to("#operations-domain-node", { x: 10, y: -108, duration: 0.65, ease: "power2.inOut" }, 16);
+    tl.to("#operations-graph-host-line", { strokeDashoffset: 0, duration: 0.75, ease: "power2.inOut" }, 16.5);
+    tl.fromTo("#operations-graph-server", { opacity: 0, x: 110, y: 60 }, { opacity: 1, x: 0, y: 0, duration: 0.65, ease: "power4.out" }, 16.85);
+    tl.to("#operations-graph-domain-line", { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" }, 18.25);
+    tl.to("#operations-graph-doc-line", { strokeDashoffset: 0, duration: 0.75, ease: "power2.inOut" }, 19.25);
+    tl.fromTo("#operations-document-node", { opacity: 0, x: 110, y: -70 }, { opacity: 1, x: 0, y: 0, duration: 0.65, ease: "power4.out" }, 19.6);
+    tl.to("#operations-graph-mail-line", { strokeDashoffset: 0, duration: 0.75, ease: "power2.inOut" }, 21.1);
+    tl.fromTo("#operations-mail-node", { opacity: 0, x: -110, y: -70 }, { opacity: 1, x: 0, y: 0, duration: 0.65, ease: "power4.out" }, 21.45);
+    tl.fromTo("#operations-confirmed", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "none" }, 22.7);
+    tl.to(["#operations-graph-host-line", "#operations-graph-domain-line", "#operations-graph-doc-line", "#operations-graph-mail-line"], { strokeWidth: 6, duration: 0.25, stagger: 0.18, ease: "power2.inOut" }, 23.2);
+    tl.to(["#operations-graph-host-line", "#operations-graph-domain-line", "#operations-graph-doc-line", "#operations-graph-mail-line"], { strokeWidth: 4, duration: 0.25, stagger: 0.18, ease: "power2.inOut" }, 24.2);
+    window.__timelines["operations"] = tl;
+  </script>
+</template>

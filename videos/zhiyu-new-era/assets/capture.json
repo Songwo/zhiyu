@@ -1,0 +1,161 @@
+{
+  "synthetic": true,
+  "privateData": false,
+  "viewport": [
+    1600,
+    1000
+  ],
+  "shots": [
+    {
+      "name": "overview",
+      "start": 9.839,
+      "duration": 1.8449999999999989
+    },
+    {
+      "name": "documents",
+      "start": 12.999,
+      "duration": 1.7509999999999994
+    },
+    {
+      "name": "documents-edit",
+      "start": 14.75,
+      "duration": 2.5470000000000006
+    },
+    {
+      "name": "servers",
+      "start": 18.874,
+      "duration": 1.8150000000000013
+    },
+    {
+      "name": "server-detail",
+      "start": 20.689,
+      "duration": 2.7360000000000007
+    },
+    {
+      "name": "server-containers",
+      "start": 23.425,
+      "duration": 3.0009999999999977
+    },
+    {
+      "name": "domains",
+      "start": 27.955,
+      "duration": 1.7550000000000026
+    },
+    {
+      "name": "services",
+      "start": 31.091,
+      "duration": 1.7759999999999962
+    },
+    {
+      "name": "relations",
+      "start": 34.183,
+      "duration": 2.536999999999999
+    },
+    {
+      "name": "cards",
+      "start": 38.074,
+      "duration": 1.7860000000000014
+    },
+    {
+      "name": "card-front",
+      "start": 39.86,
+      "duration": 2.030999999999999
+    },
+    {
+      "name": "card-flip",
+      "start": 41.891,
+      "duration": 1.453000000000003
+    },
+    {
+      "name": "card-back",
+      "start": 43.345,
+      "duration": 1.3719999999999999
+    },
+    {
+      "name": "card-return",
+      "start": 44.717,
+      "duration": 1.4810000000000016
+    },
+    {
+      "name": "esims",
+      "start": 47.6,
+      "duration": 1.7929999999999993
+    },
+    {
+      "name": "phones",
+      "start": 50.7,
+      "duration": 1.7179999999999964
+    },
+    {
+      "name": "ai",
+      "start": 53.787,
+      "duration": 1.9669999999999987
+    },
+    {
+      "name": "mail",
+      "start": 57.1,
+      "duration": 1.735999999999997
+    },
+    {
+      "name": "renewals",
+      "start": 60.135,
+      "duration": 1.841000000000001
+    },
+    {
+      "name": "usage",
+      "start": 63.273,
+      "duration": 1.6980000000000004
+    },
+    {
+      "name": "agent",
+      "start": 66.28,
+      "duration": 1.9669999999999987
+    },
+    {
+      "name": "jev-open",
+      "start": 69.679,
+      "duration": 1.2710000000000008
+    },
+    {
+      "name": "jev-process",
+      "start": 70.95,
+      "duration": 2.7409999999999997
+    },
+    {
+      "name": "jev-highlight",
+      "start": 73.701,
+      "duration": 1.6370000000000005
+    },
+    {
+      "name": "jev-underline",
+      "start": 75.338,
+      "duration": 1.176000000000002
+    },
+    {
+      "name": "exa-query",
+      "start": 76.84,
+      "duration": 1.1610000000000014
+    },
+    {
+      "name": "exa-progress",
+      "start": 78.001,
+      "duration": 2.4809999999999945
+    },
+    {
+      "name": "exa-results",
+      "start": 84.441,
+      "duration": 1.9399999999999977
+    },
+    {
+      "name": "exa-results-detail",
+      "start": 86.442,
+      "duration": 1.3480000000000132
+    },
+    {
+      "name": "models",
+      "start": 88.094,
+      "duration": 1.1540000000000106
+    }
+  ],
+  "errors": []
+}

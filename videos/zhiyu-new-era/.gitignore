@@ -1,0 +1,9 @@
+review/
+renders/
+.hyperframes/
+.thumbnails/
+assets/raw/
+assets/workflow.webm
+assets/fonts/NotoSansSC.ttf
+assets/fonts/characters.txt
+.media/audio/

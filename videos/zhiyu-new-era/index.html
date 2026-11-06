@@ -1,0 +1,140 @@
+<!doctype html>
+<html
+  lang="zh-CN"
+  data-composition-variables='[{"id":"brand","type":"string","label":"产品名称","default":"知屿 Zhiyu"},{"id":"accent","type":"color","label":"品牌蓝","default":"#3569e8"}]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>知屿 Zhiyu · 把工作连接起来</title>
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #f4f7fc;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        background: #f4f7fc;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-duration="156"
+      data-fps="30"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div
+        id="intro"
+        class="clip"
+        data-composition-id="intro"
+        data-composition-src="compositions/intro.html"
+        data-start="0"
+        data-duration="16"
+        data-track-index="1"
+        data-track-kind="graphics"
+      ></div>
+      <div
+        id="documents"
+        class="clip"
+        data-composition-id="documents"
+        data-composition-src="compositions/documents.html"
+        data-start="16"
+        data-duration="30"
+        data-track-index="1"
+        data-track-kind="graphics"
+      ></div>
+      <div
+        id="operations"
+        class="clip"
+        data-composition-id="operations"
+        data-composition-src="compositions/operations.html"
+        data-start="46"
+        data-duration="26"
+        data-track-index="1"
+        data-track-kind="graphics"
+      ></div>
+      <div
+        id="daily"
+        class="clip"
+        data-composition-id="daily"
+        data-composition-src="compositions/daily.html"
+        data-start="72"
+        data-duration="28"
+        data-track-index="1"
+        data-track-kind="graphics"
+      ></div>
+      <div
+        id="research"
+        class="clip"
+        data-composition-id="research"
+        data-composition-src="compositions/research.html"
+        data-start="100"
+        data-duration="30"
+        data-track-index="1"
+        data-track-kind="graphics"
+      ></div>
+      <div
+        id="sync"
+        class="clip"
+        data-composition-id="sync"
+        data-composition-src="compositions/sync.html"
+        data-start="130"
+        data-duration="16"
+        data-track-index="1"
+        data-track-kind="graphics"
+      ></div>
+      <div
+        id="outro"
+        class="clip"
+        data-composition-id="outro"
+        data-composition-src="compositions/outro.html"
+        data-start="146"
+        data-duration="10"
+        data-track-index="1"
+        data-track-kind="graphics"
+      ></div>
+      <div
+        id="captions"
+        class="clip"
+        data-composition-id="captions"
+        data-composition-src="compositions/captions.html"
+        data-start="0"
+        data-duration="156"
+        data-track-index="2"
+        data-track-kind="captions"
+        style="z-index: 20; pointer-events: none"
+      ></div>
+      <audio
+        id="music-cipher"
+        class="clip"
+        src="assets/soundtrack.m4a"
+        data-start="0"
+        data-duration="156"
+        data-track-index="3"
+        data-volume="1"
+      ></audio>
+    </div>
+    <script>
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

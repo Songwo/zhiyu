@@ -1,0 +1,371 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Zhiyu Sans";
+      src: url("assets/fonts/NotoSansSC-subset.woff2");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #f4f7fc;
+      color: #17263d;
+      font-family: "Zhiyu Sans", sans-serif;
+    }
+    #sync-title {
+      position: absolute;
+      left: 144px;
+      top: 104px;
+      font-size: 78px;
+      line-height: 1.3;
+      margin: 0;
+    }
+    #sync-title strong {
+      color: #3569e8;
+      font-weight: inherit;
+    }
+    #sync-stage {
+      position: absolute;
+      inset: 0;
+    }
+    .sync-device {
+      position: absolute;
+      top: 318px;
+      width: 670px;
+      height: 440px;
+      background: white;
+      border: 2px solid #d9e3f1;
+      border-radius: 22px;
+      box-shadow: 0 18px 55px #17263d0a;
+      overflow: hidden;
+    }
+    #sync-desktop {
+      left: 144px;
+    }
+    #sync-web {
+      left: 1106px;
+    }
+    .sync-device-name {
+      height: 60px;
+      padding: 18px 24px;
+      box-sizing: border-box;
+      font-size: 28px;
+      border-bottom: 1px solid #d9e3f1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .sync-device-name img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+    .sync-device-window {
+      height: 380px;
+      overflow: hidden;
+      position: relative;
+    }
+    .sync-device-window img {
+      position: absolute;
+      width: 800px;
+      height: 500px;
+      max-width: none;
+      left: -115px;
+      top: 0;
+    }
+    #sync-web-content {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+    }
+    #sync-connection {
+      position: absolute;
+      left: 814px;
+      top: 516px;
+      width: 292px;
+      height: 4px;
+      background: #3569e8;
+      transform-origin: 0 50%;
+    }
+    #sync-handshake {
+      position: absolute;
+      left: 827px;
+      top: 394px;
+      width: 266px;
+      text-align: center;
+      font-size: 30px;
+      color: #3569e8;
+      line-height: 1.7;
+    }
+    #sync-protocol {
+      position: absolute;
+      left: 610px;
+      top: 806px;
+      width: 700px;
+      text-align: center;
+      font-size: 28px;
+      color: #52657e;
+      line-height: 1.7;
+    }
+    #sync-packet {
+      position: absolute;
+      left: 725px;
+      top: 482px;
+      width: 170px;
+      height: 74px;
+      border-radius: 12px;
+      background: #17263d;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 29px;
+      gap: 14px;
+      box-shadow: 0 12px 30px #17263d20;
+    }
+    #sync-lock {
+      width: 24px;
+      height: 22px;
+      border: 3px solid white;
+      border-radius: 4px;
+      position: relative;
+      box-sizing: border-box;
+    }
+    #sync-lock:before {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      left: 3px;
+      top: -13px;
+      border: 3px solid white;
+      border-bottom: 0;
+      border-radius: 8px 8px 0 0;
+    }
+    #sync-check {
+      position: absolute;
+      left: 1480px;
+      top: 564px;
+      font-size: 72px;
+      background: #e3f5eb;
+      color: #218c62;
+      width: 104px;
+      height: 104px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    #sync-explanation {
+      position: absolute;
+      right: 144px;
+      top: 220px;
+      font-size: 28px;
+      color: #52657e;
+    }
+    #sync-backup {
+      position: absolute;
+      inset: 0;
+    }
+    #sync-vault {
+      position: absolute;
+      left: 230px;
+      top: 330px;
+      width: 470px;
+      height: 450px;
+      border: 2px solid #d9e3f1;
+      border-radius: 28px;
+      background: white;
+      box-shadow: 0 18px 55px #17263d0a;
+      box-sizing: border-box;
+      padding: 42px;
+    }
+    #sync-vault h2 {
+      font-size: 45px;
+      line-height: 1.4;
+      margin: 0 0 28px;
+    }
+    #sync-vault p {
+      font-size: 29px;
+      color: #52657e;
+      line-height: 1.6;
+      margin: 14px 0;
+    }
+    .sync-file {
+      background: #edf3ff;
+      border-left: 5px solid #3569e8;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 28px;
+    }
+    #sync-cloud {
+      position: absolute;
+      left: 1160px;
+      top: 330px;
+      width: 530px;
+      height: 450px;
+      border: 2px solid #d9e3f1;
+      border-radius: 28px;
+      background: white;
+      box-sizing: border-box;
+      padding: 42px;
+    }
+    #sync-cloud h2 {
+      font-size: 42px;
+      line-height: 1.4;
+      margin: 0 0 24px;
+    }
+    #sync-cloud p {
+      font-size: 31px;
+      color: #52657e;
+      line-height: 1.8;
+      margin: 0;
+    }
+    #sync-backup-line {
+      position: absolute;
+      left: 700px;
+      top: 546px;
+      width: 460px;
+      height: 4px;
+      background: #3569e8;
+      transform-origin: 0 50%;
+    }
+    #sync-backup-packet {
+      position: absolute;
+      left: 730px;
+      top: 492px;
+      padding: 20px 24px;
+      border-radius: 12px;
+      background: #17263d;
+      color: white;
+      font-size: 30px;
+    }
+    #sync-receipt {
+      position: absolute;
+      left: 1140px;
+      top: 804px;
+      font-size: 28px;
+      color: #218c62;
+    }
+  </style>
+  <div id="root" data-composition-id="sync" data-duration="16" data-width="1920" data-height="1080">
+    <h1 id="sync-title">在另一台设备，<strong>继续。</strong></h1>
+    <div id="sync-stage" class="clip" data-start="0" data-duration="10.7">
+      <span id="sync-explanation">配对与同步 · 协议示意</span>
+      <div class="sync-device" id="sync-desktop">
+        <div class="sync-device-name"><img src="assets/icon.png" alt="" />知屿桌面版</div>
+        <div class="sync-device-window"><img src="assets/documents.png" alt="桌面文档" /></div>
+      </div>
+      <div class="sync-device" id="sync-web">
+        <div class="sync-device-name"><img src="assets/icon.png" alt="" />自托管 Web</div>
+        <div class="sync-device-window" id="sync-web-window">
+          <div id="sync-web-content">
+            <img src="assets/documents-synced.png" alt="同步后的文档" />
+          </div>
+        </div>
+      </div>
+      <div id="sync-connection"></div>
+      <div id="sync-handshake">一次性配对<br />双向认证</div>
+      <div id="sync-packet">
+        <div id="sync-lock"></div>
+        密文
+      </div>
+      <div id="sync-check">✓</div>
+      <div id="sync-protocol">X25519 + AES-256-GCM<br />资产与文档同步 · 密钥库同步默认关闭</div>
+    </div>
+    <div id="sync-backup" class="clip" data-start="10.3" data-duration="5.7">
+      <div id="sync-vault">
+        <h2>加密备份</h2>
+        <div class="sync-file" id="sync-file-doc">文档与资产</div>
+        <div class="sync-file" id="sync-file-vault">密钥库资料</div>
+        <p>先加密，再上传</p>
+      </div>
+      <div id="sync-backup-line"></div>
+      <div id="sync-backup-packet">加密备份文件</div>
+      <div id="sync-cloud">
+        <h2>你自己的存储</h2>
+        <p>S3 · R2</p>
+        <p>OSS · MinIO</p>
+        <p id="sync-storage-note">保留上传与失败记录</p>
+      </div>
+      <div id="sync-receipt">✓ 备份结果可查看</div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo(
+      "#sync-title",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 0.85, ease: "power4.out" },
+      0,
+    );
+    tl.fromTo(
+      "#sync-desktop",
+      { x: -200, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.85, ease: "power4.out" },
+      0.4,
+    );
+    tl.fromTo(
+      "#sync-web",
+      { x: 200, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.85, ease: "power4.out" },
+      1.0,
+    );
+    tl.set("#sync-web-content,#sync-check,#sync-packet", { opacity: 0 }, 0);
+    tl.fromTo(
+      "#sync-connection",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.9, ease: "power2.inOut" },
+      2.1,
+    );
+    tl.fromTo(
+      "#sync-handshake",
+      { y: 15, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.6, ease: "power4.out" },
+      2.45,
+    );
+    tl.fromTo("#sync-protocol", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 3.3);
+    tl.to("#sync-packet", { opacity: 1, duration: 0.3 }, 4.3);
+    tl.to("#sync-packet", { x: 365, duration: 1.4, ease: "power2.inOut" }, 4.6);
+    tl.to("#sync-packet", { opacity: 0, duration: 0.3 }, 6.0);
+    tl.fromTo(
+      "#sync-web-content",
+      { clipPath: "inset(0 100% 0 0)", opacity: 1 },
+      { clipPath: "inset(0 0% 0 0)", opacity: 1, duration: 1, ease: "power3.out" },
+      6.2,
+    );
+    tl.fromTo(
+      "#sync-check",
+      { scale: 0.65, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(1.2)" },
+      7.0,
+    );
+    tl.to("#sync-check", { opacity: 0, duration: 0.3 }, 8.4);
+    tl.to("#sync-stage", { y: -850, duration: 0.65, ease: "power3.in" }, 10);
+    tl.fromTo("#sync-vault", { y: 650 }, { y: 0, duration: 0.75, ease: "power4.out" }, 10.3);
+    tl.fromTo("#sync-cloud", { x: 650 }, { x: 0, duration: 0.75, ease: "power4.out" }, 10.7);
+    tl.fromTo(
+      "#sync-backup-line",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.65, ease: "power2.inOut" },
+      11.4,
+    );
+    tl.fromTo(
+      "#sync-backup-packet",
+      { x: -100, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.45, ease: "power4.out" },
+      11.6,
+    );
+    tl.to("#sync-backup-packet", { x: 360, duration: 1.1, ease: "power2.inOut" }, 12.3);
+    tl.to("#sync-backup-packet", { opacity: 0, duration: 0.3 }, 13.45);
+    tl.fromTo(
+      "#sync-receipt",
+      { y: 25, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.5, ease: "power4.out" },
+      13.8,
+    );
+    tl.fromTo("#sync-storage-note", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 13.2);
+    window.__timelines["sync"] = tl;
+  </script>
+</template>

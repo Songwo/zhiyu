@@ -1,0 +1,300 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Zhiyu Sans";
+      src: url("assets/fonts/NotoSansSC-subset.woff2");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #f4f7fc;
+      color: #17263d;
+      font-family: "Zhiyu Sans", sans-serif;
+    }
+    #intro-question {
+      position: absolute;
+      left: 144px;
+      top: 118px;
+      font-size: 82px;
+      line-height: 1.3;
+      font-weight: 700;
+      margin: 0;
+    }
+    #intro-question strong {
+      color: #3569e8;
+    }
+    #intro-world {
+      position: absolute;
+      inset: 0;
+    }
+    #intro-document {
+      position: absolute;
+      left: 144px;
+      top: 325px;
+      width: 710px;
+      height: 515px;
+      box-sizing: border-box;
+      padding: 42px;
+      background: white;
+      border: 1px solid #d9e3f1;
+      border-radius: 20px;
+      box-shadow: 0 16px 60px #17263d0d;
+    }
+    #intro-document h2 {
+      font-size: 38px;
+      margin: 0 0 30px;
+    }
+    #intro-document p {
+      font-size: 28px;
+      line-height: 1.65;
+      color: #52657e;
+      margin: 14px 0;
+    }
+    #intro-document .intro-doc-line {
+      height: 8px;
+      background: #e5ebf4;
+      margin: 22px 0;
+      border-radius: 4px;
+    }
+    #intro-document .intro-doc-line:nth-last-child(2) {
+      width: 87%;
+    }
+    .intro-resource {
+      position: absolute;
+      left: 1040px;
+      width: 700px;
+      height: 130px;
+      background: white;
+      border: 1px solid #d9e3f1;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      padding: 0 34px;
+      box-sizing: border-box;
+    }
+    .intro-resource b {
+      font-size: 36px;
+      display: block;
+    }
+    .intro-resource span {
+      font-size: 28px;
+      color: #52657e;
+      display: block;
+      margin-top: 8px;
+    }
+    .intro-symbol {
+      width: 52px;
+      height: 52px;
+      background: #edf3ff;
+      color: #3569e8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      border-radius: 12px;
+      flex: none;
+    }
+    #intro-host {
+      top: 325px;
+    }
+    #intro-domain {
+      top: 518px;
+    }
+    #intro-account {
+      top: 711px;
+    }
+    #intro-threads {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .intro-thread {
+      fill: none;
+      stroke: #3569e8;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+    }
+    #intro-brand {
+      position: absolute;
+      left: 144px;
+      top: 124px;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    #intro-brand img {
+      width: 90px;
+      height: 90px;
+      object-fit: contain;
+    }
+    #intro-brand h1 {
+      font-size: 80px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -2px;
+    }
+    #intro-claim {
+      position: absolute;
+      left: 144px;
+      top: 236px;
+      font-size: 36px;
+      margin: 0;
+      color: #52657e;
+    }
+    #intro-workspace {
+      position: absolute;
+      left: 144px;
+      top: 325px;
+      width: 1632px;
+      height: 588px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid #d9e3f1;
+      box-shadow: 0 20px 70px #17263d12;
+      background: white;
+    }
+    #intro-screen {
+      position: absolute;
+      width: 1632px;
+      height: 1020px;
+      max-width: none;
+      left: 0;
+      top: 0;
+    }
+    #intro-cursor {
+      position: absolute;
+      left: 705px;
+      top: 794px;
+      width: 36px;
+      height: 48px;
+      clip-path: polygon(0 0, 100% 66%, 52% 72%, 29% 100%);
+      background: #3569e8;
+      border: 2px solid white;
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="intro"
+    data-duration="16"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="clip" id="intro-open" data-start="0" data-duration="9">
+      <h1 id="intro-question">一份部署手册，<strong>牵着多少资料？</strong></h1>
+      <div id="intro-world" data-layout-allow-overflow>
+        <div id="intro-document">
+          <h2>星桥项目 · 部署与维护手册</h2>
+          <p>香港 API 节点 · 新加坡数据库</p>
+          <p>证书续期 · 账号订阅 · 恢复记录</p>
+          <div class="intro-doc-line"></div>
+          <div class="intro-doc-line"></div>
+          <div class="intro-doc-line"></div>
+          <p>记录用途，也保存下一次维护的线索。</p>
+        </div>
+        <svg id="intro-threads" viewBox="0 0 1920 1080" aria-hidden="true">
+          <path
+            class="intro-thread"
+            id="intro-line-host"
+            pathLength="1"
+            d="M854 422 C945 422 945 390 1040 390"
+          />
+          <path class="intro-thread" id="intro-line-domain" pathLength="1" d="M854 582 H1040" />
+          <path
+            class="intro-thread"
+            id="intro-line-account"
+            pathLength="1"
+            d="M854 738 C945 738 945 776 1040 776"
+          />
+        </svg>
+        <div id="intro-host" class="intro-resource">
+          <div class="intro-symbol">⌘</div>
+          <div><b>hk-api-01</b><span>香港 API 主节点 · Ubuntu 24.04</span></div>
+        </div>
+        <div id="intro-domain" class="intro-resource">
+          <div class="intro-symbol">↗</div>
+          <div><b>api.starbridge.example</b><span>服务入口 · Cloudflare DNS</span></div>
+        </div>
+        <div id="intro-account" class="intro-resource">
+          <div class="intro-symbol">@</div>
+          <div><b>ops@starbridge.example</b><span>运维通知 · 关联项目账号</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="clip" id="intro-reveal" data-start="8.5" data-duration="7.5">
+      <div id="intro-brand">
+        <img src="assets/icon.png" alt="知屿图标" />
+        <h1>知屿 Zhiyu</h1>
+      </div>
+      <p id="intro-claim">连接文档、账号与数字资产的工作空间</p>
+      <div id="intro-workspace" data-layout-allow-overflow="true">
+        <img id="intro-screen" src="assets/overview.png" alt="星桥项目的知屿工作空间" />
+      </div>
+      <div id="intro-cursor" aria-hidden="true"></div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo(
+      "#intro-question",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 1.0, ease: "power4.out" },
+      0,
+    );
+    tl.fromTo(
+      "#intro-document",
+      { x: -90, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.8, ease: "power4.out" },
+      0.5,
+    );
+    ["host", "domain", "account"].forEach((id, i) => {
+      tl.fromTo(
+        "#intro-" + id,
+        { x: 130, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.7, ease: "power4.out" },
+        1.8 + i * 1.35,
+      );
+      tl.to(
+        "#intro-line-" + id,
+        { strokeDashoffset: 0, duration: 0.8, ease: "power2.inOut" },
+        2.1 + i * 1.35,
+      );
+    });
+    tl.to("#intro-document", { borderColor: "#3569e8", duration: 0.3 }, 6.1);
+    tl.to("#intro-world", { x: -1820, duration: 0.65, ease: "power3.in" }, 8.1);
+    tl.to("#intro-question", { opacity: 0, duration: 0.35 }, 8.15);
+    tl.fromTo(
+      "#intro-brand",
+      { x: 100, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.75, ease: "power4.out" },
+      8.6,
+    );
+    tl.fromTo("#intro-claim", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 9.2);
+    tl.fromTo(
+      "#intro-workspace",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 1.0, ease: "power3.inOut" },
+      9.6,
+    );
+    tl.fromTo(
+      "#intro-cursor",
+      { x: 1060, y: -20, opacity: 0 },
+      { x: 0, y: 0, opacity: 1, duration: 0.9, ease: "power3.out" },
+      11,
+    );
+    tl.to("#intro-cursor", { x: -488, y: -346, duration: 1.0, ease: "power2.inOut" }, 12.2);
+    tl.to("#intro-cursor", { scale: 0.8, duration: 0.12 }, 13.35).to(
+      "#intro-cursor",
+      { scale: 1, duration: 0.18 },
+      13.47,
+    );
+    tl.to("#intro-screen", { y: -175, duration: 1.2, ease: "power2.inOut" }, 13.7);
+    tl.to("#intro-cursor", { opacity: 0, duration: 0.3 }, 14.8);
+    window.__timelines["intro"] = tl;
+  </script>
+</template>
