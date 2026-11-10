@@ -37,12 +37,26 @@ try {
   await context.addCookies([{ name: "zhiyu_session", value: f.cookie.split("=")[1], url: f.base }]);
   const app = await context.newPage();
   app.on("pageerror", (error) => errors.push(error.message));
+  const clockStart = new Date("2026-11-10T00:00:00Z");
+  await app.clock.install({ time: clockStart });
   await app.goto(f.base);
   await app.locator('[data-app-ready="true"]').waitFor();
-  await app.getByRole("button", { name: "创建密钥库", exact: true }).click();
+  await app.clock.pauseAt(new Date(clockStart.getTime() + 60_000));
+  // 暂停计时后打开，确保覆盖快速切换到确认框时延迟聚焦抢回焦点的场景。
+  await app.getByRole("button", { name: "创建密钥库", exact: true }).click({ force: true });
   const gate = app.getByRole("dialog", { name: "设置主密码", exact: true });
   await gate.getByLabel("主密码", { exact: true }).fill("web-csv-master-2026");
   await gate.getByLabel("再输一次", { exact: true }).fill("web-csv-master-2026");
+  await app.clock.runFor(100);
+  assert.equal(
+    await gate
+      .getByLabel("再输一次", { exact: true })
+      .evaluate((input) => document.activeElement === input),
+    true,
+    "用户切换到确认框后，弹窗不得再次抢回主密码框的焦点",
+  );
+  await app.clock.resume();
+  checks.push("快速填写主密码时确认框保持焦点，延迟任务不干扰输入");
   await gate.getByRole("button", { name: "创建", exact: true }).click();
   await gate.waitFor({ state: "detached", timeout: 30000 });
   await app.getByRole("button", { name: "更多", exact: true }).click();

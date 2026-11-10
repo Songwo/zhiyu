@@ -27,11 +27,7 @@ export function VaultGate() {
     setPassword("");
     setConfirm("");
     setError(null);
-    if (prompt) {
-      // 等进入动画开始再聚焦，避免输入光标跟随面板移动。
-      const t = window.setTimeout(() => field.current?.focus(), 60);
-      return () => window.clearTimeout(t);
-    }
+    // 首次聚焦由 Dialog 的 onOpenAutoFocus 处理，禁止延迟任务抢走后续输入框焦点。
   }, [prompt]);
 
   if (!mounted) return null;
