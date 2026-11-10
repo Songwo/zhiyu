@@ -34,7 +34,9 @@ import { WebBottomNav, WebTopBar } from "./web-shell";
 import { GlobalMarkdownImport } from "./global-markdown-import";
 const Settings = lazy(() => import("./settings").then((m) => ({ default: m.Settings })));
 const SettingsPage = lazy(() => import("./settings").then((m) => ({ default: m.SettingsPage })));
-import { SshTerminal } from "./ssh-terminal";
+const SshTerminal = lazy(() =>
+  import("./ssh-terminal").then((module) => ({ default: module.SshTerminal })),
+);
 import { TitleBar } from "./title-bar";
 import { VaultGate } from "./vault-gate";
 import { Onboarding } from "./onboarding";
@@ -379,7 +381,19 @@ function WorkspaceShell() {
               </ViewErrorBoundary>
             </div>
             <div hidden={!terminalOpen || detailOpen}>
-              <SshTerminal active={terminalOpen && !detailOpen} />
+              <DeferredOverlay open={terminalOpen}>
+                <ViewErrorBoundary>
+                  <Suspense
+                    fallback={
+                      <div className="p-6 text-sm text-muted" role="status">
+                        {t("正在加载…")}
+                      </div>
+                    }
+                  >
+                    <SshTerminal active={terminalOpen && !detailOpen} />
+                  </Suspense>
+                </ViewErrorBoundary>
+              </DeferredOverlay>
             </div>
           </main>
           {!detailOpen && !wideWorkspace && <RightRail />}

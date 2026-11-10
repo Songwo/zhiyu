@@ -1,9 +1,17 @@
 import { ImapFlow } from "imapflow";
-import nodemailer from "nodemailer";
-import { simpleParser } from "mailparser";
-import { convert as htmlToText } from "html-to-text";
 import { validateMailboxConnection } from "./mail.mjs";
-import { sanitizeMailHtml } from "./mail-content.mjs";
+
+// 邮件正文解析和 HTML 清洗只在打开正文时加载；列表、检查邮件和启动不承担这部分开销。
+let parsingModules;
+const loadParsing = () =>
+  (parsingModules ??= Promise.all([
+    import("mailparser"),
+    import("html-to-text"),
+    import("./mail-content.mjs"),
+  ]).catch((error) => {
+    parsingModules = undefined;
+    throw error;
+  }));
 
 const MAX_MESSAGE = 12 * 1024 * 1024;
 const MAX_ATTACHMENTS = 8 * 1024 * 1024;
@@ -150,7 +158,7 @@ export class MailClient {
     vault,
     getSnapshot,
     createImap = (options) => new ImapFlow(options),
-    createSmtp = (options) => nodemailer.createTransport(options),
+    createSmtp = async (options) => (await import("nodemailer")).default.createTransport(options),
   }) {
     this.#vault = vault;
     this.#snapshot = getSnapshot;
@@ -190,7 +198,7 @@ export class MailClient {
     this.#messagesCache.set(key, entry);
     return { key, entry };
   }
-  #storeMessage(key, { item, parsed }, message) {
+  #storeMessage(key, { item, parsed, formatting }, message) {
     const bytes =
       (item?.source?.length ?? 0) +
       (parsed.text?.length ?? 0) +
@@ -198,9 +206,12 @@ export class MailClient {
       parsed.attachments.reduce((sum, file) => sum + (file.content?.length ?? 0), 0);
     // 超大邮件不值得占用缓存预算；按字节 LRU 驱逐到预算内。
     if (bytes > MESSAGE_CACHE_BYTES) return;
-    this.#messagesCache.set(key, { item, parsed, message, bytes });
+    this.#messagesCache.set(key, { item, parsed, formatting, message, bytes });
     this.#messagesCacheBytes += bytes;
-    while (this.#messagesCacheBytes > MESSAGE_CACHE_BYTES || this.#messagesCache.size > MESSAGE_CACHE_MAX) {
+    while (
+      this.#messagesCacheBytes > MESSAGE_CACHE_BYTES ||
+      this.#messagesCache.size > MESSAGE_CACHE_MAX
+    ) {
       const oldest = this.#messagesCache.keys().next().value;
       if (oldest === undefined) break;
       const evicted = this.#messagesCache.get(oldest);
@@ -393,14 +404,18 @@ export class MailClient {
       { uid: true },
     );
     if (!item?.source || item.source.length > MAX_MESSAGE) fail("邮件正文过大或已不存在");
+    const formatting = await loadParsing();
+    const { simpleParser } = formatting[0];
     const parsed = await simpleParser(item.source, {
       skipImageLinks: true,
       skipTextToHtml: true,
       maxHtmlLengthToParse: 1024 * 1024,
     });
-    return { item, parsed };
+    return { item, parsed, formatting };
   }
-  #buildMessage({ item, parsed }) {
+  #buildMessage({ item, parsed, formatting }) {
+    const { convert: htmlToText } = formatting[1];
+    const { sanitizeMailHtml } = formatting[2];
     if (!parsed.text && parsed.html?.length > 1024 * 1024)
       fail("HTML 正文过大，请在服务商网页查看");
     const text =
@@ -434,8 +449,9 @@ export class MailClient {
       if (!entry.message) entry.message = this.#buildMessage(entry);
       return entry.message;
     }
-    return this.#withImap(id, async (client) => {
+    return this.#withImap(id, async (client, assertActive) => {
       const parsed = await this.#parsed(client, input);
+      assertActive();
       const message = this.#buildMessage(parsed);
       this.#storeMessage(key, parsed, message);
       return message;
@@ -454,10 +470,11 @@ export class MailClient {
     };
     const { key, entry } = this.#cachedMessage(id, input);
     if (entry) return pick(entry.parsed);
-    return this.#withImap(id, async (client) => {
+    return this.#withImap(id, async (client, assertActive) => {
       const parsed = await this.#parsed(client, input);
+      assertActive();
       this.#storeMessage(key, parsed, null);
-      return pick(parsed);
+      return pick(parsed.parsed);
     });
   }
   seen(id, input, seen) {
@@ -491,7 +508,7 @@ export class MailClient {
         if (!address(account.address)) fail("发件人邮箱地址无效");
         if (!account.smtp) fail("请先保存 SMTP 发信设置");
         const smtp = validateSmtp(account.smtp);
-        const transport = this.#smtp({
+        const transport = await this.#smtp({
           host: smtp.host,
           port: smtp.port,
           secure: smtp.security === "tls",

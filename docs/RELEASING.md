@@ -22,7 +22,7 @@
 
 ## 版本准备
 
-更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.10.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
+更新 package.json、package-lock.json、browser-extension/manifest.json 与 src/lib/changelog.ts，执行 `node scripts/write-changelog.mjs` 同步 CHANGELOG.md。本版说明保存在 `docs/releases/v1.17.11.md`。README 的安装包名、构建目录及教程应与版本一致；描述实际支持范围，不将本机协议测试写成真实账号登录成功。
 
 1.17.5 还需运行 `node scripts/web-research-ui-integration.mjs`，验证真实 Web 构建中的主身份、弹窗受限回退、Exa 余额与记录、Jev 逐段进度及不改原文、文档账号本地提取与密钥库兼容。该回归只用本机合成供应商，不冒充真实付费 API 验收。升级独立身份服务后健康检查需包含 `webLoginConfigured: true`，实际 `/v1/login/start` 的 `transport: "poll"`、等待状态及取消请求均需核实；同时保留桌面回环协议、会话密钥及检索账本。
 

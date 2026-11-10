@@ -402,3 +402,126 @@ test("文件夹与列表分页在短 TTL 内直接复用", async () => {
   await f.service.messages("mail-1", { folder: "INBOX" });
   assert.equal(f.calls.filter((c) => c === "connect").length, 2);
 });
+
+test("延迟创建 SMTP 传输期间锁库，完成加载后不得发送且关闭传输", async () => {
+  const f = fixture();
+  let ready, entered;
+  const started = new Promise((resolve) => {
+    entered = resolve;
+  });
+  let sent = 0,
+    closed = 0;
+  const service = new MailClient({
+    vault: f.vault,
+    getSnapshot: async () => ({ mailboxes: [f.account] }),
+    createSmtp: () => {
+      entered();
+      return new Promise((resolve) => {
+        ready = resolve;
+      });
+    },
+  });
+  const result = service.send("mail-1", draft());
+  await started;
+  service.stop();
+  ready({
+    sendMail: async () => {
+      sent++;
+    },
+    close: () => {
+      closed++;
+    },
+  });
+  await assert.rejects(result, /结果未确认/);
+  assert.equal(sent, 0);
+  assert.equal(closed, 1);
+});
+
+test("先请求附件形成的解析缓存仍可随后构建正文，不重复连接", async () => {
+  const f = fixture();
+  await assert.rejects(f.service.attachment("mail-1", selected, 0), /附件不存在/);
+  const message = await f.service.read("mail-1", selected);
+  assert.equal(message.text, "Hello from MIME");
+  assert.equal(f.calls.filter((call) => call === "connect").length, 1);
+});
+
+test("首次直接获取 MIME 附件，再读正文，复用同一解析缓存", async () => {
+  const source = Buffer.from(
+    [
+      "From: sender@example.test",
+      "To: owner@example.test",
+      "Subject: Attachment",
+      'Content-Type: multipart/mixed; boundary="fixture"',
+      "",
+      "--fixture",
+      "Content-Type: text/plain; charset=utf-8",
+      "",
+      "Body before attachment",
+      "--fixture",
+      "Content-Type: text/plain",
+      'Content-Disposition: attachment; filename="a.txt"',
+      "Content-Transfer-Encoding: base64",
+      "",
+      "YQ==",
+      "--fixture--",
+      "",
+    ].join("\r\n"),
+  );
+  const f = fixture({
+    imap: {
+      fetchOne: async (uid, fields) =>
+        fields.source
+          ? {
+              uid,
+              size: source.length,
+              source,
+              envelope: { subject: "Attachment" },
+              flags: new Set(),
+            }
+          : { size: source.length },
+    },
+  });
+  const attachment = await f.service.attachment("mail-1", selected, 0);
+  assert.equal(attachment.name, "a.txt");
+  assert.equal(attachment.content.toString(), "a");
+  const message = await f.service.read("mail-1", selected);
+  assert.equal(message.text, "Body before attachment");
+  assert.equal(message.attachments[0].name, "a.txt");
+  assert.equal(f.calls.filter((call) => call === "connect").length, 1);
+});
+
+test("锁库后延迟返回的邮件解析不得重新填充正文缓存", async () => {
+  let releaseSource, entered;
+  const started = new Promise((resolve) => {
+    entered = resolve;
+  });
+  const f = fixture({
+    imap: {
+      fetchOne: async (uid, fields) => {
+        if (!fields.source) return { size: 100 };
+        entered();
+        return new Promise((resolve) => {
+          releaseSource = () =>
+            resolve({
+              uid,
+              size: 100,
+              source: Buffer.from(
+                "From: sender@example.test\r\nContent-Type: text/plain\r\n\r\nPrivate delayed body",
+              ),
+              envelope: { subject: "Delayed" },
+              flags: new Set(),
+            });
+        });
+      },
+    },
+  });
+  const reading = f.service.read("mail-1", selected);
+  const rejected = assert.rejects(reading, /取消|锁定/);
+  await started;
+  f.service.stop();
+  f.vault.unlocked = false;
+  await rejected;
+  releaseSource();
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(f.service.cacheStats().messages, 0);
+});

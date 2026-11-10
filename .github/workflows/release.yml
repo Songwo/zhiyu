@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 重新验证并发布的现有正式标签（例如 v1.17.10）
+        description: 重新验证并发布的现有正式标签（例如 v1.17.11）
         required: true
-        default: "v1.17.10"
+        default: "v1.17.11"
         type: string
 permissions:
   contents: read
@@ -67,6 +67,8 @@ jobs:
         run: npm test
       - run: node scripts/updater-engine-integration.mjs
       - run: npm run desktop:dist
+      - name: 验证终端首次加载与跨页面保留
+        run: node scripts/lazy-terminal-integration.mjs
       - name: 构建原生在线安装器并验证真实安装与卸载
         env:
           ZHIYU_INSTALLER_REAL_TEST: "1"
