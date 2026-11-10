@@ -209,7 +209,7 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
         result.refreshToken ? t("已保存刷新令牌") : t("未返回刷新令牌（可能未请求离线访问）"),
       ].join("\n"),
     );
-    toast(t("已通过 {0} 登录 {1}", result.providerLabel, result.address));
+    toast(t("已核验 {0} 邮箱身份：{1}；尚未连接收件箱", result.providerLabel, result.address));
   }
 
   const needsSecret = config?.usesSecret ?? true;
@@ -219,7 +219,7 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
     <div className="mt-3 border-t border-line pt-3">
       <div className="mb-2 flex items-center gap-2">
         <ShieldCheck className="size-4 text-muted" />
-        <h4 className="text-meta font-semibold">{t("或用服务商账号授权")}</h4>
+        <h4 className="text-meta font-semibold">{t("服务商身份验证（不连接收件箱）")}</h4>
         <div className="ml-auto flex gap-1">
           {Object.entries(providers).map(([id, p]) => (
             <button
@@ -234,6 +234,12 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
           ))}
         </div>
       </div>
+
+      <p className="mb-3 text-2xs leading-relaxed text-muted">
+        {t(
+          "此处仅核验邮箱地址，不授予读取或发送邮件的权限。收发邮件仍需配置 IMAP / SMTP；若服务商已禁用密码认证，当前方式无法连接，请勿将身份验证成功视为邮箱连接成功。",
+        )}
+      </p>
 
       {!unlocked ? (
         <Button
@@ -351,7 +357,7 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
       )}
       {pending && (
         <fieldset className="mt-3 space-y-3 rounded-lg border border-line p-3">
-          <legend className="px-1 text-meta">{t("完成邮箱授权")}</legend>
+          <legend className="px-1 text-meta">{t("完成邮箱身份验证")}</legend>
           <a
             className="text-meta underline"
             href={pending.authorizationUrl}

@@ -3188,4 +3188,10 @@ export const EN: Record<string, string> = {
   上传失败: "Upload failed",
   "按周期备份服务器已保存的工作区，浏览器关闭后仍可运行；不包含浏览器未保存草稿、仅在浏览器保存的对话历史和 server 目录的凭据。":
     "Back up the saved server workspace on a schedule, even with the browser closed. Excludes unsaved browser drafts, browser-only conversations and credentials in the server directory.",
+  "服务商身份验证（不连接收件箱）": "Provider identity verification (does not connect your inbox)",
+  "已核验 {0} 邮箱身份：{1}；尚未连接收件箱":
+    "Verified {0} email identity: {1}; inbox not connected",
+  完成邮箱身份验证: "Complete email identity verification",
+  "此处仅核验邮箱地址，不授予读取或发送邮件的权限。收发邮件仍需配置 IMAP / SMTP；若服务商已禁用密码认证，当前方式无法连接，请勿将身份验证成功视为邮箱连接成功。":
+    "This verifies your email address only and grants no permission to read or send mail. Configure IMAP / SMTP separately. If your provider has disabled password authentication, this method cannot connect. Successful identity verification does not mean your mailbox is connected.",
 };
