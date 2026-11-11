@@ -11,6 +11,7 @@ interface VaultState {
   refresh: () => Promise<void>;
   create: (master: string) => Promise<void>;
   unlock: (master: string) => Promise<void>;
+  unlockWithBiometric: () => Promise<void>;
   lock: () => Promise<void>;
   /** Open the dialog and resolve once the vault is usable — or false if dismissed. */
   require: (reason: string) => Promise<boolean>;
@@ -44,6 +45,14 @@ export const useVault = create<VaultState>((set, get) => ({
 
   unlock: async (master) => {
     await vaultApi()?.unlock(master);
+    set({ exists: true, unlocked: true });
+    get().resolvePrompt(true);
+  },
+
+  unlockWithBiometric: async () => {
+    const unlock = vaultApi()?.biometricUnlock;
+    if (!unlock) throw new Error("此设备不支持 Touch ID 解锁。");
+    await unlock();
     set({ exists: true, unlocked: true });
     get().resolvePrompt(true);
   },

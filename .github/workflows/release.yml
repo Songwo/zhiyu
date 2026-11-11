@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 重新验证并发布的现有正式标签（例如 v1.17.11）
+        description: 重新验证并发布的现有正式标签（例如 v1.17.12）
         required: true
-        default: "v1.17.11"
+        default: "v1.17.12"
         type: string
 permissions:
   contents: read

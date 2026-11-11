@@ -6,6 +6,7 @@ import {
   FolderOpen,
   Loader2,
   Lock,
+  Fingerprint,
   Monitor,
   Moon,
   ScrollText,
@@ -653,6 +654,22 @@ function VaultSection() {
   const [confirmPw, setConfirmPw] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [biometric, setBiometric] = useState<{ available: boolean; enabled: boolean } | null>(null);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+
+  useEffect(() => {
+    if (!vault?.biometricStatus || !exists) return;
+    let current = true;
+    void vault
+      .biometricStatus()
+      .then((status) => {
+        if (current) setBiometric(status);
+      })
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [vault, exists]);
 
   if (!vault) {
     return (
@@ -672,6 +689,7 @@ function VaultSection() {
     setBusy(true);
     try {
       const res = await vault!.changePassword(oldPw, newPw);
+      setBiometric((status) => status && { ...status, enabled: false });
       await refresh();
       setOldPw("");
       setNewPw("");
@@ -681,6 +699,21 @@ function VaultSection() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function toggleBiometric() {
+    if (!vault || !biometric) return;
+    setBiometricBusy(true);
+    try {
+      if (biometric.enabled) await vault.biometricDisable?.();
+      else await vault.biometricEnable?.();
+      setBiometric(await vault.biometricStatus!());
+      toast.success(t(biometric.enabled ? "Touch ID 解锁已关闭" : "Touch ID 解锁已开启"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBiometricBusy(false);
     }
   }
 
@@ -710,6 +743,28 @@ function VaultSection() {
             </Button>
           )}
         </Row>
+        {(biometric?.available || biometric?.enabled) && exists && (
+          <Row
+            label={t("Touch ID 解锁")}
+            hint={t(
+              "仅在这台 Mac 保存受系统钥匙串保护的解锁材料。开启时需验证指纹；主密码始终可用。",
+            )}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={biometricBusy || (!biometric.enabled && !unlocked)}
+              onClick={() => void toggleBiometric()}
+            >
+              {biometricBusy ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Fingerprint className="size-3.5" />
+              )}
+              {t(biometric.enabled ? "关闭 Touch ID" : "开启 Touch ID")}
+            </Button>
+          </Row>
+        )}
       </Section>
 
       {exists && (

@@ -28,10 +28,15 @@
 
 [社区友链 · LINUX DO](https://linux.do/) · 真诚、友善、团结、专业。
 
-## 最新版本：1.17.11
+## 最新版本：1.17.12
+
+- **Mac Touch ID**：密钥库解锁后可在设置中主动开启；主密码始终可用，改密或恢复备份会清理本机快捷解锁材料。尚待带 Touch ID 的 Mac 实机验收。
+- **同步发布**：Windows、Mac 双架构与 Web 镜像、下载页，详见 [1.17.12 发布说明](docs/releases/v1.17.12.md)。Mac 未签名、未公证。
+
+### 1.17.11
 
 - **启动优化**：终端、邮件正文解析和 SMTP 传输首次使用时加载，避免首页启动承担这些功能的全部开销。终端打开后切换页面仍保留实例与会话。
-- **邮箱授权提示**：明确区分身份核验与收件箱连接；完整邮件 OAuth2 和生物认证尚未实现，继续在 #6、#7 跟踪。
+- **邮箱授权提示**：明确区分身份核验与收件箱连接；完整邮件 OAuth2 继续在 #6 跟踪。
 - **同步发布**：Windows、Mac 双架构与 Web 镜像、下载页，详见 [1.17.11 发布说明](docs/releases/v1.17.11.md)。Mac 未签名、未公证。
 
 ### 1.17.10
@@ -222,7 +227,7 @@
 
 ## 安装与首次使用
 
-1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.17.11-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.17.11-portable-x64.zip`。
+1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.17.12-setup.exe`，适用于 Windows x64；不想安装可下载便携版 `Zhiyu-1.17.12-portable-x64.zip`。
 2. 运行安装程序，选择安装位置。当前安装包未做代码签名，请核对发布者、下载地址和 Release 中的 SHA256 校验文件。
 3. 首次启动可选择「使用 Linux.do 登录」绑定主身份，也可直接使用默认工作区名称。创建 10 至 256 位本地主密码并再次确认，头像可稍后设置；Linux.do 登录不代替主密码，也不能找回主密码。
 4. 已有密钥库的用户确认工作区名称及原主密码即可继续，升级不会自动删除资产或演示记录。
@@ -230,7 +235,7 @@
 
 不想安装？Releases 同时提供 Windows 便携版 `Zhiyu-x.y.z-portable-x64.zip`：解压即用，资料保存在程序旁的 `data` 文件夹，详见 [使用教程 · 便携版](docs/USER-GUIDE.md#便携版免安装)。
 
-macOS 下载：[Apple Silicon DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.11/Zhiyu-1.17.11-mac-arm64.dmg) · [Apple Silicon ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.11/Zhiyu-1.17.11-mac-arm64.zip) · [Intel DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.11/Zhiyu-1.17.11-mac-x64.dmg) · [Intel ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.11/Zhiyu-1.17.11-mac-x64.zip)。后续版本以 [Release](https://github.com/Songwo/zhiyu/releases/latest) 和[下载页](https://songwo.github.io/zhiyu/#download)为准。
+macOS 下载：[Apple Silicon DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.12/Zhiyu-1.17.12-mac-arm64.dmg) · [Apple Silicon ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.12/Zhiyu-1.17.12-mac-arm64.zip) · [Intel DMG](https://github.com/Songwo/zhiyu/releases/download/v1.17.12/Zhiyu-1.17.12-mac-x64.dmg) · [Intel ZIP](https://github.com/Songwo/zhiyu/releases/download/v1.17.12/Zhiyu-1.17.12-mac-x64.zip)。后续版本以 [Release](https://github.com/Songwo/zhiyu/releases/latest) 和[下载页](https://songwo.github.io/zhiyu/#download)为准。
 
 安装软件无需 Node.js。Windows 提供 x64 安装包和便携版；自 1.17.8 起，每次正式版也提供 macOS Apple Silicon arm64 与 Intel x64 的 DMG、ZIP。Mac 包未签名、未公证，安装与源码构建见 [macOS 说明](docs/MAC-BUILD.md)。Linux 有构建配置，发布验证范围以 Release 记录为准。
 
@@ -435,7 +440,7 @@ npm run build
 npm run desktop:dist -- --win --x64 --publish never
 ```
 
-安装包输出到 `release/v版本号/`，本版为 `release/v1.17.11/`。`npm run desktop:online` 在离线包完成后生成原生在线安装器，`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及验证要求见 [发布说明](docs/RELEASING.md)，本版变化见 [v1.17.11 发布说明](docs/releases/v1.17.11.md)。原生终端需单独编译时运行 `npm run terminal:build`。
+安装包输出到 `release/v版本号/`，本版为 `release/v1.17.12/`。`npm run desktop:online` 在离线包完成后生成原生在线安装器，`npm run extension:build` 生成配套浏览器扩展目录。打包排除后端测试文件；日常资产、私钥和登录令牌不属于构建输入。发布流程及验证要求见 [发布说明](docs/RELEASING.md)，本版变化见 [v1.17.12 发布说明](docs/releases/v1.17.12.md)。原生终端需单独编译时运行 `npm run terminal:build`。
 
 ## 项目结构
 

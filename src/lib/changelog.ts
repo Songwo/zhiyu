@@ -13,6 +13,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.17.12",
+    date: "2026-11-11",
+    title: "Mac Touch ID 密钥库解锁",
+    changes: [
+      "Mac 用户可在密钥库设置中主动开启 Touch ID，解锁后再查看关联账号和凭据；主密码始终可作为恢复入口。Windows 与 Web 不展示不可用入口。",
+      "本机加密保存派生的解锁材料，不保存主密码；系统认证取消或失败、锁屏中断、关闭快捷解锁后不能通过 Touch ID 解锁。修改主密码或恢复备份时清理本机材料。",
+      "同步提供 Windows、Mac Apple Silicon 与 Intel 安装包及 Web 镜像。Mac 未签名、未公证；自动化测试不代表已在带 Touch ID 的实机完成验收。",
+    ],
+  },
+  {
     version: "1.17.11",
     date: "2026-11-10",
     title: "启动按需加载与邮箱授权提示修正",

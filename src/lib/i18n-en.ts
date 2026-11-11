@@ -8,6 +8,7 @@ import { SECURITY_EN } from "./i18n-security-en.ts";
 import { WEB_EN } from "./i18n-web-en.ts";
 import { MOTION_EN } from "./i18n-motion-en.ts";
 import { RELATIONS_EN } from "./i18n-relations-en.ts";
+import { BIOMETRIC_EN } from "./i18n-biometric-en.ts";
 
 /**
  * English strings, keyed by the Chinese source text.
@@ -23,6 +24,7 @@ export const EN: Record<string, string> = {
   工作区概览: "Workspace overview",
   ...MOTION_EN,
   ...RELATIONS_EN,
+  ...BIOMETRIC_EN,
   ...CARDS_EN,
   ...RESEARCH_EN,
   ...INTEGRATIONS_EN,

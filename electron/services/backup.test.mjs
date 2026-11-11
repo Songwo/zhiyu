@@ -100,6 +100,7 @@ async function seedDataDirectory(root, storage) {
   await put(root, "local-usage.json", JSON.stringify({ version: 2, machine: "source" }));
   await put(root, "local-usage.json.v1-abc.backup.json", "migration");
   await put(root, "backup-schedule.json", "{}");
+  await put(root, "touch-id-key.enc", "device-local-biometric-material");
   await put(root, "documents/doc-c.json.tmp", "half");
   await put(root, "restore-snapshots/20260101-000000/assets.json", "older snapshot");
 }
@@ -121,6 +122,7 @@ test("打包只收应用资料，排除 Chromium 缓存、临时文件、本机�
   ]);
   for (const path of ["../evil.json", "/etc/passwd", "documents/../x.json", "a\\b.json", "Cache/x"])
     assert.equal(isBackupPath(path), false, path);
+  assert.equal(isBackupPath("touch-id-key.enc"), false);
 });
 
 test("备份文件是密文：魔数与头部之外看不到资产、清单、时间或凭据", async (t) => {
@@ -142,6 +144,7 @@ test("备份文件是密文：魔数与头部之外看不到资产、清单、�
     "assets.json",
     "1.7.4",
     "Tester",
+    "device-local-biometric-material",
   ])
     assert.equal(text.includes(secret), false, secret);
   const header = JSON.parse(data.subarray(12, 12 + data.readUInt32BE(8)).toString("utf8"));

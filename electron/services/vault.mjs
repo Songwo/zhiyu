@@ -1,5 +1,6 @@
 import {
   randomBytes,
+  createHash,
   createCipheriv,
   createDecipheriv,
   scrypt,
@@ -71,10 +72,9 @@ function assertMaster(master, label) {
 /**
  * Credential store for SSH passwords, private keys and API secrets.
  *
- * The master password is never written anywhere — it derives a key that lives
- * in this process's memory until the app locks or quits. On disk there is only
- * AES-256-GCM ciphertext, one IV and one auth tag per record, so a stolen
- * `vault.enc` is inert without the password.
+ * The master password is never written anywhere. The derived key stays in
+ * memory until lock or quit, unless the user explicitly enables the separate
+ * device-local Touch ID shortcut. Vault records remain AES-256-GCM ciphertext.
  */
 export class Vault {
   #file;
@@ -350,6 +350,49 @@ export class Vault {
       key.fill(0);
       throw error;
     }
+  }
+
+  fingerprint() {
+    return this.#enqueue(
+      async () => {
+        const { doc } = await this.#read();
+        return doc
+          ? createHash("sha256")
+              .update(JSON.stringify([doc.salt, doc.kdf, doc.check]))
+              .digest("hex")
+          : null;
+      },
+      { cancelOnLock: false },
+    );
+  }
+
+  exportUnlockKey() {
+    if (!this.#key) throw new Error("请先用主密码解锁密钥库。");
+    return Buffer.from(this.#key);
+  }
+
+  unlockWithKey(candidate) {
+    return this.#enqueue(async (generation) => {
+      if (!Buffer.isBuffer(candidate) || candidate.length !== KEY_LEN)
+        throw new Error("Touch ID 解锁材料无效，请使用主密码。");
+      const snapshot = await this.#read();
+      const { doc } = snapshot;
+      if (!doc) throw new Error("密钥库尚未创建");
+      this.#assertGeneration(generation);
+      let valid = false;
+      try {
+        const probe = open(candidate, doc.check);
+        const expected = Buffer.from("sinan-vault");
+        valid = probe.length === expected.length && timingSafeEqual(probe, expected);
+      } catch {
+        valid = false;
+      }
+      if (!valid) throw new Error("Touch ID 解锁材料已失效，请使用主密码重新开启。");
+      this.#assertUnchanged(snapshot);
+      this.#assertGeneration(generation);
+      this.#replaceKey(Buffer.from(candidate), doc);
+      return { ok: true };
+    });
   }
 
   unlock(master) {

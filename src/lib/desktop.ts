@@ -338,6 +338,10 @@ export interface DesktopBridge {
     unlock(master: string): Promise<{ ok: true }>;
     lock(): Promise<{ ok: true }>;
     changePassword(oldMaster: string, newMaster: string): Promise<{ ok: true; count: number }>;
+    biometricStatus?(): Promise<{ available: boolean; enabled: boolean }>;
+    biometricEnable?(): Promise<{ enabled: true }>;
+    biometricDisable?(): Promise<{ enabled: false }>;
+    biometricUnlock?(): Promise<{ ok: true }>;
     set(id: string, secret: SshCredential | AccountCredential): Promise<{ ok: true }>;
     get(id: string): Promise<(SshCredential & AccountCredential) | null>;
     remove(id: string): Promise<{ ok: true }>;

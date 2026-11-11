@@ -41,6 +41,7 @@ import {
   nativeImage,
   Notification,
   safeStorage,
+  systemPreferences,
   screen,
   powerMonitor,
 } from "electron";
@@ -64,6 +65,7 @@ import { MailClient, validateSmtp } from "./services/mail-client.mjs";
 import { OAUTH_PROVIDERS, signIn as oauthSignIn } from "./services/oauth.mjs";
 import { readOAuthClientFile } from "./services/oauth-client-file.mjs";
 import { Vault, vaultPath } from "./services/vault.mjs";
+import { BiometricUnlock } from "./services/biometric-unlock.mjs";
 import { MetricsStore } from "./services/metrics.mjs";
 import {
   attentionLine,
@@ -153,6 +155,7 @@ const DEV_URL = process.env.SINAN_DEV_URL || null;
 /** @type {BrowserWindow | null} */
 let win = null;
 let vault = null;
+let biometricUnlock = null;
 let ssh = null;
 let nativeTerminals = null;
 let metrics;
@@ -621,6 +624,12 @@ function registerIpc() {
     captures.discard(id);
   });
   vault = new Vault(vaultPath(app.getPath("userData")));
+  biometricUnlock = new BiometricUnlock({
+    vault,
+    storage: safeStorage,
+    system: systemPreferences,
+    directory: app.getPath("userData"),
+  });
   // 外部恢复与写入冲突也会自动锁库，必须清理会话并通知界面隐藏已读取的凭据。
   vault.onLock(() => {
     stopPrivateTasks();
@@ -1541,6 +1550,7 @@ function registerIpc() {
       const backup = await openBackup(await readBackupFile(restorePath(ticket)), password);
       await flushWrites();
       const result = await stageRestore({ root: userData, backup, secureStorage: safeStorage });
+      await biometricUnlock.disable();
       restoreTickets.clear();
       restartingForRestore = true;
       // 先把结果返回给界面，再退出；替换在下次启动、任何服务读取资料之前完成。
@@ -1626,9 +1636,20 @@ function registerIpc() {
     return result;
   });
   handle("vault:lock", lockVault);
-  handle("vault:change-password", (oldMaster, newMaster) =>
-    vault.changePassword(oldMaster, newMaster),
-  );
+  handle("vault:biometric-status", () => biometricUnlock.status());
+  handle("vault:biometric-enable", () => biometricUnlock.enable());
+  handle("vault:biometric-disable", () => biometricUnlock.disable());
+  handle("vault:biometric-unlock", async () => {
+    const result = await biometricUnlock.unlock();
+    await publishBrowserAssets(await browserPasswords.managedAssets());
+    await publishBrowserAssets(await identities.managedAssets());
+    return result;
+  });
+  handle("vault:change-password", async (oldMaster, newMaster) => {
+    const result = await vault.changePassword(oldMaster, newMaster);
+    await biometricUnlock.disable();
+    return result;
+  });
   handle("vault:set", async (id, secret) => {
     assertPublicVaultRecord(id);
     if (id.startsWith("account:")) {

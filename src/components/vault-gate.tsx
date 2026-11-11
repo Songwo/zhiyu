@@ -1,11 +1,12 @@
 import { isWeb } from "@/lib/web";
-import { KeyRound, Lock, ShieldCheck } from "lucide-react";
+import { Fingerprint, KeyRound, Lock, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Button } from "./ui/button";
 import { Field, Input } from "./ui/input";
 import { usePresence } from "@/lib/motion";
 import { useVault } from "@/lib/vault-state";
+import { vaultApi } from "@/lib/vault-api";
 import { t } from "@/lib/i18n";
 
 /** 所有凭据操作共用解锁弹窗，解锁后继续原操作；主密码不进入持久化状态。 */
@@ -14,6 +15,7 @@ export function VaultGate() {
   const exists = useVault((s) => s.exists);
   const create = useVault((s) => s.create);
   const unlock = useVault((s) => s.unlock);
+  const unlockWithBiometric = useVault((s) => s.unlockWithBiometric);
   const resolvePrompt = useVault((s) => s.resolvePrompt);
   const { mounted, shown } = usePresence(prompt !== null, 180);
 
@@ -21,6 +23,7 @@ export function VaultGate() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
   const field = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,6 +32,21 @@ export function VaultGate() {
     setError(null);
     // 首次聚焦由 Dialog 的 onOpenAutoFocus 处理，禁止延迟任务抢走后续输入框焦点。
   }, [prompt]);
+
+  useEffect(() => {
+    if (!prompt || !exists) return;
+    let current = true;
+    setBiometricEnabled(false);
+    void vaultApi()
+      ?.biometricStatus?.()
+      .then((status) => {
+        if (current) setBiometricEnabled(status.available && status.enabled);
+      })
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [prompt, exists]);
 
   if (!mounted) return null;
 
@@ -46,6 +64,24 @@ export function VaultGate() {
       else await create(password);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      field.current?.focus();
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function authenticateWithTouchId() {
+    if (working) return;
+    setWorking(true);
+    setError(null);
+    try {
+      await unlockWithBiometric();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      const status = await vaultApi()
+        ?.biometricStatus?.()
+        .catch(() => null);
+      if (status && !status.enabled) setBiometricEnabled(false);
       field.current?.focus();
     } finally {
       setWorking(false);
@@ -140,6 +176,19 @@ export function VaultGate() {
                       : "本次运行内无需重复解锁；锁屏、休眠或退出后会重新锁定。",
                   )}
                 </p>
+              )}
+
+              {exists && biometricEnabled && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 w-full"
+                  disabled={working}
+                  onClick={() => void authenticateWithTouchId()}
+                >
+                  <Fingerprint className="size-4" />
+                  {t("使用 Touch ID 解锁")}
+                </Button>
               )}
 
               {!exists && (

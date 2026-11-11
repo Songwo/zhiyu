@@ -285,6 +285,10 @@ contextBridge.exposeInMainWorld("sinan", {
     lock: () => unwrap(ipcRenderer.invoke("vault:lock")),
     changePassword: (oldMaster, newMaster) =>
       unwrap(ipcRenderer.invoke("vault:change-password", oldMaster, newMaster)),
+    biometricStatus: () => unwrap(ipcRenderer.invoke("vault:biometric-status")),
+    biometricEnable: () => unwrap(ipcRenderer.invoke("vault:biometric-enable")),
+    biometricDisable: () => unwrap(ipcRenderer.invoke("vault:biometric-disable")),
+    biometricUnlock: () => unwrap(ipcRenderer.invoke("vault:biometric-unlock")),
     set: (id, secret) => unwrap(ipcRenderer.invoke("vault:set", id, secret)),
     get: (id) => unwrap(ipcRenderer.invoke("vault:get", id)),
     remove: (id) => unwrap(ipcRenderer.invoke("vault:remove", id)),
