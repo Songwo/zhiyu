@@ -27,6 +27,7 @@ export type SelectProps = Omit<
   options: readonly SelectOption[];
   placeholder?: string;
   required?: boolean;
+  portalContainer?: HTMLElement | null;
   ref?: Ref<HTMLButtonElement>;
 };
 
@@ -43,6 +44,7 @@ export function Select({
   name,
   required,
   form,
+  portalContainer,
   ref,
   ...props
 }: SelectProps) {
@@ -108,7 +110,7 @@ export function Select({
             <ChevronDown className="ui-select-chevron size-4 shrink-0 text-muted" />
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
-        <SelectPrimitive.Portal>
+        <SelectPrimitive.Portal container={portalContainer}>
           <SelectPrimitive.Content
             position="popper"
             sideOffset={6}

@@ -56,6 +56,9 @@ import {
 } from "../../electron/services/reminders.mjs";
 import { retainActivity } from "./activity-history.mjs";
 
+export type ComposerAsset =
+  Server | Domain | Mailbox | AiAsset | Secret | Certificate | ServiceAsset;
+
 export interface UsageSetupDraft {
   type?: "3x-ui" | "subscription" | "openai-api" | "anthropic-api";
   serverId?: string;
@@ -162,6 +165,12 @@ export interface AppState extends Snapshot {
     preset?: Record<string, string>,
   ) => void;
   linkAssetsMany: (from: ResourceRef, targets: ResourceRef[]) => void;
+  upsertAssetWithRelations: (
+    kind: AssetKind,
+    asset: ComposerAsset,
+    targets: ResourceRef[],
+    documentLinkTargets?: ResourceRef[],
+  ) => void;
   closeComposer: () => void;
   setMobileNav: (v: boolean) => void;
   setHydrated: (v: boolean) => void;
@@ -280,6 +289,56 @@ export const useAppStore = create<AppState>()(
           next = mutateResourceRelation({ ...initial, ...next }, from, target);
         set(next);
       },
+      // 资产与普通资源关系一次写入同一份快照，避免出现“资产已保存但关系丢了”的中间态。
+      upsertAssetWithRelations: (kind, asset, targets, documentLinkTargets = []) =>
+        set((state) => {
+          const patch =
+            kind === "server"
+              ? { servers: upsert(state.servers, asset as Server) }
+              : kind === "domain"
+                ? { domains: upsert(state.domains, asset as Domain) }
+                : kind === "mail"
+                  ? { mailboxes: upsert(state.mailboxes, asset as Mailbox) }
+                  : kind === "ai"
+                    ? { aiAssets: upsert(state.aiAssets, asset as AiAsset) }
+                    : kind === "secret"
+                      ? { secrets: upsert(state.secrets, asset as Secret) }
+                      : kind === "cert"
+                        ? { certs: upsert(state.certs, asset as Certificate) }
+                        : { services: upsert(state.services, asset as ServiceAsset) };
+          const owner = { kind, id: asset.id } as ResourceRef;
+          const ownerKey = refKey(owner);
+          const base = { ...state, ...patch };
+          let links = base.links.filter(
+            (link) => refKey(link.from) !== ownerKey && refKey(link.to) !== ownerKey,
+          );
+          let phoneNumbers =
+            kind === "ai"
+              ? base.phoneNumbers.map((phone) =>
+                  phone.subscriptionIds.includes(asset.id)
+                    ? {
+                        ...phone,
+                        subscriptionIds: phone.subscriptionIds.filter((id) => id !== asset.id),
+                      }
+                    : phone,
+                )
+              : base.phoneNumbers;
+          const unique = [
+            ...new Map(
+              [
+                ...targets.filter((target) => target.kind !== "document"),
+                ...documentLinkTargets.filter((target) => target.kind === "document"),
+              ].map((target) => [refKey(target), target]),
+            ).values(),
+          ];
+          for (const target of unique) {
+            if (refKey(target) === ownerKey) continue;
+            const next = mutateResourceRelation({ ...base, links, phoneNumbers }, owner, target);
+            links = next.links;
+            phoneNumbers = next.phoneNumbers;
+          }
+          return { ...patch, links, phoneNumbers };
+        }),
       unlinkAssets: (from, to) => set(mutateResourceRelation(get(), from, to, true)),
       removeResourceLinks: (ref) =>
         set({

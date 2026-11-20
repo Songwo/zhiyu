@@ -56,7 +56,20 @@ export function resourceRows(rows, documents, snapshot) {
           })(),
         },
       ]),
-      ...snapshot.secrets.map((x) => [resourceKey({ kind: "secret", id: x.id }), { demo: x.demo }]),
+      ...snapshot.secrets.map((x) => [
+        resourceKey({ kind: "secret", id: x.id }),
+        {
+          demo: x.demo,
+          typeLabel:
+            x.kind === "password" || x.kind === "account"
+              ? "网站账号"
+              : x.kind === "ssh"
+                ? "SSH 密钥"
+                : x.kind === "token"
+                  ? "访问令牌"
+                  : "API 密钥",
+        },
+      ]),
     ].map(
       ([key, value]) =>
         /** @type {[string, {demo?:boolean,host?:string,typeLabel?:string}]} */ ([key, value]),
@@ -291,8 +304,77 @@ export function suggestRelations(rows, relations) {
   return [...suggestions.values()];
 }
 
-/** @param {ResourceRow[]} rows @param {Relation[]} relations @param {boolean} vertical */
-export function resourceGraph(rows, relations, vertical) {
+/** 相连资源按距中心的层数排列，每层超过四项时换列；孤立资源独立成组。
+ * @param {ResourceRow[]} rows @param {Relation[]} relations @param {ResourceRef|null} focus
+ */
+function relationshipSlots(rows, relations, focus) {
+  const keys = rows.map(resourceKey);
+  const order = new Map(keys.map((key, index) => [key, index]));
+  /** @type {Map<string,Set<string>>} */
+  const neighbors = new Map(keys.map((key) => [key, new Set()]));
+  for (const { from, to } of relations) {
+    const a = resourceKey(from),
+      b = resourceKey(to);
+    if (a !== b && neighbors.has(a) && neighbors.has(b)) {
+      neighbors.get(a)?.add(b);
+      neighbors.get(b)?.add(a);
+    }
+  }
+  const ranked = [...keys].sort(
+    (a, b) =>
+      (neighbors.get(b)?.size ?? 0) - (neighbors.get(a)?.size ?? 0) ||
+      (order.get(a) ?? 0) - (order.get(b) ?? 0),
+  );
+  const pending = new Set(keys.filter((key) => neighbors.get(key)?.size));
+  /** @type {Map<string, {column:number,slot:number}>} */
+  const placed = new Map();
+  let base = 0;
+  while (pending.size) {
+    const focused = focus && resourceKey(focus);
+    const root = focused && pending.has(focused) ? focused : ranked.find((key) => pending.has(key));
+    if (!root) break;
+    const queue = [root];
+    const distances = new Map([[root, 0]]);
+    pending.delete(root);
+    for (let index = 0; index < queue.length; index++) {
+      const current = queue[index];
+      for (const next of [...(neighbors.get(current) ?? [])].sort(
+        (a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0),
+      )) {
+        if (distances.has(next)) continue;
+        distances.set(next, (distances.get(current) ?? 0) + 1);
+        pending.delete(next);
+        queue.push(next);
+      }
+    }
+    let column = 0,
+      height = 1;
+    const maxDepth = Math.max(...distances.values());
+    for (let depth = 0; depth <= maxDepth; depth++) {
+      const layer = queue.filter((key) => distances.get(key) === depth);
+      height = Math.max(height, Math.min(4, layer.length));
+      layer.forEach((key, index) =>
+        placed.set(key, { column: column + Math.floor(index / 4), slot: base + (index % 4) }),
+      );
+      column += Math.ceil(layer.length / 4);
+    }
+    const center = placed.get(root);
+    if (center) center.slot = base + (height - 1) / 2;
+    // 断开的子图不必各留一整行空白；保留卡片间距即可。
+    base += height + 0.4;
+  }
+  keys
+    .filter((key) => !placed.has(key))
+    .forEach((key, index) =>
+      placed.set(key, { column: index % 4, slot: base + Math.floor(index / 4) }),
+    );
+  return placed;
+}
+
+/** @param {ResourceRow[]} rows @param {Relation[]} relations @param {boolean} vertical
+ * @param {'types'|'relationships'} [layout] @param {ResourceRef|null} [focus]
+ */
+export function resourceGraph(rows, relations, vertical, layout = "types", focus = null) {
   const kinds = [
     "secret",
     "server",
@@ -308,24 +390,27 @@ export function resourceGraph(rows, relations, vertical) {
   const slots = new Map();
   const known = new Set(rows.map(resourceKey));
   const nodeId = (/** @type {ResourceRef} */ ref) => encodeURIComponent(resourceKey(ref));
+  const placed = layout === "relationships" ? relationshipSlots(rows, relations, focus) : null;
   return {
     nodes: rows.map((row) => {
       const slot = slots.get(row.kind) ?? 0;
       slots.set(row.kind, slot + 1);
+      const point = placed?.get(resourceKey(row)) ?? { column: kinds.indexOf(row.kind), slot };
       return {
         id: nodeId(row),
         type: /** @type {const} */ ("asset"),
         position: vertical
-          ? { x: slot * 260, y: kinds.indexOf(row.kind) * 150 }
-          : { x: kinds.indexOf(row.kind) * 280, y: slot * 140 },
+          ? { x: point.slot * (placed ? 280 : 260), y: point.column * (placed ? 190 : 150) }
+          : { x: point.column * (placed ? 300 : 280), y: point.slot * (placed ? 160 : 140) },
         data: { asset: row, vertical },
       };
     }),
     edges: relations
       .filter(({ from, to }) => known.has(resourceKey(from)) && known.has(resourceKey(to)))
       .map((link, index) => {
-        const fromColumn = kinds.indexOf(link.from.kind),
-          toColumn = kinds.indexOf(link.to.kind);
+        const fromColumn =
+            placed?.get(resourceKey(link.from))?.column ?? kinds.indexOf(link.from.kind),
+          toColumn = placed?.get(resourceKey(link.to))?.column ?? kinds.indexOf(link.to.kind);
         const forward = fromColumn <= toColumn;
         const bypass = Math.abs(fromColumn - toColumn) !== 1;
         return {

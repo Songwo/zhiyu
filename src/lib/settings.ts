@@ -15,6 +15,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { normalizeMotionMode, type MotionMode } from "./motion-policy.mjs";
 import { resolveLocale, setLocale, type LocaleChoice } from "./i18n";
+import { normalizeGraphAppearance, type GraphAppearance } from "./graph-appearance";
 import {
   normalizeTerminalAppearance,
   legacyTerminalAppearance,
@@ -26,6 +27,10 @@ export type ThemeChoice = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
 interface SettingsState {
+  autoLoadMailImages: boolean;
+  setAutoLoadMailImages: (enabled: boolean) => void;
+  graphAppearance: GraphAppearance;
+  setGraphAppearance: (value: GraphAppearance) => void;
   motionMode: MotionMode;
   setMotionMode: (mode: MotionMode) => void;
   terminalAppearance: TerminalAppearance;
@@ -98,6 +103,10 @@ export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
+      autoLoadMailImages: false,
+      setAutoLoadMailImages: (enabled) => set({ autoLoadMailImages: enabled }),
+      graphAppearance: normalizeGraphAppearance(null),
+      setGraphAppearance: (value) => set({ graphAppearance: normalizeGraphAppearance(value) }),
       motionMode: "full",
       setMotionMode: (mode) => set({ motionMode: normalizeMotionMode(mode) }),
       terminalAppearance: initialTerminalAppearance(),
@@ -165,8 +174,10 @@ export const useSettings = create<SettingsState>()(
       partialize: (s) =>
         ({
           theme: s.theme,
+          autoLoadMailImages: s.autoLoadMailImages,
           motionMode: s.motionMode,
           terminalAppearance: s.terminalAppearance,
+          graphAppearance: s.graphAppearance,
           serverMonitorMinutes: s.serverMonitorMinutes,
           language: s.language,
           assetLayout: s.assetLayout,
@@ -183,7 +194,9 @@ export const useSettings = create<SettingsState>()(
         return {
           ...current,
           ...saved,
+          autoLoadMailImages: saved?.autoLoadMailImages === true,
           motionMode: normalizeMotionMode(saved?.motionMode),
+          graphAppearance: normalizeGraphAppearance(saved?.graphAppearance),
           terminalAppearance: saved?.terminalAppearance
             ? migrateTerminalAppearance(saved.terminalAppearance)
             : initialTerminalAppearance(),

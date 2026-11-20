@@ -15,6 +15,8 @@ export function accountFromForm(form, previous = null) {
   const password = form._password || previous?.password;
   const note = field("_note", previous?.note);
   const provider = field("_oauthProvider", previous?.oauth?.provider);
+  const mailClientId = field("_oauthMailClientId", previous?.oauth?.mailClientId);
+  const mailAddress = field("_oauthMailAddress", previous?.oauth?.mailAddress);
   const oauth = provider
     ? {
         provider,
@@ -25,6 +27,7 @@ export function accountFromForm(form, previous = null) {
           ? form._oauthExpires || null
           : (previous?.oauth?.expiresAt ?? null),
         scope: form._oauthScope ?? previous?.oauth?.scope ?? "",
+        ...(mailClientId && mailAddress ? { mailClientId, mailAddress } : {}),
       }
     : undefined;
   if (!url && !username && !password && !note && !oauth) return null;
@@ -44,6 +47,7 @@ export function accountFromForm(form, previous = null) {
 export function clearAccountDraft(form) {
   const next = { ...form };
   for (const key of ACCOUNT_KEYS) delete next[key];
+  for (const key of Object.keys(next)) if (key.startsWith("_oauth")) delete next[key];
   return next;
 }
 

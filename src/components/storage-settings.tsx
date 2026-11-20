@@ -1,10 +1,11 @@
 import { hostBridge } from "@/lib/web-bridge";
 import { isWeb } from "@/lib/web";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Database, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { clearImageGrants, imageGrantCount } from "@/lib/mail-image-grants";
+import { useSettings } from "@/lib/settings";
 import { Button } from "./ui/button";
 
 type StorageStats = {
@@ -22,6 +23,9 @@ function formatBytes(bytes: number): string {
 
 export function StorageSettings() {
   const api = hostBridge()?.storage;
+  const autoLoadMailImages = useSettings((s) => s.autoLoadMailImages);
+  const setAutoLoadMailImages = useSettings((s) => s.setAutoLoadMailImages);
+  const imageWarningId = useId();
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [grants, setGrants] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -62,6 +66,21 @@ export function StorageSettings() {
       <div className="flex items-center gap-3">
         <Database className="size-5 text-muted" />
         <h3 className="text-lg font-semibold">{t("存储")}</h3>
+      </div>
+      <div className="space-y-1 border-b border-line pb-4">
+        <label className="flex cursor-pointer items-center gap-3 py-1 text-meta font-medium">
+          <input
+            type="checkbox"
+            className="size-4"
+            checked={autoLoadMailImages}
+            aria-describedby={imageWarningId}
+            onChange={(event) => setAutoLoadMailImages(event.target.checked)}
+          />
+          {t("自动加载邮件外部图片")}
+        </label>
+        <p id={imageWarningId} className="text-meta text-muted">
+          {t("加载后，发件方可能获知你的 IP 地址及阅读时间。")}
+        </p>
       </div>
       <p className="text-meta text-muted">
         {isWeb()
@@ -137,7 +156,10 @@ export function StorageSettings() {
           <div className="border-t border-line pt-4">
             <h4 className="mb-2 font-semibold">{t("图片授权记忆")}</h4>
             <p className="mb-3 text-meta text-muted">
-              {t("已记住 {0} 封邮件的外部图片授权；清除后所有邮件重新询问。", grants)}
+              {t(
+                "已记住 {0} 封邮件的外部图片授权。关闭自动加载后，仅这些邮件仍会自动显示图片。",
+                grants,
+              )}
             </p>
             <Button
               variant="outline"

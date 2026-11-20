@@ -5,16 +5,13 @@ import { shell, net } from "electron";
 /**
  * Desktop OAuth providers.
  *
- * Only non-sensitive scopes: the verified address is all a credential vault
- * wants from OAuth, and asking for mailbox scopes would drag the project into
- * Google's verification process for no gain. The IMAP path already reads real
- * mailbox data, and it does so with a credential the user can actually store.
+ * 默认仅申请身份权限。邮件收发需要用户单独选择授权。
  *
  * `usesSecret` is not a style choice — Google's "desktop app" clients must send
  * a client secret at the token endpoint, and Microsoft's public clients must
  * not send one at all.
  */
-import { OAUTH_PROVIDERS } from "./oauth-providers.mjs";
+import { MAIL_OAUTH_SCOPES, OAUTH_PROVIDERS } from "./oauth-providers.mjs";
 export { OAUTH_PROVIDERS } from "./oauth-providers.mjs";
 
 const base64url = (buf) => buf.toString("base64url");
@@ -26,8 +23,8 @@ const base64url = (buf) => buf.toString("base64url");
  * see the password being typed, which is the entire thing OAuth exists to
  * avoid — and most providers refuse to render in one anyway.
  */
-export async function signIn({ provider, clientId, clientSecret }) {
-  const config = OAUTH_PROVIDERS[provider];
+export async function signIn({ provider, clientId, clientSecret, mailAccess = false }) {
+  const config = Object.hasOwn(OAUTH_PROVIDERS, provider) ? OAUTH_PROVIDERS[provider] : undefined;
   if (!config) throw new Error(`不支持的登录方式：${provider}`);
   if (!clientId) throw new Error("请先填写客户端 ID");
   if (config.usesSecret && !clientSecret)
@@ -36,6 +33,16 @@ export async function signIn({ provider, clientId, clientSecret }) {
   const verifier = base64url(randomBytes(32));
   const challenge = base64url(createHash("sha256").update(verifier).digest());
   const state = base64url(randomBytes(16));
+  const nonce = base64url(randomBytes(16));
+  const scopes = mailAccess
+    ? [
+        "openid",
+        "email",
+        "profile",
+        ...(provider === "microsoft" ? ["offline_access"] : []),
+        ...MAIL_OAUTH_SCOPES[provider],
+      ]
+    : config.scopes;
 
   const { server, port } = await listenOnFreePort(config.loopbackHost);
   const redirectUri = `http://${config.loopbackHost}:${port}`;
@@ -46,16 +53,18 @@ export async function signIn({ provider, clientId, clientSecret }) {
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("scope", config.scopes.join(" "));
+  authUrl.searchParams.set("scope", scopes.join(" "));
+  if (mailAccess) authUrl.searchParams.set("nonce", nonce);
   authUrl.searchParams.set("code_challenge", challenge);
   authUrl.searchParams.set("code_challenge_method", "S256");
   authUrl.searchParams.set("state", state);
   for (const [k, v] of Object.entries(config.extraAuthParams)) authUrl.searchParams.set(k, v);
 
-  await shell.openExternal(authUrl.toString());
-
   let code;
   try {
+    // 提前处理取消回调，避免浏览器打开失败后遗留超时拒绝。
+    void codePromise.catch(() => {});
+    await shell.openExternal(authUrl.toString());
     code = await codePromise;
   } finally {
     server.close();
@@ -70,14 +79,45 @@ export async function signIn({ provider, clientId, clientSecret }) {
   });
   if (config.usesSecret) body.set("client_secret", clientSecret);
 
-  const tokens = await postForm(config.tokenUrl, body);
+  const tokens = mailAccess
+    ? await net
+        .fetch(config.tokenUrl, {
+          method: "POST",
+          body,
+          redirect: "error",
+          signal: AbortSignal.timeout(15000),
+        })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("邮件授权换取令牌失败，请检查客户端设置。");
+          return response.json();
+        })
+    : await postForm(config.tokenUrl, body);
   if (tokens.error) {
     throw new Error(`换取令牌失败：${tokens.error_description ?? tokens.error}`);
   }
 
-  const profile = await getJson(config.userInfoUrl, tokens.access_token);
+  const granted = tokens.scope ?? scopes.join(" ");
+  if (
+    mailAccess &&
+    (typeof tokens.refresh_token !== "string" ||
+      !tokens.refresh_token ||
+      typeof granted !== "string" ||
+      !MAIL_OAUTH_SCOPES[provider].every((scope) =>
+        granted.toLowerCase().split(/\s+/).includes(scope.toLowerCase()),
+      ))
+  )
+    throw new Error("服务商未授予邮件收发权限或未返回刷新令牌，请重新授权。");
+  // Microsoft 的 Exchange 访问令牌不能调用 Microsoft Graph 的 /me。
+  // 身份从官方令牌端点直接返回的 ID token 中读取，并校验本次登录绑定。
+  const profile =
+    mailAccess && provider === "microsoft"
+      ? mailIdentity(tokens.id_token, clientId, nonce)
+      : await getJson(config.userInfoUrl, tokens.access_token);
   const address =
-    profile.email ?? profile.mail ?? profile.userPrincipalName ?? claimFromIdToken(tokens.id_token);
+    profile.email ??
+    profile.mail ??
+    profile.userPrincipalName ??
+    (mailAccess ? null : claimFromIdToken(tokens.id_token));
   if (!address) throw new Error("登录成功，但没有拿到邮箱地址");
 
   return {
@@ -90,9 +130,26 @@ export async function signIn({ provider, clientId, clientSecret }) {
     expiresAt: tokens.expires_in
       ? new Date(Date.now() + Number(tokens.expires_in) * 1000).toISOString()
       : null,
-    scope: tokens.scope ?? config.scopes.join(" "),
+    scope: granted,
+    ...(mailAccess ? { mailClientId: clientId } : {}),
     at: new Date().toISOString(),
   };
+}
+
+function mailIdentity(idToken, clientId, nonce) {
+  try {
+    const claims = JSON.parse(Buffer.from(idToken.split(".")[1], "base64url").toString("utf8"));
+    if (
+      claims.aud !== clientId ||
+      claims.nonce !== nonce ||
+      !(claims.exp > Date.now() / 1000) ||
+      !/^https:\/\/login\.microsoftonline\.com\/[0-9a-f-]+\/v2\.0$/i.test(claims.iss)
+    )
+      throw new Error();
+    return { email: claims.email ?? claims.preferred_username, name: claims.name };
+  } catch {
+    throw new Error("无法确认 Microsoft 邮箱身份，请重新授权。");
+  }
 }
 
 /** Ask the OS for a spare port so two sign-ins never collide. */
@@ -108,6 +165,7 @@ function listenOnFreePort(host) {
 function waitForCode(server, expectedState) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("登录超时，浏览器没有返回结果")), 5 * 60_000);
+    server.once("close", () => clearTimeout(timer));
 
     server.on("request", (req, res) => {
       const url = new URL(req.url ?? "/", "http://localhost");
@@ -120,10 +178,10 @@ function waitForCode(server, expectedState) {
         res.end(page(message, ok));
       };
 
-      if (error) {
-        done(`授权被拒绝：${error}`, false);
+      if (error && state === expectedState) {
+        done("授权未完成，可以返回知屿重试。", false);
         clearTimeout(timer);
-        reject(new Error(`授权被拒绝：${error}`));
+        reject(new Error("授权未完成，可以返回知屿重试。"));
         return;
       }
       // A stray request on the loopback port must not be able to inject a code.

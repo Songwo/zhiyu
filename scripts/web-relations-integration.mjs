@@ -160,6 +160,14 @@ try {
     false,
   );
   assert.deepEqual(after.content, doc.content);
+  // 只有独立关系图页收起说明；服务器里的图谱布局保持原有行为。
+  await page.getByRole("button", { name: "管理资源关联", exact: true }).click();
+  await focus.click();
+  await page.getByRole("option").filter({ hasText: mail.address }).click();
+  await page.locator(".resource-graph-compact").waitFor();
+  assert.equal(await chain.locator(".resource-chain-details").count(), 0);
+  await chain.getByRole("button", { name: "链路详情", exact: true }).click();
+  await chain.getByText(/直接关联 1 项/).waitFor();
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify(

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import nodemailer from "nodemailer";
 import { MailClient, validateSmtp, validateDraft } from "./mail-client.mjs";
+import { createMailOAuthResolver } from "./mail-oauth-credential.mjs";
 
 const draft = () => ({
   to: "recipient@example.test",
@@ -89,6 +90,7 @@ function fixture(overrides = {}) {
   const service = new MailClient({
     vault,
     getSnapshot: async () => ({ mailboxes: [account] }),
+    resolveOAuth: overrides.resolveOAuth?.(vault),
     createImap: (options) => {
       calls.push({ imapOptions: options });
       client = new FakeImap();
@@ -110,6 +112,71 @@ function fixture(overrides = {}) {
   return { service, vault, saved, account, calls, client: () => client };
 }
 const selected = { folder: "INBOX", uid: 10, uidValidity: "123" };
+
+for (const [provider, imap, smtp, port] of [
+  ["google", "imap.gmail.com", "smtp.gmail.com", 465],
+  ["microsoft", "outlook.office365.com", "smtp-mail.outlook.com", 587],
+]) {
+  test(`${provider} 邮件 OAuth 刷新后用于收发，禁止把令牌交给自定义主机`, async () => {
+    let refresh = 0;
+    let credential = {
+      username: "owner@example.test",
+      oauth: {
+        provider,
+        mailClientId: "client-test",
+        refreshToken: "refresh-0",
+        mailAddress: "owner@example.test",
+      },
+    };
+    const { account, service, calls } = fixture({
+      resolveOAuth(vault) {
+        vault.get = async (id) =>
+          id.startsWith("oauth-client:")
+            ? { username: "client-test", password: "client-secret-test" }
+            : structuredClone(credential);
+        vault.set = async (id, next, { expected }) => {
+          assert.equal(id, "account:mail-1");
+          assert.deepEqual(expected, credential);
+          credential = structuredClone(next);
+        };
+        return createMailOAuthResolver(vault, async (url, options) => {
+          assert.match(url, /^https:\/\/(oauth2.googleapis.com|login.microsoftonline.com)\//);
+          assert.equal(options.redirect, "error");
+          assert.equal(options.body.get("refresh_token"), `refresh-${refresh}`);
+          assert.equal(
+            options.body.get("client_secret"),
+            provider === "google" ? "client-secret-test" : null,
+          );
+          if (provider === "microsoft") assert.match(options.body.get("scope"), /SMTP.Send/);
+          refresh++;
+          return Response.json({
+            access_token: `access-${refresh}`,
+            refresh_token: `refresh-${refresh}`,
+          });
+        });
+      },
+    });
+    account.imap.host = imap;
+    account.smtp = { host: smtp, port, security: port === 465 ? "tls" : "starttls" };
+    assert.equal((await service.folders(account.id))[0].path, "INBOX");
+    assert.deepEqual(calls.find((entry) => entry.imapOptions).imapOptions.auth, {
+      user: "owner@example.test",
+      accessToken: "access-1",
+    });
+    await service.send(account.id, draft());
+    assert.deepEqual(calls.find((entry) => entry.smtpOptions).smtpOptions.auth, {
+      type: "OAuth2",
+      user: "owner@example.test",
+      accessToken: "access-2",
+    });
+    account.smtp.host = "smtp.example.test";
+    await assert.rejects(service.send(account.id, draft()), /服务商的标准连接/);
+    account.smtp.host = smtp;
+    account.address = "different@example.test";
+    await assert.rejects(service.send(account.id, draft()), /已授权地址/);
+    assert.equal(refresh, 2);
+  });
+}
 
 test("SMTP 只允许 TLS 或强制 STARTTLS，拒绝非法主机和端口", () => {
   assert.deepEqual(validateSmtp({ host: "SMTP.Example.test", port: 587, security: "starttls" }), {

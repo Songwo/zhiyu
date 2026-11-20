@@ -49,6 +49,7 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
   const [editing, setEditing] = useState(false);
   const [state, setState] = useState<State>({ kind: "idle" });
   const [consent, setConsent] = useState(false);
+  const [mailAccess, setMailAccess] = useState(false);
   const [pending, setPending] = useState<{
     id: string;
     authorizationUrl: string;
@@ -182,6 +183,7 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
         provider,
         clientId: clientId.trim(),
         clientSecret: clientSecret.trim(),
+        mailAccess,
       });
       if (current !== generation.current) return;
       applyResult(result);
@@ -202,6 +204,23 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
     set("_oauthRefresh", result.refreshToken ?? "");
     set("_oauthExpires", result.expiresAt ?? "");
     set("_oauthScope", result.scope);
+    set("_oauthMailClientId", result.mailClientId ?? "");
+    set("_oauthMailAddress", result.mailClientId ? result.address : "");
+    if (result.mailClientId) {
+      const google = result.provider === "google";
+      set("_imapHost", google ? "imap.gmail.com" : "outlook.office365.com");
+      set("_imapPort", "993");
+      set("_imapSecure", "true");
+      const personal = /@(outlook|hotmail|live|msn)\.com$/i.test(result.address);
+      set(
+        "_smtpHost",
+        google ? "smtp.gmail.com" : personal ? "smtp-mail.outlook.com" : "smtp.office365.com",
+      );
+      set("_smtpPort", google ? "465" : "587");
+      set("_smtpSecurity", google ? "tls" : "starttls");
+      toast(t("邮件授权成功，保存后可连接收件箱。"));
+      return;
+    }
     set(
       "notes",
       [
@@ -219,7 +238,9 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
     <div className="mt-3 border-t border-line pt-3">
       <div className="mb-2 flex items-center gap-2">
         <ShieldCheck className="size-4 text-muted" />
-        <h4 className="text-meta font-semibold">{t("服务商身份验证（不连接收件箱）")}</h4>
+        <h4 className="text-meta font-semibold">
+          {t(mailAccess ? "邮件收发授权" : "服务商身份验证（不连接收件箱）")}
+        </h4>
         <div className="ml-auto flex gap-1">
           {Object.entries(providers).map(([id, p]) => (
             <button
@@ -237,10 +258,23 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
 
       <p className="mb-3 text-2xs leading-relaxed text-muted">
         {t(
-          "此处仅核验邮箱地址，不授予读取或发送邮件的权限。收发邮件仍需配置 IMAP / SMTP；若服务商已禁用密码认证，当前方式无法连接，请勿将身份验证成功视为邮箱连接成功。",
+          mailAccess
+            ? "授权成功后自动填写邮件服务器，保存邮箱后即可尝试收发。刷新令牌保存在本机加密密钥库。"
+            : "此处仅核验邮箱地址，不授予读取或发送邮件的权限。收发邮件仍需配置 IMAP / SMTP；若服务商已禁用密码认证，当前方式无法连接，请勿将身份验证成功视为邮箱连接成功。",
         )}
       </p>
 
+      {!isWeb() && unlocked && (
+        <label className="mb-3 flex items-start gap-2 text-2xs">
+          <input
+            type="checkbox"
+            checked={mailAccess}
+            disabled={state.kind === "busy"}
+            onChange={(event) => setMailAccess(event.target.checked)}
+          />
+          {t("授权收发邮件。Google 会申请完整邮件权限；Microsoft 会申请 IMAP 和 SMTP 权限。")}
+        </label>
+      )}
       {!unlocked ? (
         <Button
           type="button"
@@ -265,7 +299,9 @@ export function OAuthLogin({ set }: { set: (key: string, value: string) => void 
               <ExternalLink className="size-3.5" />
             )}
 
-            {t("用 {0} 登录", config?.label ?? "")}
+            {mailAccess
+              ? t("用 {0} 授权邮件", config?.label ?? "")
+              : t("用 {0} 登录", config?.label ?? "")}
           </Button>
           <button
             type="button"

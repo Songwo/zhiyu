@@ -591,6 +591,7 @@ function DocumentEditor({
         link: {
           openOnClick: false,
           autolink: true,
+          HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
           isAllowedUri: (url) => Boolean(documentLink(url)),
         },
       }),
@@ -658,11 +659,11 @@ function DocumentEditor({
     editor?.setEditable(richEditing && !finishing, false);
   }, [editor, richEditing, finishing]);
   useEffect(() => {
-    // 切换文档期间完成的图片上传也需要同步到重新打开的正文。
+    // 保存结果可能省略默认属性。按编辑器模型比较，避免重设正文和选区。
     if (
       editor &&
       typeof doc.markdown !== "string" &&
-      JSON.stringify(editor.getJSON()) !== JSON.stringify(doc.content)
+      !editor.state.doc.eq(editor.schema.nodeFromJSON(doc.content))
     )
       editor.commands.setContent(doc.content, { emitUpdate: false });
   }, [editor, doc.content, doc.markdown]);
@@ -1229,6 +1230,18 @@ function DocumentEditor({
               maxLength={160}
               readOnly={finishing}
               onChange={(e) => update({ title: e.target.value })}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || event.nativeEvent.isComposing || finishing) return;
+                if (editMode === "source") {
+                  event.preventDefault();
+                  readerRef.current
+                    ?.querySelector<HTMLTextAreaElement>(".document-markdown-input")
+                    ?.focus();
+                } else if (richEditing && editor) {
+                  event.preventDefault();
+                  editor.commands.focus();
+                }
+              }}
             />
           ) : (
             <h2 className="document-title document-reading-title">

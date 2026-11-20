@@ -5585,6 +5585,16 @@ p {
   color: color-mix(in oklab, var(--color-ink) 82%, var(--color-card));
   line-height: 1.9;
 }
+.document-prose[contenteditable="true"] {
+  min-height: 10rem;
+  padding: 12px 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  cursor: text;
+}
+.document-prose[contenteditable="true"]:focus {
+  border-color: var(--color-line-strong);
+}
 .document-prose h1,
 .document-prose h2,
 .document-prose h3 {

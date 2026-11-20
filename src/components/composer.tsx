@@ -1,6 +1,6 @@
 import { vaultApi } from "@/lib/vault-api";
-import { X, LogIn, Pencil, ChartNoAxesCombined, ArrowLeft } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { X, LogIn, Pencil, ChartNoAxesCombined, ArrowLeft, Link2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { AccountFields, accountFromForm } from "./account-fields";
 import { CredentialFields, credentialFromForm } from "./credential-fields";
@@ -11,12 +11,12 @@ import { ImagePicker } from "./image-picker";
 import { BillingFields } from "./billing-fields";
 import { Button } from "./ui/button";
 import { Field, Input, Select, Textarea } from "./ui/input";
-import { accountId, credentialId } from "@/lib/desktop";
+import { accountId, credentialId, type AccountCredential, type SshCredential } from "@/lib/desktop";
 import { usePresence } from "@/lib/motion";
 import { KIND_LABEL } from "@/lib/status";
 import { parseTags } from "@/lib/tags";
 import { useVault } from "@/lib/vault-state";
-import { useAppStore } from "@/lib/store";
+import { flushAssetPersistence, useAppStore, type ComposerAsset } from "@/lib/store";
 import { reconcileServiceStatuses } from "@/lib/probes";
 import type {
   AiAsset,
@@ -29,9 +29,15 @@ import type {
   Server,
   ServiceAsset,
   Snapshot,
+  ResourceRef,
 } from "@/lib/types";
 import { normalizeService } from "../../electron/services/service-assets.mjs";
 import { CardEditor } from "./managed-cards";
+import { AssetPicker } from "./asset-picker";
+import { connectedRefs, useResourceInventory } from "@/lib/resource-inventory";
+import { linkedDocumentTargets, normalizeRelationSelection } from "@/lib/composer-relations.mjs";
+import { replaceDocumentRelations } from "@/lib/resource-relation-actions";
+import { refKey } from "@/lib/operations";
 import { ServiceTypeFields } from "./asset-type-fields";
 import { ServiceEndpointFields } from "./service-endpoint-fields";
 import { fieldKey, fieldsFromForm } from "@/lib/asset-type-form";
@@ -140,6 +146,15 @@ function ComposerBody({
     services,
   });
   const preset = useAppStore((s) => s.composerPreset);
+  const {
+    resources: relationResources,
+    relations: relationRelations,
+    loaded: relationsLoaded,
+    error: relationsError,
+  } = useResourceInventory();
+  const [relationTargets, setRelationTargets] = useState<ResourceRef[]>([]);
+  const initialRelationTargets = useRef<ResourceRef[]>([]);
+  const relationSession = useRef("");
   const [form, setForm] = useState<Record<string, string>>(() => ({
     ...defaults(kind, existing),
     ...preset,
@@ -153,6 +168,13 @@ function ComposerBody({
   const [imageBusy, setImageBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const standaloneAccount = kind === "secret" && form.kind === "account";
+  const relationEntries = useMemo(
+    () =>
+      relationResources
+        .filter((row) => !editingId || refKey(row) !== refKey({ kind, id: editingId }))
+        .map((row) => ({ ...row, label: row.name })),
+    [editingId, kind, relationResources],
+  );
   const formRef = useRef(form);
   formRef.current = form;
   const accountGeneration = useRef(0);
@@ -226,6 +248,33 @@ function ComposerBody({
   }, [kind, editingId, preset]);
 
   useEffect(() => {
+    const session = `${kind}:${editingId ?? "new"}`;
+    if (relationSession.current === session) return;
+    // 编辑时必须等文档摘要加载完，否则用空选择保存会误删已有关联。
+    if (editingId && !relationsLoaded) return;
+    const owner = editingId ? ({ kind, id: editingId } as ResourceRef) : null;
+    let initial = owner ? connectedRefs(owner, relationRelations) : [];
+    if (kind === "service") {
+      const endpoint = (existing as ServiceAsset | null)?.endpoint;
+      const endpointKeys = new Set(
+        [endpoint?.serverId, endpoint?.domainId]
+          .filter((id): id is string => Boolean(id))
+          .map((id) =>
+            refKey({
+              kind: id === endpoint?.serverId ? "server" : "domain",
+              id,
+            }),
+          ),
+      );
+      initial = initial.filter((ref) => !endpointKeys.has(refKey(ref)));
+    }
+    initial = normalizeRelationSelection(relationResources, initial, owner);
+    setRelationTargets(initial);
+    initialRelationTargets.current = initial;
+    relationSession.current = session;
+  }, [editingId, existing, kind, relationRelations, relationResources, relationsLoaded]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !e.defaultPrevented && !useVault.getState().prompt) onClose();
     };
@@ -267,7 +316,65 @@ function ComposerBody({
         useAppStore.getState().composerPreset?._captureId === form._captureId &&
         useVault.getState().unlocked);
     if (!captureStillOpen() || !accountStillOpen()) return;
+    if (editingId && !relationsLoaded) {
+      toast.error(t("正在读取已有关联，请稍后再保存。"));
+      return;
+    }
     const id = editingId ?? uid(kind.slice(0, 3));
+    const owner = { kind, id } as ResourceRef;
+    const selectedTargets = normalizeRelationSelection(relationResources, relationTargets, owner);
+    const endpointTargets =
+      kind === "service" && form.endpointServer
+        ? [
+            { kind: "server", id: form.endpointServer } as const,
+            ...(form.endpointDomain ? [{ kind: "domain", id: form.endpointDomain } as const] : []),
+          ]
+        : [];
+    const finalTargets = normalizeRelationSelection(
+      relationResources,
+      [...selectedTargets, ...endpointTargets],
+      owner,
+    );
+    const previousEndpoint =
+      kind === "service" ? (existing as ServiceAsset | null)?.endpoint : null;
+    const previousEndpointTargets: ResourceRef[] = [];
+    if (previousEndpoint?.serverId)
+      previousEndpointTargets.push({ kind: "server", id: previousEndpoint.serverId });
+    if (previousEndpoint?.domainId)
+      previousEndpointTargets.push({ kind: "domain", id: previousEndpoint.domainId });
+    const previousTargets = normalizeRelationSelection(
+      relationResources,
+      [...initialRelationTargets.current, ...previousEndpointTargets],
+      owner,
+    );
+    const previousLinkedDocuments = linkedDocumentTargets(useAppStore.getState().links, owner);
+    const finalKeys = new Set(finalTargets.map(refKey));
+    const currentLinkedDocuments = previousLinkedDocuments.filter((ref) =>
+      finalKeys.has(refKey(ref)),
+    );
+    const vaultChanges: Array<{
+      key: string;
+      value: SshCredential | AccountCredential | null;
+    }> = [];
+    let vaultRolledBack = false;
+    const rollbackVaultChanges = async () => {
+      if (vaultRolledBack) return true;
+      vaultRolledBack = true;
+      const vault = vaultApi();
+      if (!vault) return true;
+      try {
+        for (const change of [...vaultChanges].reverse()) {
+          if (change.value) await vault.set(change.key, change.value);
+          else await vault.remove(change.key);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    let assetWritten = false;
+    let writtenAsset: unknown = null;
+    let documentsAttempted = false;
     setSaving(true);
     try {
       // Secrets go to the encrypted vault before the asset is written, so a
@@ -295,9 +402,15 @@ function ComposerBody({
                 return;
               }
               if (!captureStillOpen() || !accountStillOpen()) return;
-              if (sshCredential) await vault.set(credentialId(id), sshCredential);
+              if (sshCredential) {
+                const previousCredential = editingId ? await vault.get(credentialId(id)) : null;
+                if (!captureStillOpen() || !accountStillOpen()) return;
+                vaultChanges.push({ key: credentialId(id), value: previousCredential });
+                await vault.set(credentialId(id), sshCredential);
+              }
               if (!captureStillOpen() || !accountStillOpen()) return;
               if (account) {
+                vaultChanges.push({ key: accountId(id), value: previous });
                 await vault.set(accountId(id), account);
                 if (standaloneAccount && !accountStillOpen()) {
                   if (!editingId) {
@@ -305,7 +418,7 @@ function ComposerBody({
                       await vault.remove(accountId(id));
                     } catch {
                       // 写入已经完成但锁库阻止清理时，留下可管理入口，且不碰后来打开的表单。
-                      persist(kind, id, form, existing, serverMode);
+                      persist(kind, id, form, existing, serverMode, [], []);
                       toast.warning(
                         t("加密凭据未能清理，已保留「{0}」，可解锁后查看或删除。", form.name),
                       );
@@ -318,7 +431,9 @@ function ComposerBody({
               }
             } catch (err) {
               if (!accountStillOpen()) return;
-              toast(err instanceof Error ? err.message : t("凭据保存失败"));
+              const rolledBack = await rollbackVaultChanges();
+              const detail = err instanceof Error ? err.message : String(err);
+              toast.error(rolledBack ? detail : t("凭据保存失败，回滚未完全完成：{0}", detail));
               return;
             }
           }
@@ -326,10 +441,12 @@ function ComposerBody({
       }
 
       if (!captureStillOpen() || !accountStillOpen()) return;
-      persist(kind, id, form, existing, serverMode);
-      if (kind === "secret" && ["password", "account"].includes(form.kind) && form._mailboxId) {
-        useAppStore.getState().linkAssets({ kind, id }, { kind: "mail", id: form._mailboxId });
-      }
+      persist(kind, id, form, existing, serverMode, finalTargets, currentLinkedDocuments);
+      assetWritten = true;
+      writtenAsset = findAsset(kind, id, useAppStore.getState());
+      await flushAssetPersistence();
+      documentsAttempted = true;
+      await replaceDocumentRelations(owner, previousTargets, finalTargets);
       useAppStore
         .getState()
         .log(
@@ -338,6 +455,50 @@ function ComposerBody({
         );
       toast.success(editingId ? t("已保存") : t("已添加"));
       onClose();
+    } catch (cause) {
+      if (!sessionActive.current) return;
+      let rollbackFailed = false;
+      if (documentsAttempted) {
+        try {
+          await replaceDocumentRelations(owner, finalTargets, previousTargets);
+        } catch {
+          rollbackFailed = true;
+        }
+      }
+      if (!(await rollbackVaultChanges())) rollbackFailed = true;
+      if (assetWritten) {
+        const currentAsset = findAsset(kind, id, useAppStore.getState());
+        const unchanged =
+          !writtenAsset || JSON.stringify(currentAsset) === JSON.stringify(writtenAsset);
+        if (!unchanged) {
+          // 并发同步或监控在本轮保存期间写入了更新的数据，不能拿旧快照覆盖。
+          rollbackFailed = true;
+        } else {
+          try {
+            if (editingId && existing)
+              useAppStore
+                .getState()
+                .upsertAssetWithRelations(
+                  kind,
+                  existing as ComposerAsset,
+                  previousTargets,
+                  previousLinkedDocuments,
+                );
+            else useAppStore.getState().remove(kind, id);
+            await flushAssetPersistence();
+          } catch {
+            rollbackFailed = true;
+            await Promise.resolve(useAppStore.persist.rehydrate()).catch(() => {});
+          }
+        }
+      }
+      const detail = cause instanceof Error ? cause.message : String(cause);
+      toast.error(
+        rollbackFailed
+          ? t("保存失败，回滚未完全完成：{0}", detail)
+          : t("保存失败，未写入关联，表单内容已保留：{0}", detail),
+      );
+      return;
     } finally {
       if (sessionActive.current) setSaving(false);
     }
@@ -528,21 +689,46 @@ function ComposerBody({
                   {fields(kind, form, set, editingId)}
                 </div>
               )}
-              {kind === "secret" && ["password", "account"].includes(form.kind) && (
-                <div className="mt-3">
-                  <Field label={t("注册邮箱")}>
-                    <Select
-                      aria-label={t("注册邮箱")}
-                      value={form._mailboxId ?? ""}
-                      onValueChange={(value) => set("_mailboxId", value)}
-                      options={[
-                        { value: "", label: t("暂不关联") },
-                        ...mailboxes.map((mail) => ({ value: mail.id, label: mail.address })),
-                      ]}
+              <div className="mt-4 border-t border-line pt-4">
+                <details className="resource-relation-picker">
+                  <summary className="flex min-h-11 cursor-pointer flex-wrap items-center gap-2 text-meta font-medium">
+                    <Link2 className="size-4" />
+                    {t("关联已有资产")}
+                    <span className="text-2xs font-normal text-muted">
+                      {t("已选 {0} 项", relationTargets.length)}
+                    </span>
+                  </summary>
+                  <p className="mb-3 mt-2 text-2xs leading-relaxed text-muted">
+                    {t(
+                      "可关联已有邮箱、网站账号、域名、服务器、服务资产、号码、节点和文档；文档只建立绑定，不修改正文。",
+                    )}
+                  </p>
+                  {editingId && !relationsLoaded ? (
+                    <p className="py-3 text-meta text-muted">{t("正在读取已有关联…")}</p>
+                  ) : (
+                    <AssetPicker
+                      label={t("选择多个关联资产")}
+                      entries={relationEntries}
+                      selected={relationTargets.map(refKey)}
+                      onChange={(keys) => {
+                        const chosen = new Set(keys);
+                        setRelationTargets(
+                          normalizeRelationSelection(
+                            relationResources,
+                            relationResources.filter((row) => chosen.has(refKey(row))),
+                            ownerForPicker(kind, editingId),
+                          ),
+                        );
+                      }}
                     />
-                  </Field>
-                </div>
-              )}
+                  )}
+                  {relationsError && (
+                    <p role="alert" className="mt-2 text-2xs text-crit">
+                      {relationsError}
+                    </p>
+                  )}
+                </details>
+              </div>
             </form>
           )}
         </div>
@@ -987,12 +1173,18 @@ function defaults(kind: AssetKind, existing: unknown): Record<string, string> {
   }
 }
 
+function ownerForPicker(kind: AssetKind, editingId: string | null) {
+  return editingId ? ({ kind, id: editingId } as ResourceRef) : null;
+}
+
 function persist(
   kind: AssetKind,
   id: string,
   form: Record<string, string>,
   existing: unknown,
   serverMode: "record" | "ssh",
+  targets: ResourceRef[],
+  documentLinkTargets: ResourceRef[],
 ) {
   const s = useAppStore.getState();
   const statusOf = (iso?: string) => {
@@ -1014,11 +1206,16 @@ function persist(
         pendingLabel: t("未采集"),
         mode: serverMode,
       });
-      s.upsertServer({
-        ...item,
-        expiresAt: form.expiresAt?.trim() || undefined,
-        billing: billingOf(form),
-      });
+      s.upsertAssetWithRelations(
+        "server",
+        {
+          ...item,
+          expiresAt: form.expiresAt?.trim() || undefined,
+          billing: billingOf(form),
+        },
+        targets,
+        documentLinkTargets,
+      );
       break;
     }
     case "domain": {
@@ -1037,7 +1234,7 @@ function persist(
         status: statusOf(form.expiresAt),
         notes: form.notes,
       };
-      s.upsertDomain(item);
+      s.upsertAssetWithRelations("domain", item, targets, documentLinkTargets);
       break;
     }
     case "mail": {
@@ -1080,21 +1277,26 @@ function persist(
             ? { imap: previous.imap }
             : {}),
       };
-      s.upsertMail(item);
+      s.upsertAssetWithRelations("mail", item, targets, documentLinkTargets);
       break;
     }
     case "ai": {
       const previous = existing as AiAsset | null;
       if (previous?.oauthAccountId) {
-        s.upsertAi({
-          ...previous,
-          imageDataUrl: form.imageDataUrl || "",
-          name: form.name,
-          monthlyUsd: Number(form.monthlyUsd) || 0,
-          monthlyUsdKnown: form.monthlyUsd.trim() !== "",
-          tags: parseTags(form.tags ?? ""),
-          notes: form.notes,
-        });
+        s.upsertAssetWithRelations(
+          "ai",
+          {
+            ...previous,
+            imageDataUrl: form.imageDataUrl || "",
+            name: form.name,
+            monthlyUsd: Number(form.monthlyUsd) || 0,
+            monthlyUsdKnown: form.monthlyUsd.trim() !== "",
+            tags: parseTags(form.tags ?? ""),
+            notes: form.notes,
+          },
+          targets,
+          documentLinkTargets,
+        );
         break;
       }
       const usage = Number(form.usagePct) || 0;
@@ -1112,7 +1314,7 @@ function persist(
         status: usage >= 90 ? "warning" : "online",
         notes: form.notes,
       };
-      s.upsertAi(item);
+      s.upsertAssetWithRelations("ai", item, targets, documentLinkTargets);
       break;
     }
     case "secret": {
@@ -1136,11 +1338,12 @@ function persist(
         notes: form.notes,
         ...(form.kind === "account" ? accountMetadataFromForm(form) : {}),
       };
-      s.upsertSecret(item);
+      s.upsertAssetWithRelations("secret", item, targets, documentLinkTargets);
       break;
     }
     case "service": {
-      s.upsertService(
+      s.upsertAssetWithRelations(
+        "service",
         normalizeService({
           id,
           integration: (existing as ServiceAsset | null)?.integration,
@@ -1166,14 +1369,11 @@ function persist(
               }
             : undefined,
         }),
+        targets,
+        documentLinkTargets,
       );
       // 绑定了主机采集的服务，状态立即按最近一次采集重新判断，并在关系图里连上主机与域名。
       reconcileServiceStatuses();
-      if (form.endpointServer) {
-        s.linkAssets({ kind: "service", id }, { kind: "server", id: form.endpointServer });
-        if (form.endpointDomain)
-          s.linkAssets({ kind: "service", id }, { kind: "domain", id: form.endpointDomain });
-      }
       break;
     }
     case "cert": {
@@ -1196,7 +1396,7 @@ function persist(
         probedAt: prev?.probedAt,
         probeError: prev?.probeError,
       };
-      s.upsertCert(item);
+      s.upsertAssetWithRelations("cert", item, targets, documentLinkTargets);
       break;
     }
   }

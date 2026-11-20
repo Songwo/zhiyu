@@ -1,4 +1,5 @@
 import { isWeb } from "@/lib/web";
+import "./compact-workspace.css";
 import { m } from "motion/react";
 import { useMotionPreset } from "@/lib/motion";
 import { hasServerMetrics, hasServerObservation } from "@/lib/server-observation.mjs";
@@ -45,6 +46,7 @@ const AgentView = lazy(() =>
 import { GroupHeading, TagBar } from "./tag-bar";
 import { RefreshAllButton } from "./refresh-button";
 import { Button } from "./ui/button";
+import { PageHelp } from "./ui/page-help";
 import { Input } from "./ui/input";
 import { CountUp } from "./ui/time-ago";
 import { isDesktop } from "@/lib/desktop";
@@ -71,7 +73,11 @@ export function MainView() {
     <m.div
       key={view}
       {...animation}
-      className={cn(view === "docs" && "documents-view", view === "agent" && "agent-view-frame")}
+      className={cn(
+        view === "docs" && "documents-view",
+        view === "agent" && "agent-view-frame",
+        view === "relations" && "relations-view-frame",
+      )}
     >
       <Suspense
         fallback={
@@ -184,18 +190,20 @@ export function TopTabs() {
   const view = useAppStore((s) => s.view);
   const item = NAV.find((entry) => entry.id === view);
   const openComposer = useAppStore((s) => s.openComposer);
-  // 文档有自己的标题栏；总览的标题在景深头图里。
-  if (["docs", "overview", "renewals", "cards", "esims"].includes(view)) return null;
+  // 这些工作区在内部统一呈现标题、摘要和主要操作。
+  if (["docs", "overview", "renewals", "cards", "esims", "relations", "phones"].includes(view))
+    return null;
   const desc = PAGE_DESC[view];
   const meta = LIST_VIEWS.includes(view) ? <PageMeta view={view} /> : null;
   return (
     <>
       <div className="page-view-heading">
-        <div className="min-w-0">
+        <div className="page-heading-summary">
           <h1 className="page-title">
             {t(item?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
           </h1>
-          {meta ?? (desc && <p className="page-description">{t(desc)}</p>)}
+          {meta}
+          {desc && <PageHelp>{t(desc)}</PageHelp>}
         </div>
         <div className="page-actions">
           {item?.kind && (
@@ -211,7 +219,7 @@ export function TopTabs() {
   );
 }
 
-/** 列表页标题下的一行轻量信息：总数 · 需要留意 · 页面说明，用圆点分隔。 */
+/** 标题旁保留总数与风险数量，页面说明通过帮助按钮展开。 */
 function PageMeta({ view }: { view: ViewId }) {
   const total = useAppStore((s) => {
     switch (view) {
@@ -240,7 +248,6 @@ function PageMeta({ view }: { view: ViewId }) {
   const parts = [
     view === "tags" ? t("{0} 个标签", total) : t("共 {0} 项", total),
     ...(pending > 0 && view !== "tags" ? [t("{0} 项需要留意", pending)] : []),
-    ...(PAGE_DESC[view] ? [t(PAGE_DESC[view]!)] : []),
   ];
   return (
     <p className="page-meta">
@@ -575,7 +582,7 @@ function AiView() {
   const items = useListFilter(list, (s) => [s.name, s.provider, s.plan, tagsOf(s).join(" ")]);
   return (
     <div>
-      <div className="mx-4 mt-3 rounded-xl bg-card px-4 py-3 shadow-card">
+      <div className="subscription-spend mx-4 mt-3 rounded-xl bg-card px-4 py-3 shadow-card">
         <p className="text-2xs text-muted">{t("本月订阅合计")}</p>
         <p className="text-xl font-semibold tabular-nums">
           {cost.known === 0 && missingPrice > 0 ? (

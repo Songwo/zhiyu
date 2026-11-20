@@ -1,3 +1,4 @@
+import { PageHelp } from "./ui/page-help";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CreditCard,
@@ -15,8 +16,8 @@ import {
   Globe2,
   Radio,
 } from "lucide-react";
-import { useAppStore } from "@/lib/store";
-import type { ManagedCard, ServiceAsset } from "@/lib/types";
+import { flushAssetPersistence, useAppStore } from "@/lib/store";
+import type { ManagedCard, ResourceRef, ServiceAsset } from "@/lib/types";
 import { t } from "@/lib/i18n";
 import { useVault } from "@/lib/vault-state";
 import { copyText } from "@/lib/utils";
@@ -50,6 +51,11 @@ import { Button } from "./ui/button";
 import { Input, Label, Select, Textarea } from "./ui/input";
 import { EditorDialog } from "./ui/editor-dialog";
 import { BillingFields } from "./billing-fields";
+import { AssetPicker } from "./asset-picker";
+import { connectedRefs, useResourceInventory } from "@/lib/resource-inventory";
+import { linkedDocumentTargets, normalizeRelationSelection } from "@/lib/composer-relations.mjs";
+import { replaceDocumentRelations } from "@/lib/resource-relation-actions";
+import { refKey } from "@/lib/operations";
 import "./managed-cards.css";
 
 const FUNDING = ["待确认", "信用卡", "借记卡", "预付卡", "加密货币消费卡", "其他"];
@@ -224,14 +230,13 @@ export function ManagedCardsWorkspace({ kind }: { kind: ManagedCard["kind"] }) {
   return (
     <section className="cards-workspace" aria-label={esim ? t("eSIM 卡") : t("U 卡与支付卡")}>
       <header className="cards-page-header">
-        <div>
-          <p className="cards-page-context">{esim ? t("连接下一程") : t("每一张卡，都有归处")}</p>
+        <div className="page-heading-summary">
           <h1>{esim ? t("eSIM 卡") : t("U 卡与支付卡")}</h1>
-          <p>
+          <PageHelp>
             {esim
               ? t("套餐和保号期限分开记，关联设备、账号与出行资料。")
               : t("卡组织、发卡服务商与有效期，一眼看清。")}
-          </p>
+          </PageHelp>
         </div>
         <Button onClick={add}>
           <Plus className="size-4" />
@@ -427,8 +432,38 @@ export function CardEditor({
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const {
+    resources: relationResources,
+    relations: relationRelations,
+    loaded: relationsLoaded,
+    error: relationsError,
+  } = useResourceInventory();
+  const [relationTargets, setRelationTargets] = useState<ResourceRef[]>([]);
+  const initialRelationTargets = useRef<ResourceRef[]>([]);
+  const relationSession = useRef("");
   const esim = kind === "esim";
   const set = (key: string, value: string) => setForm((old) => ({ ...old, [key]: value }));
+  const relationEntries = useMemo(
+    () =>
+      relationResources
+        .filter((row) => !existing || refKey(row) !== refKey({ kind: "service", id: existing.id }))
+        .map((row) => ({ ...row, label: row.name })),
+    [existing, relationResources],
+  );
+  useEffect(() => {
+    const session = existing?.id ?? "new";
+    if (relationSession.current === session) return;
+    if (existing && !relationsLoaded) return;
+    const owner = existing ? ({ kind: "service", id: existing.id } as ResourceRef) : null;
+    const initial = normalizeRelationSelection(
+      relationResources,
+      owner ? connectedRefs(owner, relationRelations) : [],
+      owner,
+    );
+    setRelationTargets(initial);
+    initialRelationTargets.current = initial;
+    relationSession.current = session;
+  }, [existing, relationResources, relationsLoaded, relationRelations]);
   const detected = detectCardNetwork(number);
   const detectedBank = detectChinaBank(number);
   const preview: ServiceAsset = {
@@ -445,6 +480,16 @@ export function CardEditor({
   const submit = async () => {
     if (saving) return;
     setError("");
+    if (existing && !relationsLoaded) {
+      setError(t("正在读取已有关联，请稍后再保存。"));
+      return;
+    }
+    let written = false;
+    let documentsAttempted = false;
+    let writtenAsset = null;
+    let previousTargetsForRollback: ResourceRef[] = [];
+    let finalTargetsForRollback: ResourceRef[] = [];
+    let previousLinkedDocuments: ResourceRef[] = [];
     try {
       if (!form.name.trim()) throw new Error(t("请填写卡片名称"));
       const card = normalizeManagedCard({ ...form, kind });
@@ -468,16 +513,80 @@ export function CardEditor({
         }),
         card,
       });
+      const owner = { kind: "service", id: data.id } as ResourceRef;
+      const finalTargets = normalizeRelationSelection(relationResources, relationTargets, owner);
+      const finalKeys = new Set(finalTargets.map(refKey));
+      const previousTargets = normalizeRelationSelection(
+        relationResources,
+        initialRelationTargets.current,
+        owner,
+      );
+      previousTargetsForRollback = previousTargets;
+      finalTargetsForRollback = finalTargets;
+      previousLinkedDocuments = linkedDocumentTargets(state.links, owner);
+      const currentLinkedDocuments = previousLinkedDocuments.filter((ref) =>
+        finalKeys.has(refKey(ref)),
+      );
       setSaving(true);
-      state.upsertService(data);
+      state.upsertAssetWithRelations("service", data, finalTargets, currentLinkedDocuments);
+      written = true;
+      writtenAsset = useAppStore.getState().services.find((asset) => asset.id === data.id) ?? null;
+      await flushAssetPersistence();
+      documentsAttempted = true;
+      await replaceDocumentRelations(owner, previousTargets, finalTargets);
       state.log(t("保存了卡片 {0}", data.name), "service");
       setNumber("");
       onClose();
       state.setExpanded({ kind: "service", id: data.id, origin: { x: 0, y: 0, w: 0, h: 0 } });
       toast.success(t("卡片已保存"));
     } catch (failure) {
+      let rollbackFailed = false;
+      const owner = existing
+        ? ({ kind: "service", id: existing.id } as ResourceRef)
+        : writtenAsset
+          ? ({ kind: "service", id: writtenAsset.id } as ResourceRef)
+          : null;
+      if (owner && documentsAttempted) {
+        try {
+          await replaceDocumentRelations(
+            owner,
+            finalTargetsForRollback,
+            previousTargetsForRollback,
+          );
+        } catch {
+          rollbackFailed = true;
+        }
+      }
+      if (owner && written) {
+        const current = useAppStore.getState().services.find((asset) => asset.id === owner.id);
+        const unchanged = !writtenAsset || JSON.stringify(current) === JSON.stringify(writtenAsset);
+        if (!unchanged) rollbackFailed = true;
+        else {
+          try {
+            if (existing)
+              useAppStore
+                .getState()
+                .upsertAssetWithRelations(
+                  "service",
+                  existing,
+                  previousTargetsForRollback,
+                  previousLinkedDocuments,
+                );
+            else useAppStore.getState().remove("service", owner.id);
+            await flushAssetPersistence();
+          } catch {
+            rollbackFailed = true;
+            await Promise.resolve(useAppStore.persist.rehydrate()).catch(() => {});
+          }
+        }
+      }
       setSaving(false);
-      setError(failure instanceof Error ? failure.message : String(failure));
+      const detail = failure instanceof Error ? failure.message : String(failure);
+      setError(
+        rollbackFailed
+          ? t("保存失败，回滚未完全完成：{0}", detail)
+          : t("保存失败，表单内容已保留：{0}", detail),
+      );
     }
   };
   return (
@@ -759,9 +868,47 @@ export function CardEditor({
               />
             </div>
           </fieldset>
-          <p className="card-form-help">
-            {t("保存后可关联账号、邮箱、订阅和文档。密码、CVV 与激活码请放在详情的加密凭据中。")}
-          </p>
+          <div className="resource-relation-picker card-relation-picker">
+            <details>
+              <summary className="flex min-h-11 cursor-pointer flex-wrap items-center gap-2 text-meta font-medium">
+                <Link2 className="size-4" />
+                {t("关联已有资产")}
+                <span className="text-2xs font-normal text-muted">
+                  {t("已选 {0} 项", relationTargets.length)}
+                </span>
+              </summary>
+              <p className="mb-3 mt-2 text-2xs leading-relaxed text-muted">
+                {t(
+                  "可直接关联已有邮箱、网站账号、域名、服务器、服务资产、号码、节点和文档；文档只建立绑定，不修改正文。",
+                )}
+              </p>
+              {existing && !relationsLoaded ? (
+                <p className="py-3 text-meta text-muted">{t("正在读取已有关联…")}</p>
+              ) : (
+                <AssetPicker
+                  label={t("选择多个关联资产")}
+                  entries={relationEntries}
+                  selected={relationTargets.map(refKey)}
+                  onChange={(keys) => {
+                    const chosen = new Set(keys);
+                    setRelationTargets(
+                      normalizeRelationSelection(
+                        relationResources,
+                        relationResources.filter((row) => chosen.has(refKey(row))),
+                        existing ? { kind: "service", id: existing.id } : null,
+                      ),
+                    );
+                  }}
+                />
+              )}
+              {relationsError && (
+                <p role="alert" className="mt-2 text-2xs text-crit">
+                  {relationsError}
+                </p>
+              )}
+            </details>
+          </div>
+          <p className="card-form-help">{t("密码、CVV 与激活码请放在详情的加密凭据中。")}</p>
           {error && (
             <p className="text-sm text-danger" role="alert">
               {error}

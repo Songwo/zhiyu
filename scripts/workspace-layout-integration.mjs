@@ -134,6 +134,12 @@ async function geometry(page, label) {
         };
       });
     return {
+      headingHeight:
+        container.querySelector(".page-view-heading")?.getBoundingClientRect().height ?? 0,
+      headingFontSize: container.querySelector(".page-title")
+        ? parseFloat(getComputedStyle(container.querySelector(".page-title")).fontSize)
+        : 0,
+      decorativeHeroCount: container.querySelectorAll(".depth-hero").length,
       zoom: Number(getComputedStyle(document.documentElement).zoom) || 1,
       outerLeft: frame.left - scroll.left,
       outerRight: scroll.right - frame.right,
@@ -152,6 +158,14 @@ async function geometry(page, label) {
   );
   assert.ok(state.mainLeft <= 32 * state.zoom, label + " 主内容左侧不得保留空列");
   assert.equal(state.overflow, false, label + " 横向溢出");
+  if (state.headingHeight) {
+    assert.ok(
+      state.headingHeight <= (state.availableWidth < 768 ? 150 : 90) * state.zoom,
+      label + " 紧凑页头占位过高：" + state.headingHeight,
+    );
+    assert.ok(state.headingFontSize <= 18, label + " 页头标题应保持紧凑");
+  }
+  assert.equal(state.decorativeHeroCount, 0, label + " 数据页不应保留装饰头图");
   if (state.railWidth) {
     assert.ok(
       state.railWidth >= 264 * state.zoom - 1 && state.railWidth <= 321 * state.zoom,
@@ -271,7 +285,18 @@ try {
       waitUntil: "domcontentloaded",
       timeout: 60000,
     });
-    await page.locator("[data-app-ready=true]").waitFor({ timeout: 60000 });
+    try {
+      await page.locator("[data-app-ready=true]").waitFor({ timeout: 60000 });
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          mode,
+          errors,
+          body: (await page.locator("body").innerText()).slice(0, 1600),
+        }),
+      );
+      throw error;
+    }
     if (mode === "desktop") await expandNavigationGroups(page);
     for (const [width, height, collapsed] of [
       [2048, 1152, false],

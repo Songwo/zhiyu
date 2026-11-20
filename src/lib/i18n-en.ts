@@ -21,6 +21,30 @@ import { BIOMETRIC_EN } from "./i18n-biometric-en.ts";
  * not agree on where a possessive or a count belongs.
  */
 export const EN: Record<string, string> = {
+  自动加载邮件外部图片: "Automatically load remote images in email",
+  "已记住 {0} 封邮件的外部图片授权。关闭自动加载后，仅这些邮件仍会自动显示图片。":
+    "Remembered remote-image permissions for {0} emails. When automatic loading is off, only those emails will still show remote images automatically.",
+  邮件收发授权: "Mail access authorization",
+  "授权成功后自动填写邮件服务器，保存邮箱后即可尝试收发。刷新令牌保存在本机加密密钥库。":
+    "Authorization fills in the mail servers. Save the mailbox to connect. The refresh token is kept in the encrypted vault on this device.",
+  "邮件授权成功，保存后可连接收件箱。": "Mail authorized. Save to connect the inbox.",
+  "授权收发邮件。Google 会申请完整邮件权限；Microsoft 会申请 IMAP 和 SMTP 权限。":
+    "Authorize mail access. Google requests full mail access; Microsoft requests IMAP and SMTP permissions.",
+  "用 {0} 授权邮件": "Authorize mail with {0}",
+  "已配置邮件 OAuth 授权": "Mail OAuth configured",
+  保存时断开邮件授权: "Disconnect mail access on save",
+  "读取本机 Antigravity CLI 当前登录账号的额度，结果仅在此处显示。":
+    "Show quotas for the account currently signed in to the local Antigravity CLI.",
+  读取本机额度: "Read local quota",
+  "剩余 {0}%": "{0}% remaining",
+  "重置于 {0}": "Resets at {0}",
+  "找不到 Antigravity CLI。安装后请重新启动知屿。":
+    "Antigravity CLI was not found. Install it and restart Zhiyu.",
+  "读取 Antigravity CLI 额度失败，请检查本机 CLI 的登录状态。":
+    "Unable to read Antigravity CLI quotas. Check that you are signed in to the local CLI.",
+  "Antigravity CLI 未返回可识别的额度，请确认 CLI 已登录且支持额度查询。":
+    "Antigravity CLI returned no recognized quota rows. Check your sign-in and CLI version.",
+  使用说明: "Page help",
   工作区概览: "Workspace overview",
   ...MOTION_EN,
   ...RELATIONS_EN,
@@ -3196,4 +3220,27 @@ export const EN: Record<string, string> = {
   完成邮箱身份验证: "Complete email identity verification",
   "此处仅核验邮箱地址，不授予读取或发送邮件的权限。收发邮件仍需配置 IMAP / SMTP；若服务商已禁用密码认证，当前方式无法连接，请勿将身份验证成功视为邮箱连接成功。":
     "This verifies your email address only and grants no permission to read or send mail. Configure IMAP / SMTP separately. If your provider has disabled password authentication, this method cannot connect. Successful identity verification does not mean your mailbox is connected.",
+  汇率与折算: "Exchange rate and conversion",
+  未启用换算: "Conversion off",
+  关联已有资产: "Link existing assets",
+  已选关联: "Selected links",
+  "移除关联 {0}": "Remove link to {0}",
+  聚焦资产: "Focused asset",
+  已选资产: "Selected asset",
+  "直接关联 {0} 项": "{0} direct links",
+  定位选中资产: "Locate selected asset",
+  清除资产高亮: "Clear asset highlight",
+  "正在读取已有关联，请稍后再保存。": "Existing links are still loading. Save again in a moment.",
+  "正在读取已有关联…": "Loading existing links…",
+  "保存失败，未写入关联，表单内容已保留：{0}":
+    "Save failed. No links were kept and your form remains intact: {0}",
+  "保存失败，回滚未完全完成：{0}": "Save failed and rollback was incomplete: {0}",
+  "可关联已有邮箱、网站账号、域名、服务器、服务资产、号码、节点和文档；文档只建立绑定，不修改正文。":
+    "Link existing email, website accounts, domains, servers, services, phone numbers, nodes and documents. Documents are only bound and their body is never modified.",
+  "保存失败，表单内容已保留：{0}": "Save failed; form retained: {0}",
+  "凭据保存失败，回滚未完全完成：{0}": "Credential save failed and rollback was incomplete: {0}",
+  "可直接关联已有邮箱、网站账号、域名、服务器、服务资产、号码、节点和文档；文档只建立绑定，不修改正文。":
+    "Directly link existing email, website accounts, domains, servers, services, phone numbers, nodes and documents. Documents are bound without modifying their body.",
+  "密码、CVV 与激活码请放在详情的加密凭据中。":
+    "Store passwords, CVVs and activation codes in encrypted credentials on the detail page.",
 };

@@ -32,6 +32,51 @@ async function removeDuplicateDocumentEdge(from: ResourceRef, to: ResourceRef) {
   state.unlinkAssets(from, to);
   await persistRelations();
 }
+
+/** 文档绑定必须走专用接口，不能整体覆写正文。 */
+async function applyDocumentRelation(document: ResourceRef, target: ResourceRef, remove = false) {
+  const documents = useDocuments.getState();
+  if (documents.status[document.id] && documents.status[document.id] !== "saved")
+    await documents.flush(document.id);
+  const api = documentsApi();
+  if (!api.bind) throw Error("当前文档接口不支持安全修改关联，请更新客户端或服务端后重试。");
+  const saved = await api.bind(
+    document.id,
+    { kind: target.kind, id: target.id } as AssetRef,
+    remove,
+  );
+  const latestState = useDocuments.getState();
+  const latestDraft = latestState.drafts[document.id];
+  if (latestDraft && latestState.status[document.id] !== "saved") {
+    latestState.change({ ...latestDraft, bindings: saved.bindings });
+    await useDocuments.getState().flush(document.id);
+  } else latestState.acceptChange({ document: saved });
+  await removeDuplicateDocumentEdge(document, target);
+}
+
+const documentRefs = (targets: ResourceRef[]) =>
+  targets.filter((target) => target.kind === "document");
+const documentKey = (ref: ResourceRef) => refKey(ref);
+
+/** 文档关系与资产同步分开提交；上层保存失败时可用 before/after 反向补偿。 */
+export function replaceDocumentRelations(
+  owner: ResourceRef,
+  beforeTargets: ResourceRef[],
+  afterTargets: ResourceRef[],
+) {
+  return serial(async () => {
+    if (owner.kind === "document") throw Error("请选择资产作为关联起点。");
+    const before = documentRefs(beforeTargets);
+    const after = documentRefs(afterTargets);
+    const beforeKeys = new Set(before.map(documentKey));
+    const afterKeys = new Set(after.map(documentKey));
+    for (const document of before)
+      if (!afterKeys.has(documentKey(document))) await applyDocumentRelation(document, owner, true);
+    for (const document of after)
+      if (!beforeKeys.has(documentKey(document)))
+        await applyDocumentRelation(document, owner, false);
+  });
+}
 async function assertExists(ref: ResourceRef): Promise<DocumentAsset | null> {
   if (!isResourceRef(ref)) throw Error("关联资源无效，请重新选择。");
   if (ref.kind === "document") {
@@ -59,28 +104,9 @@ export function updateResourceRelation(from: ResourceRef, to: ResourceRef, remov
     const document = from.kind === "document" ? from : to.kind === "document" ? to : null;
     const target = document === from ? to : from;
     if (document && !["document", "phone", "node"].includes(target.kind)) {
-      const documents = useDocuments.getState();
-      if (documents.status[document.id] && documents.status[document.id] !== "saved")
-        await documents.flush(document.id);
-      const api = documentsApi();
-      if (api.bind) {
-        const saved = await api.bind(
-          document.id,
-          { kind: target.kind, id: target.id } as AssetRef,
-          remove,
-        );
-        const latestState = useDocuments.getState();
-        const latestDraft = latestState.drafts[document.id];
-        if (latestDraft && latestState.status[document.id] !== "saved") {
-          latestState.change({ ...latestDraft, bindings: saved.bindings });
-          await useDocuments.getState().flush(document.id);
-        } else latestState.acceptChange({ document: saved });
-        await removeDuplicateDocumentEdge(from, to);
-        useAppStore.getState().log(remove ? "已解除一条资源关联" : "已确认一条资源关联");
-        return;
-      }
-      // 旧桥接不能保证正文与关联并发安全，禁止以整体文档保存冒充关联已保存。
-      throw Error("当前文档接口不支持安全修改关联，请更新客户端或服务端后重试。");
+      await applyDocumentRelation(document, target, remove);
+      useAppStore.getState().log(remove ? "已解除一条资源关联" : "已确认一条资源关联");
+      return;
     } else {
       const state = useAppStore.getState();
       if (remove) state.unlinkAssets(from, to);

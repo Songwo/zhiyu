@@ -11,6 +11,11 @@ import {
   relationPaths,
   canRelateResources,
 } from "../src/lib/resource-relations.mjs";
+import {
+  normalizeRelationSelection,
+  relationSelectionDiff,
+  splitRelationTargets,
+} from "../src/lib/composer-relations.mjs";
 
 const row = (kind, id, name, extra = {}) => ({
   kind,
@@ -251,4 +256,133 @@ test("相邻同排连接及同列回环路径始终保留有效端点", () => {
     assert.ok(path.endsWith(`L ${target.targetX} ${target.targetY}`));
     assert.doesNotMatch(path, /NaN|Infinity/);
   }
+});
+
+test("关系分层跨类型聚合，横纵切换保留全部节点、边和文档虚线", () => {
+  const resources = [
+    row("mail", "m", "邮箱"),
+    row("server", "s", "主机"),
+    row("domain", "d", "域名"),
+    row("secret", "a", "账号"),
+    row("ai", "ai", "订阅"),
+    row("document", "doc", "文档"),
+  ];
+  const links = [1, 2, 3, 4].map((index) => ({ from: resources[0], to: resources[index] }));
+  const relations = confirmedRelations(resources, links, [
+    { id: "doc", title: "文档", bindings: [resources[1]] },
+  ]);
+  const original = JSON.stringify({ resources, relations });
+  const horizontal = resourceGraph(resources, relations, false, "relationships", resources[0]);
+  const vertical = resourceGraph(resources, relations, true, "relationships", resources[0]);
+  assert.equal(horizontal.nodes.length, resources.length);
+  assert.deepEqual(horizontal.edges.map((e) => e.id).sort(), relations.map((r) => r.id).sort());
+  assert(horizontal.edges.some((e) => e.style?.strokeDasharray === "5 4"));
+  for (let i = 0; i < horizontal.nodes.length; i++) {
+    assert.equal(horizontal.nodes[i].position.x / 300, vertical.nodes[i].position.y / 190);
+    assert.equal(horizontal.nodes[i].position.y / 160, vertical.nodes[i].position.x / 280);
+  }
+  assert(
+    Math.max(...horizontal.nodes.map((n) => n.position.x)) <
+      Math.max(...resourceGraph(resources, relations, false).nodes.map((n) => n.position.x)),
+    "不应再按六个类型平铺",
+  );
+  assert.equal(JSON.stringify({ resources, relations }), original, "布局不改写真实关联");
+});
+
+test("分层布局处理环路、多个连通组和孤立节点，结果稳定且卡片不重叠", () => {
+  const resources = Array.from({ length: 24 }, (_, i) => row("server", `s${i}`, `主机${i}`));
+  const relations = confirmedRelations(
+    resources,
+    [
+      { from: resources[0], to: resources[1] },
+      { from: resources[1], to: resources[2] },
+      { from: resources[2], to: resources[0] },
+      { from: resources[4], to: resources[5] },
+    ],
+    [],
+  );
+  const graph = resourceGraph(resources, relations, false, "relationships");
+  assert.deepEqual(
+    graph.nodes,
+    resourceGraph(resources, [...relations].reverse(), false, "relationships").nodes,
+    "连线输入顺序不能打乱布局",
+  );
+  assert.equal(new Set(graph.nodes.map((n) => n.id)).size, 24);
+  for (const a of graph.nodes)
+    for (const b of graph.nodes)
+      if (a.id !== b.id) {
+        assert(
+          Math.abs(a.position.x - b.position.x) >= 220 ||
+            Math.abs(a.position.y - b.position.y) >= 140,
+          "卡片不能重叠",
+        );
+        assert(Number.isFinite(a.position.x) && Number.isFinite(a.position.y));
+      }
+  assert.equal(resourceGraph([], [], false, "relationships").nodes.length, 0);
+});
+
+test("新增编辑选择器去重、排除自身和悬空引用，网站账号与域名保留类型", () => {
+  const entries = [
+    row("mail", "m", "owner@example.test"),
+    row("domain", "d", "example.test"),
+    row("secret", "web", "Example", { typeLabel: "网站账号" }),
+  ];
+  const owner = { kind: "secret", id: "web" };
+  const selected = normalizeRelationSelection(
+    entries,
+    [
+      { kind: "mail", id: "m" },
+      { kind: "mail", id: "m" },
+      owner,
+      { kind: "domain", id: "gone" },
+      { kind: "domain", id: "d" },
+    ],
+    owner,
+  );
+  assert.deepEqual(selected, [
+    { kind: "mail", id: "m" },
+    { kind: "domain", id: "d" },
+  ]);
+  const split = splitRelationTargets([
+    ...selected,
+    { kind: "document", id: "doc" },
+    { kind: "document", id: "doc" },
+  ]);
+  assert.deepEqual(split.assets, selected);
+  assert.deepEqual(split.documents, [{ kind: "document", id: "doc" }]);
+  const rowsWithKinds = resourceRows(
+    [
+      row("secret", "web", "Example"),
+      row("domain", "domain", "example.test"),
+    ],
+    [],
+    {
+      servers: [],
+      domains: [{ id: "domain", name: "example.test", demo: false }],
+      certs: [],
+      mailboxes: [],
+      aiAssets: [],
+      secrets: [{ id: "web", kind: "password", demo: false }],
+      services: [],
+      phoneNumbers: [],
+      links: [],
+    },
+  );
+  assert.equal(rowsWithKinds.find((item) => item.id === "web")?.typeLabel, "网站账号");
+  assert.equal(rowsWithKinds.find((item) => item.id === "domain")?.kind, "domain");
+});
+
+test("编辑关联差异只返回新增与移除，不改变其他关系", () => {
+  const before = [
+    { kind: "mail", id: "m" },
+    { kind: "document", id: "doc" },
+  ];
+  const after = [
+    { kind: "domain", id: "d" },
+    { kind: "document", id: "doc" },
+  ];
+  assert.deepEqual(relationSelectionDiff(before, after), {
+    added: [{ kind: "domain", id: "d" }],
+    removed: [{ kind: "mail", id: "m" }],
+  });
 });

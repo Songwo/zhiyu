@@ -26,9 +26,10 @@ import type { ViewId } from "@/lib/types";
 import { ActivityJournal } from "./activity-journal";
 import { QuickStart, UpcomingRenewals } from "./overview-guides";
 import { Button } from "./ui/button";
-import { DepthHero, PageSection, RowButton } from "./ui/page";
+import { PageSection, RowButton } from "./ui/page";
 import { createAsset } from "@/lib/create-asset";
 import { isWeb } from "@/lib/web";
+import { PageHelp } from "./ui/page-help";
 import { HostPulse } from "./host-monitor";
 
 export function Overview() {
@@ -228,10 +229,10 @@ export function Overview() {
   if (isWeb())
     return (
       <div className="web-dashboard page-stagger">
-        <header className="web-dashboard-head">
+        <header className="web-dashboard-head overview-compact-head">
           <div className="min-w-0">
             <h1>{headline}</h1>
-            <p>{t("这台服务器的状态与你的全部资产，在一页里看完。")}</p>
+            <PageHelp>{t("这台服务器的状态与你的全部资产，在一页里看完。")}</PageHelp>
           </div>
           <Button onClick={() => void createAsset()}>
             <Plus />
@@ -256,62 +257,46 @@ export function Overview() {
 
   return (
     <div className="overview-layout page-stagger">
-      <DepthHero
-        eyebrow={t("资产总览")}
-        title={headline}
-        description={t("集中管理资产，快速找到需要处理的事项。")}
-        actions={
-          <Button onClick={() => void createAsset()}>
-            <Plus />
-            {t("添加资产")}
-          </Button>
-        }
-      >
-        <h2 className="sr-only">{t("常用操作")}</h2>
-        <div className="hero-actions" aria-label={t("常用操作")}>
-          {(
-            [
-              {
-                view: "docs",
-                label: "打开文档",
-                detail: "记录图片、链接与资产说明",
-                icon: FileText,
-              },
-              { view: "phones", label: "管理号码", detail: "查看到期日与关联订阅", icon: Phone },
-              {
-                view: "usage",
-                label: "查看用量",
-                detail: "查看流量、Token 与最近采集结果",
-                icon: ChartNoAxesCombined,
-              },
-              { view: "ai", label: "查看 AI 订阅", detail: "管理订阅与月度开支", icon: Bot },
-            ] as const
-          ).map(({ view, label, detail, icon: Icon }) => (
-            <button type="button" key={view} onClick={() => setView(view)} className="hero-action">
-              <span className="quick-tile-icon" aria-hidden="true">
-                <Icon />
-              </span>
-              <span className="min-w-0">
-                <span className="quick-tile-title">{t(label)}</span>
-                <span className="quick-tile-detail">{t(detail)}</span>
-              </span>
-              <ArrowUpRight className="quick-tile-arrow" aria-hidden="true" />
-            </button>
-          ))}
+      <header className="overview-compact-head">
+        <div className="page-heading-summary">
+          <h1 className="page-title">{t("资产总览")}</h1>
+          <span className="overview-headline">{headline}</span>
+          <PageHelp>{t("集中管理资产，快速找到需要处理的事项。")}</PageHelp>
         </div>
-      </DepthHero>
+        <Button onClick={() => void createAsset()}>
+          <Plus />
+          {t("添加资产")}
+        </Button>
+      </header>
+      <nav className="overview-shortcuts" aria-label={t("常用操作")}>
+        {(
+          [
+            { view: "docs", label: "打开文档", icon: FileText },
+            { view: "phones", label: "管理号码", icon: Phone },
+            { view: "usage", label: "查看用量", icon: ChartNoAxesCombined },
+            { view: "ai", label: "查看 AI 订阅", icon: Bot },
+          ] as const
+        ).map(({ view, label, icon: Icon }) => (
+          <Button key={view} variant="ghost" size="sm" onClick={() => setView(view)}>
+            <Icon />
+            {t(label)}
+          </Button>
+        ))}
+      </nav>
 
       {statStrip}
 
-      <QuickStart />
-      <UpcomingRenewals />
-
-      {attentionSection}
-
-      <div className={servers.length ? "overview-columns" : "grid gap-8"}>
-        {serverSection}
-        <ActivityJournal />
+      <div className="overview-data-grid">
+        <div className="overview-data-column">
+          {attentionSection}
+          {serverSection}
+        </div>
+        <div className="overview-data-column">
+          <UpcomingRenewals />
+          <ActivityJournal />
+        </div>
       </div>
+      <QuickStart />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { MailOAuthError } from "./mail-oauth-credential.mjs";
 import {
   MailboxQueryError,
   queryMailbox as queryImap,
@@ -14,17 +15,25 @@ export class MailboxService {
   #vault;
   #getSnapshot;
   #query;
+  #resolveOAuth;
   #baselines;
   #queues = new Map();
   #controllers = new Set();
   #generation = 0;
   #writeQueue = Promise.resolve();
 
-  constructor({ directory, vault, getSnapshot, queryMailbox = queryImap }) {
+  constructor({
+    directory,
+    vault,
+    getSnapshot,
+    queryMailbox = queryImap,
+    resolveOAuth = undefined,
+  }) {
     this.#file = join(directory, "mailbox-baselines.json");
     this.#vault = vault;
     this.#getSnapshot = getSnapshot;
     this.#query = queryMailbox;
+    this.#resolveOAuth = resolveOAuth;
   }
 
   check(assetId, { signal, cursor = "interactive", checkpoint } = {}) {
@@ -101,7 +110,12 @@ export class MailboxService {
     }
     const username = credential?.username;
     const password = credential?.password;
-    if (typeof username !== "string" || !username || typeof password !== "string" || !password)
+    const oauth = credential?.oauth?.mailClientId && this.#resolveOAuth;
+    if (
+      typeof username !== "string" ||
+      !username ||
+      (!oauth && (typeof password !== "string" || !password))
+    )
       throw new Error("请先保存邮箱用户名与密码 / 授权码");
     const key = createHash("sha256")
       .update(JSON.stringify([assetId, cursor, connection, username]))
@@ -118,11 +132,14 @@ export class MailboxService {
     }, 250);
     try {
       if (controller.signal.aborted) throw new Error("邮箱检查已取消");
+      const accessToken = oauth ? await this.#resolveOAuth(mailbox, credential, "imap") : undefined;
+      if (controller.signal.aborted || !this.#vault.unlocked) throw new Error("邮箱检查已取消");
       const raw = await this.#query({
         ...connection,
         address: mailbox.address,
         username,
         password,
+        accessToken,
         baseline: previous,
         signal: controller.signal,
       });
@@ -161,7 +178,8 @@ export class MailboxService {
       if (controller.signal.aborted || signal?.aborted)
         throw new Error("邮箱检查已取消或密钥库已锁定");
       // 自定义传输及服务器错误同样不能把凭据、邮件内容带回 renderer 或模型。
-      if (error instanceof MailboxQueryError) throw new Error(error.message);
+      if (error instanceof MailboxQueryError || error instanceof MailOAuthError)
+        throw new Error(error.message);
       throw new Error("邮箱检查失败，请检查 IMAP 设置、网络及账号权限");
     } finally {
       clearInterval(lockMonitor);

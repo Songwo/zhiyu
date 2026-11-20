@@ -28,3 +28,11 @@ export const OAUTH_PROVIDERS = {
       "在 Microsoft Entra 注册应用，平台选「移动和桌面应用程序」，重定向 URI 填 http://localhost。公共客户端不需要密钥。",
   },
 };
+
+export const MAIL_OAUTH_SCOPES = {
+  google: ["https://mail.google.com/"],
+  microsoft: [
+    "https://outlook.office.com/IMAP.AccessAsUser.All",
+    "https://outlook.office.com/SMTP.Send",
+  ],
+};

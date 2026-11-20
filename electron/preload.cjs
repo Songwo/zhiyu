@@ -192,6 +192,7 @@ contextBridge.exposeInMainWorld("sinan", {
   },
   aiAccounts: {
     list: () => unwrap(ipcRenderer.invoke("ai-accounts:list")),
+    antigravityQuota: () => unwrap(ipcRenderer.invoke("ai-accounts:antigravity-quota")),
     start: (provider) => unwrap(ipcRenderer.invoke("ai-accounts:start", provider)),
     status: (id) => unwrap(ipcRenderer.invoke("ai-accounts:status", id)),
     finish: (id, code) => unwrap(ipcRenderer.invoke("ai-accounts:finish", id, code)),

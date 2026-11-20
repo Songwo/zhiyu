@@ -1,0 +1,226 @@
+/* 数据优先：页头只占一条工具栏，正文和风险信息保持原有字号。 */
+:root .page-view-heading {
+  align-items: center;
+  padding: 12px 16px 8px;
+  gap: 12px;
+}
+:root .page-heading-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+:root .page-heading-summary .page-title {
+  font-size: 18px;
+  line-height: 1.4;
+}
+:root .page-heading-summary .page-meta {
+  margin-top: 0;
+  font-size: 12px;
+}
+:root .page-help-content {
+  z-index: calc(var(--z-overlay, 100) + 20);
+  width: min(340px, calc(100vw - 24px));
+  padding: 12px 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-muted);
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+  line-height: 1.6;
+}
+:root .overview-layout {
+  gap: 20px;
+  padding: 12px 16px 56px;
+}
+:root .overview-compact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+:root .overview-headline {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+:root .overview-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-block: -8px;
+}
+:root .overview-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+:root .overview-data-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 24px;
+}
+:root .overview-layout .page-section-head {
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+:root .overview-layout .hero-stat,
+:root .web-dashboard .hero-stat {
+  padding: 12px 16px;
+}
+:root .overview-layout .hero-stat-value,
+:root .web-dashboard .hero-stat-value {
+  margin-top: 6px;
+  font-size: 20px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+:root .overview-layout .hero-stat-detail,
+:root .web-dashboard .hero-stat-detail {
+  margin-top: 6px;
+}
+:root .spend-summary {
+  display: grid;
+  gap: 12px;
+}
+:root .spend-rate-details {
+  position: relative;
+  min-width: min(100%, 230px);
+  border: 1px solid var(--color-line);
+  border-radius: 9px;
+  background: var(--color-card);
+}
+:root .spend-rate-details > summary {
+  display: flex;
+  min-height: 36px;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 6px 10px;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+:root .spend-rate-details > summary::-webkit-details-marker {
+  display: none;
+}
+:root .spend-rate-details > summary span:first-child {
+  color: var(--color-ink);
+}
+:root .spend-rate-details > summary svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 160ms ease;
+}
+:root .spend-rate-details[open] > summary svg {
+  transform: rotate(180deg);
+}
+:root .spend-rate-details > form {
+  flex-wrap: wrap;
+  padding: 0 10px 10px;
+}
+@media (max-width: 767px) {
+  :root .spend-rate-details {
+    width: 100%;
+  }
+  :root .spend-rate-details > summary {
+    justify-content: space-between;
+  }
+}
+:root .spend-summary .hero-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+  border-radius: 12px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+:root .subscription-spend {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+:root .subscription-spend p:last-child {
+  margin-top: 0;
+}
+:root .phone-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+:root .phone-workspace > * {
+  margin-block: 0;
+}
+:root .overview-layout .reminder-empty {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding: 12px 16px;
+  gap: 12px;
+}
+:root .overview-layout .reminder-empty > svg {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+}
+:root .usage-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+:root .usage-workspace > * {
+  margin-block: 0;
+}
+:root .collection-workspace > .collection-toolbar {
+  margin-bottom: 12px;
+}
+:root .collection-workspace > .vault-status {
+  margin-bottom: 12px;
+  padding-block: 8px;
+}
+:root .documents-list .documents-list-heading {
+  gap: 8px;
+  padding-block: 10px;
+}
+@media (max-width: 1099px) {
+  :root .overview-data-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  :root .spend-summary .hero-stats {
+    gap: 8px;
+  }
+  :root .spend-summary .hero-stat {
+    padding: 10px 12px;
+  }
+  :root .spend-summary .hero-stat-value {
+    font-size: 18px;
+  }
+  :root .page-view-heading {
+    flex-wrap: wrap;
+    padding: 10px 16px 6px;
+  }
+  :root .page-heading-summary {
+    gap: 6px 8px;
+  }
+  :root .page-heading-summary .ui-button,
+  :root .overview-shortcuts .ui-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  :root .overview-layout {
+    gap: 16px;
+    padding: 10px 16px 80px;
+  }
+  :root .overview-layout .hero-stat,
+  :root .web-dashboard .hero-stat {
+    padding: 12px;
+  }
+}

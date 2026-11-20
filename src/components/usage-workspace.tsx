@@ -31,6 +31,7 @@ import { Select } from "./ui/select";
 import { EditorDialog } from "./ui/editor-dialog";
 import { UsageInsights } from "./usage-insights";
 import { LocalUsageControl } from "./local-usage-control";
+import { AntigravityQuota } from "./antigravity-quota";
 import { SubscriptionSourceCard } from "./subscription-source-card";
 import { usageCache } from "@/lib/usage-cache";
 import "./usage-management.css";
@@ -313,6 +314,7 @@ export function UsageWorkspace() {
           </Button>
         </div>
       </div>
+      <AntigravityQuota />
       <div className="usage-workspace-tabs" role="tablist" aria-label={t("用量工作区")}>
         {(
           [

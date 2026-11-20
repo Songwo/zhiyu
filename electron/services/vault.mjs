@@ -476,13 +476,20 @@ export class Vault {
     return this.#key;
   }
 
-  set(id, secret) {
+  set(id, secret, { expected } = {}) {
     return this.#enqueue(
       async (generation) => {
         const snapshot = await this.#read();
         const { doc } = snapshot;
         this.#assertGeneration(generation);
         const key = this.#require();
+        if (expected !== undefined) {
+          const current = Object.hasOwn(doc?.records ?? {}, id)
+            ? open(key, doc.records[id]).toString("utf8")
+            : null;
+          if (current !== JSON.stringify(expected))
+            throw new Error("凭据已更新或断开，请重试");
+        }
         const records = {
           ...(doc?.records ?? {}),
           [id]: seal(key, Buffer.from(JSON.stringify(secret), "utf8")),

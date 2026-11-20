@@ -81,8 +81,8 @@ export function MailWorkspace() {
     if (await useVault.getState().require(t("查看和发送邮件需要解锁密钥库。"))) setReader(id);
   }
   return (
-    <section className="p-4" aria-label={t("邮箱文件夹")}>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <section className="collection-workspace p-4" aria-label={t("邮箱文件夹")}>
+      <div className="collection-toolbar mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {active !== null && (
             <Button

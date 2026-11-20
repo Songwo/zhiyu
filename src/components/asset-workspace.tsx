@@ -75,19 +75,25 @@ export function AssetWorkspace() {
       : relatedResources(resources, relations, rows);
   }, [graph, s.view, s.query, all, resources, relations, rows]);
   return (
-    <div className="asset-workspace">
-      <div className="workspace-summary flex flex-wrap items-center justify-between gap-2">
-        <span>
-          {layout === "graph"
-            ? t("{0} 项资源", graphRows.length.toLocaleString(intlLocale()))
-            : t("{0} 项资产", rows.length.toLocaleString(intlLocale()))}
-        </span>
-        {layout === "graph" && s.view !== "relations" && (
-          <Button size="sm" variant="ghost" onClick={() => setAll(!all)}>
-            {t(all ? "当前资产与关联资源" : "全部资源")}
-          </Button>
-        )}
-      </div>
+    <div
+      className={
+        s.view === "relations" ? "asset-workspace asset-workspace-relations" : "asset-workspace"
+      }
+    >
+      {s.view !== "relations" && (
+        <div className="workspace-summary flex flex-wrap items-center justify-between gap-2">
+          <span>
+            {layout === "graph"
+              ? t("{0} 项资源", graphRows.length.toLocaleString(intlLocale()))
+              : t("{0} 项资产", rows.length.toLocaleString(intlLocale()))}
+          </span>
+          {layout === "graph" && (
+            <Button size="sm" variant="ghost" onClick={() => setAll(!all)}>
+              {t(all ? "当前资产与关联资源" : "全部资源")}
+            </Button>
+          )}
+        </div>
+      )}
       {layout === "graph" ? (
         <Suspense
           fallback={
@@ -96,7 +102,12 @@ export function AssetWorkspace() {
             </p>
           }
         >
-          <AssetGraph rows={graphRows} resources={resources} relations={relations} />
+          <AssetGraph
+            rows={graphRows}
+            resources={resources}
+            relations={relations}
+            compact={s.view === "relations"}
+          />
         </Suspense>
       ) : rows.length === 0 ? (
         <p className="workspace-empty">{t("没有匹配的资产")}</p>

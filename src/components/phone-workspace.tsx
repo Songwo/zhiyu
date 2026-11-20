@@ -1,3 +1,4 @@
+import { PageHelp } from "./ui/page-help";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   ArrowUpRight,
@@ -141,21 +142,25 @@ export function PhoneWorkspace() {
     window.requestAnimationFrame(() => list.current?.scrollIntoView({ block: "start" }));
   };
   return (
-    <div className="min-w-0 space-y-5 px-4 pb-24 pt-1">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="max-w-2xl text-meta leading-relaxed text-muted">
-            {t("保存号码、到期日及关联账号。到期前 30 天开始提示，系统通知在应用打开时提醒。")}
-          </p>
-          <p className="mt-1 text-2xs leading-relaxed text-muted">
-            {t("号码信息保存在本机资产文件中，不记录验证码。")}
-          </p>
+    <div className="phone-workspace min-w-0 space-y-5 px-4 pb-24 pt-1">
+      <header className="overview-compact-head">
+        <div className="page-heading-summary">
+          <h1 className="page-title">{t("号码管理")}</h1>
+          <span className="page-meta">{t("共 {0} 项", records.length)}</span>
+          <PageHelp>
+            <p className="max-w-2xl text-meta leading-relaxed text-muted">
+              {t("保存号码、到期日及关联账号。到期前 30 天开始提示，系统通知在应用打开时提醒。")}
+            </p>
+            <p className="mt-1 text-2xs leading-relaxed text-muted">
+              {t("号码信息保存在本机资产文件中，不记录验证码。")}
+            </p>
+          </PageHelp>
         </div>
         <Button className="min-h-11" onClick={() => setEditing("new")}>
           <Plus />
           {t("添加号码")}
         </Button>
-      </div>
+      </header>
 
       {editing && (
         <PhoneEditor

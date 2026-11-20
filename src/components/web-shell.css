@@ -524,12 +524,12 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 16px;
+  padding-top: 4px;
 }
 .web-dashboard-head h1 {
   margin: 0;
-  font-size: 1.875rem;
-  line-height: 2.25rem;
+  font-size: 18px;
+  line-height: 1.4;
   font-weight: 600;
   letter-spacing: -0.02em;
   text-wrap: balance;

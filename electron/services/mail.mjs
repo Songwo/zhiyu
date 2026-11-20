@@ -113,17 +113,21 @@ export async function testMailbox({ address, password, host, port, secure = true
 }
 
 export async function queryMailbox(
-  { host, port, secure = true, username, password, address, baseline, signal },
+  { host, port, secure = true, username, password, accessToken, address, baseline, signal },
   { createClient = (options) => new ImapFlow(options), timeoutMs = 25_000 } = {},
 ) {
   const connection = validateMailboxConnection({ host, port, secure });
-  if (typeof username !== "string" || !username || typeof password !== "string" || !password) {
+  if (
+    typeof username !== "string" ||
+    !username ||
+    (!accessToken && (typeof password !== "string" || !password))
+  ) {
     throw new Error("请先保存邮箱用户名与密码 / 授权码");
   }
   if (signal?.aborted) throw new Error("邮箱检查已取消");
   const client = createClient({
     ...connection,
-    auth: { user: username, pass: password },
+    auth: accessToken ? { user: username, accessToken } : { user: username, pass: password },
     tls: { rejectUnauthorized: true, minVersion: "TLSv1.2" },
     logger: false,
     clientInfo: { name: "Zhiyu", vendor: "Zhiyu" },

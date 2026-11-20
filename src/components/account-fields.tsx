@@ -83,6 +83,7 @@ export function AccountFields({
   const [reveal, setReveal] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [stored, setStored] = useState(false);
+  const [storedMailOAuth, setStoredMailOAuth] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const current = useRef({ form, set });
   current.current = { form, set };
@@ -97,6 +98,7 @@ export function AccountFields({
   useEffect(() => {
     setLoaded(false);
     setStored(false);
+    setStoredMailOAuth(false);
     setReveal(false);
     setLoadError(false);
   }, [assetId, unlocked]);
@@ -112,6 +114,7 @@ export function AccountFields({
         setLoaded(true);
         if (!rec) return;
         setStored(true);
+        setStoredMailOAuth(Boolean(rec.oauth?.mailClientId));
         // 只有表单里从未出现过的键才回填：用户抢先输入的值不能被迟到的
         // 密钥库记录覆盖（异步预填与手输竞争时以手输为准）。
         const { form: latest, set: update } = current.current;
@@ -155,6 +158,27 @@ export function AccountFields({
                   : t("尚未保存")}
           </span>
         </div>
+
+        {kind === "mail" &&
+          unlocked &&
+          (form._oauthMailClientId ?? (storedMailOAuth ? "configured" : "")) && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-2xs">
+              <span>{t("已配置邮件 OAuth 授权")}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  set("_oauthProvider", "");
+                  set("_oauthRefresh", "");
+                  set("_oauthMailClientId", "");
+                  set("_oauthMailAddress", "");
+                }}
+              >
+                {t("保存时断开邮件授权")}
+              </Button>
+            </div>
+          )}
 
         {!unlocked ? (
           <div className="flex items-center gap-3">

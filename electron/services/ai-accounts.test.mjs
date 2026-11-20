@@ -45,6 +45,7 @@ for (const provider of Object.keys(AI_PROVIDERS)) {
     const { vault, profile, directory } = await fixture(t);
     await profile.save({ name: "OAuth 测试", password: "test-master-long" });
     let opened;
+    let geminiProfile = { cloudaicompanionProject: "test-project", currentTier: { name: "Free" } };
     const requests = [];
     const claims = {
       sub: "test-user",
@@ -75,8 +76,7 @@ for (const provider of Object.keys(AI_PROVIDERS)) {
             account: { uuid: "test-claude", email_address: "qa@example.test" },
           };
         else if (url === p.userinfo) body = { sub: "test-user", email: "qa@example.test" };
-        else if (url === p.profile)
-          body = { cloudaicompanionProject: "test-project", currentTier: { name: "Free" } };
+        else if (url === p.profile) body = geminiProfile;
         else
           body =
             provider === "openai"
@@ -134,6 +134,21 @@ for (const provider of Object.keys(AI_PROVIDERS)) {
     assert.equal(updated.subscriptionExpiresAt, null);
     assert.equal(requests.filter((req) => req.url === p.token).length, 2);
     assert.ok(requests.every((req) => req.options.redirect === "error"));
+    if (provider === "gemini") {
+      const quotaCalls = requests.filter((req) => req.url === p.usage).length;
+      geminiProfile = {
+        ineligibleTiers: [{ reasonCode: "UNSUPPORTED_CLIENT", reasonMessage: "private detail" }],
+      };
+      await assert.rejects(service.refresh(account.id), { code: "UNSUPPORTED_CLIENT" });
+      const [stale] = await service.list();
+      assert.equal(stale.usage.windows[0].usedPercent, 25);
+      assert.equal(stale.usage.status, "stale");
+      assert.match(stale.usageRefresh.message, /Antigravity CLI/);
+      assert.doesNotMatch(stale.usageRefresh.message, /private detail/);
+      geminiProfile = {};
+      await assert.rejects(service.refresh(account.id), { code: "PROJECT_REQUIRED" });
+      assert.equal(requests.filter((req) => req.url === p.usage).length, quotaCalls);
+    }
     await service.remove(account.id);
     assert.deepEqual(await service.list(), []);
     await assert.rejects(service.remove("ssh:private"), /无效/);

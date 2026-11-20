@@ -97,10 +97,10 @@ export function VaultWorkspace() {
     }
   }
   return (
-    <section className="p-4" aria-label={t("密钥分组")}>
+    <section className="collection-workspace p-4" aria-label={t("密钥分组")}>
       {vaultApi() && (
         <div
-          className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card px-4 py-3"
+          className="vault-status mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card px-4 py-3"
           role="status"
         >
           {unlocked ? (
@@ -137,7 +137,7 @@ export function VaultWorkspace() {
           )}
         </div>
       )}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="collection-toolbar mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {active !== null && (
             <Button

@@ -67,6 +67,10 @@ try {
   await page.locator('[data-app-ready="true"]').waitFor();
   await open("长文光标回归");
   const input = page.getByRole("textbox", { name: "Markdown 源码", exact: true });
+  await page.getByRole("textbox", { name: "文档标题", exact: true }).press("Enter");
+  await page.waitForFunction(() =>
+    document.activeElement?.classList.contains("document-markdown-input"),
+  );
   const source = Array.from(
     { length: 650 },
     (_, index) => `第 ${index} 行：这是用于大段粘贴测试的合成 Markdown 内容，不包含私人资料。`,
@@ -214,6 +218,22 @@ try {
     await rich.locator('a[href^="mailto:"], a[href^="tel:"], a[href^="javascript:"]').count(),
     0,
   );
+  await page.getByRole("textbox", { name: "文档标题", exact: true }).press("Enter");
+  await page.waitForFunction(() => document.activeElement?.classList.contains("document-prose"));
+  const selected = await rich.evaluate((el) => {
+    const link = el.querySelector("a");
+    const start = el.editor.view.posAtDOM(link.firstChild, 0);
+    el.editor.commands.setTextSelection({ from: start, to: start + 2 });
+    return el.editor.state.selection.toJSON();
+  });
+  await page.waitForFunction(async () => {
+    const doc = await window.sinan.documents.get("doc-editor-rich");
+    return JSON.stringify(doc.content).includes("官方资料");
+  });
+  assert.deepEqual(await rich.evaluate((el) => el.editor.state.selection.toJSON()), selected);
+  await page.keyboard.insertText("测试");
+  assert.match(await rich.innerText(), /测试资料/);
+  checks.push("标题回车进入两种正文；含链接的富文本自动保存后仍可替换原选区");
   await page.getByRole("button", { name: "完成编辑", exact: true }).click();
   await page.getByRole("button", { name: "编辑文档", exact: true }).waitFor();
   assert.equal(await page.getByRole("alert").count(), 0);

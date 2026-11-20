@@ -720,11 +720,20 @@ export class AiAccounts {
           if (
             typeof profile.cloudaicompanionProject !== "string" ||
             !profile.cloudaicompanionProject
-          )
+          ) {
+            const unsupported = array(profile.ineligibleTiers).some(
+              (tier) => tier?.reasonCode === "UNSUPPORTED_CLIENT",
+            );
+            if (unsupported)
+              throw new AiServiceError(
+                "UNSUPPORTED_CLIENT",
+                "Google 不再通过此授权提供个人账号的 Gemini Code Assist 额度。个人账号可在 Antigravity CLI 中查看额度。",
+              );
             throw new AiServiceError(
               "PROJECT_REQUIRED",
-              "Google 未返回 Code Assist 项目，请先在 Gemini CLI 完成账号开通。",
+              "Google 未返回 Gemini Code Assist 项目。请确认当前账号有可用的 Code Assist 席位和项目。",
             );
+          }
           usage = await readUsage(p.usage, {
             method: "POST",
             headers,

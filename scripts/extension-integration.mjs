@@ -134,11 +134,17 @@ try {
   );
   await composer.getByLabel("账号", { exact: true }).fill("integration-user");
   await composer.getByLabel("密码", { exact: true }).fill("private-fixture-password");
-  await chooseOption(
-    page,
-    composer.getByRole("combobox", { name: "注册邮箱", exact: true }),
-    "owner@example.test",
-  );
+  await composer.locator("summary").filter({ hasText: "关联已有资产" }).click();
+  const relationPicker = composer.getByRole("group", {
+    name: "选择多个关联资产",
+    exact: true,
+  });
+  await relationPicker.getByLabel("搜索资产名称或类型", { exact: true }).fill("owner@example.test");
+  await relationPicker
+    .locator("div.h-56 > label")
+    .filter({ hasText: "owner@example.test" })
+    .getByRole("checkbox")
+    .check();
   await instance.evaluate(
     ({ app }, url) => app.emit("second-instance", {}, [url]),
     captureUrl({ url: "https://second.test", title: "第二个站点" }),

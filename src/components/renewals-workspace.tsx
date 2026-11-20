@@ -6,6 +6,7 @@ import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -31,7 +32,8 @@ import { cn, downloadText } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { MarkRenewedButton } from "./mark-renewed";
 import { RemindersSection } from "./reminders-section";
-import { DepthHero, PageSection } from "./ui/page";
+import { PageSection } from "./ui/page";
+import { PageHelp } from "./ui/page-help";
 import { Input } from "./ui/input";
 
 const WINDOWS = [30, 90] as const;
@@ -115,7 +117,7 @@ export function RenewalsWorkspace() {
   );
 }
 
-/** 费用概览：景深头图，浮层里是各币种的月度与年度支出。 */
+/** 紧凑费用摘要，保留各币种的月度、年度支出和到期数量。 */
 function SpendHero({
   summary,
   due,
@@ -133,13 +135,24 @@ function SpendHero({
       ? formatMoney(combined.monthly, "CNY")
       : currencies.map((c) => formatMoney(summary.byCurrency[c].monthly, c)).join(" + ");
   return (
-    <DepthHero
-      tone="sand"
-      eyebrow={t("费用与续费")}
-      title={currencies.length ? t("每月支出 {0}", monthly) : t("还没有填写费用")}
-      description={t("年付按 12 个月摊到每月，月付乘 12 计入全年；一次性费用单列。")}
-      actions={<RateInput />}
-    >
+    <section className="spend-summary">
+      <header className="overview-compact-head">
+        <div className="page-heading-summary">
+          <h1 className="page-title">{t("费用与续费")}</h1>
+          <span className="overview-headline">
+            {currencies.length ? t("每月支出 {0}", monthly) : t("还没有填写费用")}
+          </span>
+          <PageHelp>{t("年付按 12 个月摊到每月，月付乘 12 计入全年；一次性费用单列。")}</PageHelp>
+        </div>
+        <details className="spend-rate-details">
+          <summary>
+            <span>{t("汇率与折算")}</span>
+            <span>{usdToCny ? `1 USD = ${usdToCny} CNY` : t("未启用换算")}</span>
+            <ChevronDown aria-hidden="true" />
+          </summary>
+          <RateInput />
+        </details>
+      </header>
       <section className="hero-stats" aria-label={t("费用概览")}>
         {currencies.map((currency) => {
           const totals = summary.byCurrency[currency];
@@ -183,7 +196,7 @@ function SpendHero({
           </div>
         )}
       </section>
-    </DepthHero>
+    </section>
   );
 }
 

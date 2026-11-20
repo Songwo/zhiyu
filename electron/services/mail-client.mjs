@@ -1,5 +1,6 @@
 import { ImapFlow } from "imapflow";
 import { validateMailboxConnection } from "./mail.mjs";
+import { MailOAuthError } from "./mail-oauth-credential.mjs";
 
 // 邮件正文解析和 HTML 清洗只在打开正文时加载；列表、检查邮件和启动不承担这部分开销。
 let parsingModules;
@@ -154,16 +155,19 @@ export class MailClient {
   #pagesCache = new Map();
   #messagesCache = new Map();
   #messagesCacheBytes = 0;
+  #resolveOAuth;
   constructor({
     vault,
     getSnapshot,
     createImap = (options) => new ImapFlow(options),
     createSmtp = async (options) => (await import("nodemailer")).default.createTransport(options),
+    resolveOAuth = undefined,
   }) {
     this.#vault = vault;
     this.#snapshot = getSnapshot;
     this.#imap = createImap;
     this.#smtp = createSmtp;
+    this.#resolveOAuth = resolveOAuth;
   }
   stop() {
     this.#generation += 1;
@@ -241,7 +245,10 @@ export class MailClient {
     if (!account || account.demo || account.kind !== "mailbox") fail("请选择已保存的真实邮箱账号");
     const credential = await this.#vault.get(`account:${id}`);
     assertActive();
-    if (!credential?.username || !credential?.password)
+    if (
+      !credential?.username ||
+      (!credential.password && !(credential.oauth?.mailClientId && this.#resolveOAuth))
+    )
       fail("请先在邮箱详情保存用户名和密码 / 授权码");
     const controller = new AbortController();
     this.#controllers.add(controller);
@@ -255,7 +262,7 @@ export class MailClient {
       if (controller.signal.aborted) fail("邮件操作已取消或超时；发送中的邮件请先核对已发送记录");
       return result;
     } catch (error) {
-      if (error instanceof MailClientError) throw error;
+      if (error instanceof MailClientError || error instanceof MailOAuthError) throw error;
       if (controller.signal.aborted) fail("邮件操作已取消或超时；发送中的邮件请先核对已发送记录");
       // 不返回上游原始错误，避免凭据、正文或收件人被写进错误日志。
       fail("邮件操作失败，请检查连接设置、授权码、网络和服务商权限");
@@ -268,9 +275,17 @@ export class MailClient {
   async #withImap(id, work) {
     return this.#run(id, async (account, auth, signal, assertActive) => {
       if (!account.imap) fail("请先保存 IMAP 连接设置");
+      const accessToken =
+        auth.oauth?.mailClientId && this.#resolveOAuth
+          ? await this.#resolveOAuth(account, auth, "imap")
+          : undefined;
+      assertActive();
+      if (signal.aborted) fail("邮件操作已取消");
       const client = this.#imap({
         ...validateMailboxConnection(account.imap),
-        auth: { user: auth.username, pass: auth.password },
+        auth: accessToken
+          ? { user: auth.username, accessToken }
+          : { user: auth.username, pass: auth.password },
         tls: { rejectUnauthorized: true, minVersion: "TLSv1.2" },
         logger: false,
         emitLogs: false,
@@ -508,13 +523,21 @@ export class MailClient {
         if (!address(account.address)) fail("发件人邮箱地址无效");
         if (!account.smtp) fail("请先保存 SMTP 发信设置");
         const smtp = validateSmtp(account.smtp);
+        const accessToken =
+          auth.oauth?.mailClientId && this.#resolveOAuth
+            ? await this.#resolveOAuth(account, auth, "smtp")
+            : undefined;
+        assertActive();
+        if (signal.aborted) fail("邮件操作已取消");
         const transport = await this.#smtp({
           host: smtp.host,
           port: smtp.port,
           secure: smtp.security === "tls",
           requireTLS: smtp.security === "starttls",
           tls: { rejectUnauthorized: true, minVersion: "TLSv1.2" },
-          auth: { user: auth.username, pass: auth.password },
+          auth: accessToken
+            ? { type: "OAuth2", user: auth.username, accessToken }
+            : { user: auth.username, pass: auth.password },
           connectionTimeout: 12000,
           greetingTimeout: 12000,
           socketTimeout: 25000,

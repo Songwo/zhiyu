@@ -49,6 +49,8 @@ export interface AccountCredential {
     refreshToken: string | null;
     expiresAt: string | null;
     scope: string;
+    mailClientId?: string;
+    mailAddress?: string;
   };
   updatedAt: string;
 }
@@ -121,6 +123,7 @@ export interface OAuthProvider {
 }
 
 export interface OAuthResult {
+  mailClientId?: string;
   ok: true;
   provider: string;
   providerLabel: string;
@@ -417,6 +420,7 @@ export interface DesktopBridge {
       provider: string;
       clientId: string;
       clientSecret?: string;
+      mailAccess?: boolean;
     }): Promise<OAuthResult>;
   };
   domain: { probe(name: string): Promise<DomainProbe> };

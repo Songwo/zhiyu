@@ -24,6 +24,8 @@ import { UsageStore } from "./services/usage.mjs";
 import { V2raynUsage } from "./services/v2rayn-usage.mjs";
 import { createRefreshBatch } from "./services/refresh-batch.mjs";
 import { LocalUsageMonitor } from "./services/local-usage.mjs";
+import { readAntigravityQuota } from "./services/antigravity-quota.mjs";
+import { createMailOAuthResolver } from "./services/mail-oauth-credential.mjs";
 import { DocumentsStore } from "./services/documents.mjs";
 import { WorkspaceActions } from "./services/workspace-actions.mjs";
 import electronUpdater from "electron-updater";
@@ -957,6 +959,13 @@ function registerIpc() {
     fetchImpl: (...args) => net.fetch(...args),
   });
   handle("ai-accounts:list", () => aiAccounts.list());
+  let antigravityRead;
+  handle("ai-accounts:antigravity-quota", () => {
+    antigravityRead ??= readAntigravityQuota().finally(() => {
+      antigravityRead = undefined;
+    });
+    return antigravityRead;
+  });
   handle("ai-accounts:start", (provider) => aiAccounts.start(provider));
   handle("ai-accounts:status", (id) => aiAccounts.status(id));
   handle("ai-accounts:finish", (id, code) => aiAccounts.finish(id, code));
@@ -1112,10 +1121,12 @@ function registerIpc() {
     },
   });
   metrics = new MetricsStore(join(app.getPath("userData"), "metrics.json"));
+  const resolveMailOAuth = createMailOAuthResolver(vault, (...args) => net.fetch(...args));
   mailboxes = new MailboxService({
     directory: app.getPath("userData"),
     vault,
     getSnapshot: () => currentSnapshot,
+    resolveOAuth: resolveMailOAuth,
   });
   mailPush = new MailPushService({
     vault,
@@ -1125,7 +1136,11 @@ function registerIpc() {
   });
   handle("mailboxes:check", (id) => mailboxes.check(id));
   handle("mailboxes:validate", (connection) => validateMailboxConnection(connection));
-  mailClient = new MailClient({ vault, getSnapshot: () => currentSnapshot });
+  mailClient = new MailClient({
+    vault,
+    getSnapshot: () => currentSnapshot,
+    resolveOAuth: resolveMailOAuth,
+  });
   handle("mail-client:folders", (id) => mailClient.folders(id));
   handle("mail-client:messages", (id, options) => mailClient.messages(id, options));
   handle("mail-client:read", (id, selection) => mailClient.read(id, selection));
@@ -1658,6 +1673,12 @@ function registerIpc() {
       assertCurrent();
       if (previous?._browserAsset && secret && typeof secret === "object")
         secret = { ...secret, _browserAsset: previous._browserAsset };
+      if (previous?.oauth?.mailClientId || secret?.oauth?.mailClientId) {
+        const saved = await vault.set(id, secret);
+        mailClient.stop();
+        mailboxes.stop();
+        return saved;
+      }
     }
     return vault.set(id, secret);
   });

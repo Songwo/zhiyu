@@ -46,6 +46,7 @@ export interface AiAccount {
 }
 export interface AiAccountBridge {
   list(): Promise<AiAccount[]>;
+  antigravityQuota?(): Promise<{ checkedAt: string; windows: AiUsageWindow[] }>;
   start(
     provider: AiProvider,
     options?: { allowServerStorage?: boolean },

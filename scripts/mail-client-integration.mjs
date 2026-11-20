@@ -14,6 +14,11 @@ let instance;
 try {
   instance = await electron.launch({ args: [resolve("electron/main.mjs")], env, timeout: 45000 });
   const page = await instance.firstWindow();
+  await instance.evaluate(({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows()[0];
+    window.webContents.setBackgroundThrottling(false);
+    window.showInactive();
+  });
   const pageErrors = [];
   const imageRequests = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -261,6 +266,42 @@ try {
   await reader.getByRole("button", { name: "查看邮件 Release notes", exact: true }).click();
   await reader.getByRole("button", { name: "加载本封图片", exact: true }).waitFor();
   assert.equal(imageRequests.length, requestCount);
+  async function setAutomaticImages(enabled) {
+    await reader.getByRole("button", { name: "关闭邮件窗口", exact: true }).click();
+    await reader.waitFor({ state: "detached" });
+    await page.locator("#primary-navigation .sidebar-profile-trigger").click();
+    await page.locator("button.sidebar-menu-item").filter({ hasText: "系统设置…" }).click();
+    const panel = page.locator(".settings-page-panel");
+    await panel.getByRole("button", { name: "存储", exact: true }).click();
+    const toggle = panel.getByRole("checkbox", { name: "自动加载邮件外部图片", exact: true });
+    assert.equal(await toggle.isChecked(), !enabled);
+    await toggle.setChecked(enabled);
+    assert.equal(
+      await page.evaluate(
+        () => JSON.parse(localStorage.getItem("sinan-settings-v1")).state.autoLoadMailImages,
+      ),
+      enabled,
+    );
+    await page.getByRole("button", { name: "返回", exact: true }).click();
+    const mailbox = page.locator('[data-mailbox-id="mail-0"]');
+    if (!(await mailbox.isVisible()))
+      await page.getByRole("button", { name: "打开文件夹 工作邮箱", exact: true }).click();
+    await mailbox
+      .getByRole("button", { name: /account0@example.test/ })
+      .filter({ has: page.locator("span.font-medium") })
+      .click();
+    await reader.getByRole("button", { name: "查看邮件 Release notes", exact: true }).click();
+  }
+  await setAutomaticImages(true);
+  const body = reader.getByRole("region", { name: "邮件正文", exact: true });
+  const remoteImage = body.locator('img[src^="https://images.example.test/"]');
+  await remoteImage.first().evaluate((image) => image.decode());
+  assert.ok(imageRequests.length > requestCount);
+  await reader.getByRole("button", { name: "隐藏外部图片", exact: true }).click();
+  await remoteImage.first().waitFor({ state: "detached" });
+  await setAutomaticImages(false);
+  await reader.getByRole("button", { name: "加载本封图片", exact: true }).waitFor();
+  assert.equal(await remoteImage.count(), 0);
   await reader.getByRole("button", { name: "查看邮件 Weekly delivery", exact: true }).click();
   await reader.getByRole("heading", { name: "本周交付进展", exact: true }).waitFor();
   await reader.getByRole("button", { name: "标为已读", exact: true }).click();
@@ -330,6 +371,7 @@ try {
       directFolderEditor: true,
       remoteImagesBlockedByDefault: true,
       imageConsentScopedToMessage: true,
+      automaticRemoteImageSetting: true,
       markRead: true,
       reply: true,
       encryptedDraft: true,

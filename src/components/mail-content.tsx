@@ -15,6 +15,7 @@ import { desktop } from "@/lib/desktop";
 import { t } from "@/lib/i18n";
 import type { MailMessage } from "@/lib/mailbox";
 import { readImageGrants, writeImageGrants } from "@/lib/mail-image-grants";
+import { useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
@@ -248,11 +249,12 @@ function HtmlBody({
 
 export function MailContent({ message }: { message: MailMessage }) {
   const [plain, setPlain] = useState(false);
-  const [allowedFor, setAllowedFor] = useState<MailMessage | null>(null);
+  const [hiddenFor, setHiddenFor] = useState<MailMessage | null>(null);
+  const autoLoadImages = useSettings((s) => s.autoLoadMailImages);
   const [rememberedGrants, setRememberedGrants] = useState<string[]>(() => readImageGrants());
   // 授权绑定本次读取对象；已记住授权的邮件按 Message-ID 跨会话延续，不自动加载其他邮件。
   const grantKey = `img:${message.messageId ?? `uid-${message.uid}`}`;
-  const allowed = allowedFor === message || rememberedGrants.includes(grantKey);
+  const allowed = hiddenFor !== message && (autoLoadImages || rememberedGrants.includes(grantKey));
   const parsed = useMemo(() => {
     if (!message.html || typeof DOMParser === "undefined") return null;
     const body = new DOMParser().parseFromString(message.html, "text/html").body;
@@ -260,7 +262,7 @@ export function MailContent({ message }: { message: MailMessage }) {
   }, [message.html]);
   const remoteCount = parsed?.querySelectorAll("img[data-mail-remote-src]").length ?? 0;
   const loadImages = () => {
-    setAllowedFor(message);
+    setHiddenFor(null);
     const next = [...rememberedGrants.filter((key) => key !== grantKey), grantKey];
     setRememberedGrants(next);
     writeImageGrants(next);
@@ -292,10 +294,10 @@ export function MailContent({ message }: { message: MailMessage }) {
             </button>
           ))}
         </div>
-        {allowed && (
+        {!plain && allowed && (remoteCount > 0 || !parsed) && (
           <button
             type="button"
-            onClick={() => setAllowedFor(null)}
+            onClick={() => setHiddenFor(message)}
             className="inline-flex h-8 items-center gap-1.5 text-meta text-muted hover:text-ink"
           >
             <ImageOff className="size-3.5" aria-hidden="true" />

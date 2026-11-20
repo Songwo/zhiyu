@@ -208,6 +208,22 @@ try {
         },
         documents: {
           list: async () => [window.__summary(JSON.parse(localStorage.getItem("qa-document")))],
+          // 对齐现有元信息接口：只修改绑定，不通过整体保存覆盖正文。
+          bind: async (_id, target, remove) => {
+            if (window.__holdDocumentRead) {
+              window.__holdDocumentRead = false;
+              await new Promise((resolve) => {
+                window.__releaseDocumentRead = resolve;
+              });
+            }
+            const current = JSON.parse(localStorage.getItem("qa-document"));
+            const same = (item) => item.kind === target.kind && item.id === target.id;
+            const bindings = (current.bindings ?? []).filter((item) => !same(item));
+            if (!remove) bindings.push(target);
+            const saved = { ...current, bindings, updatedAt: new Date().toISOString() };
+            localStorage.setItem("qa-document", JSON.stringify(saved));
+            return saved;
+          },
           get: async () => {
             const value = JSON.parse(localStorage.getItem("qa-document"));
             if (window.__holdDocumentRead) {

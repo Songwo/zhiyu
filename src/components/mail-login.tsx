@@ -78,6 +78,10 @@ export function MailLogin({
       set("kind", "mailbox");
       set("_username", result.address);
       set("_password", password);
+      set("_oauthProvider", "");
+      set("_oauthRefresh", "");
+      set("_oauthMailClientId", "");
+      set("_oauthMailAddress", "");
       set("_imapHost", result.imap.host);
       set("_imapPort", String(result.imap.port));
       set("_imapSecure", "true");
