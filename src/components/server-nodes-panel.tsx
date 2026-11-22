@@ -11,7 +11,7 @@ import { useAppStore } from "@/lib/store";
 import { type ProxyNode, type ProxyProtocol, type Server } from "@/lib/types";
 import { formatProxyUri, parseProxyUri, validateProxyNode } from "@/lib/proxy-nodes";
 import { nodeResourceId } from "../../electron/services/resource-links.mjs";
-import { AssetRelations } from "./operations-panel";
+import { AssetRelations } from "./asset-relations";
 import { EditorDialog } from "./ui/editor-dialog";
 import { reduceMotion } from "@/lib/motion";
 import { commitResourceChanges } from "@/lib/resource-relation-actions";

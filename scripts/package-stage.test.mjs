@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   DESKTOP_RUNTIME_DEPENDENCIES,
+  copyDesktopRenderer,
   createPackageStage,
   installPackageDependencies,
   mainProcessPackages,
@@ -91,6 +92,36 @@ test("暂存锁中版本漂移时在 npm ci 前中止", async (t) => {
     /版本不一致：runtime/,
   );
   await assert.rejects(access(join(stage, "unexpected-ci")));
+});
+
+test("原生包忽略网页预览内容并保留离线界面与品牌资源", async (t) => {
+  const root = await fixture(t);
+  const from = join(root, "source renderer");
+  const to = join(root, "packaged renderer");
+  const keep = [
+    "index.html",
+    "favicon.svg",
+    "assets/chunk.js",
+    "brands/brand.svg",
+    "brand/logo.png",
+  ];
+  const omit = [
+    "__grok/install/index.html",
+    "installer-preview/index.html",
+    "openai-preview.html",
+    "og.jpg",
+  ];
+  for (const path of [...keep, ...omit]) {
+    const file = join(from, path);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, path);
+  }
+  await copyDesktopRenderer(from, to);
+  for (const path of keep) assert.equal(await readFile(join(to, path), "utf8"), path);
+  for (const path of omit) {
+    await assert.rejects(access(join(to, path)), { code: "ENOENT" });
+    assert.equal(await readFile(join(from, path), "utf8"), path);
+  }
 });
 
 test("桌面安装包的依赖清单覆盖主进程实际引用的每个第三方包", () => {

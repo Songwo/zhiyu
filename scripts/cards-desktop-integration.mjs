@@ -157,6 +157,7 @@ try {
   assert.ok(!afterPrivate.includes("Synthetic cardholder only"));
   // 使用原有关系组件建立真实关联，落盘后重载保留。
   const target = sample.aiAssets[0];
+  await page.getByRole("button", { name: "管理关联", exact: true }).click();
   await chooseOption(
     page,
     page.getByRole("combobox", { name: "选择关联资产", exact: true }),

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppStore } from "./store";
+import { useShallow } from "zustand/react/shallow";
+import { useAppStore, type AppState } from "./store";
 import { useDocuments } from "./documents";
 import { assetRows } from "./asset-view";
 import {
@@ -21,8 +22,21 @@ export const resourceKindLabel = (ref: ResourceRef & { typeLabel?: string }) =>
         ? "自建节点"
         : KIND_LABEL[ref.kind]);
 
+const selectInventory = (state: AppState) => ({
+  servers: state.servers,
+  domains: state.domains,
+  mailboxes: state.mailboxes,
+  aiAssets: state.aiAssets,
+  secrets: state.secrets,
+  certs: state.certs,
+  services: state.services,
+  assetTypes: state.assetTypes,
+  phoneNumbers: state.phoneNumbers,
+});
+
 export function useResourceInventory() {
-  const snapshot = useAppStore();
+  const snapshot = useAppStore(useShallow(selectInventory));
+  const links = useAppStore((state) => state.links);
   const documents = useDocuments((state) => state.list);
   const loaded = useDocuments((state) => state.loaded);
   const [error, setError] = useState("");
@@ -43,8 +57,8 @@ export function useResourceInventory() {
     [snapshot, documents],
   );
   const relations = useMemo(
-    () => confirmedRelations(resources, snapshot.links, documents),
-    [resources, snapshot.links, documents],
+    () => confirmedRelations(resources, links, documents),
+    [resources, links, documents],
   );
   return { resources, relations, loaded, error };
 }

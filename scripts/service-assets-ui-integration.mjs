@@ -75,6 +75,7 @@ try {
   await editor.waitFor({ state: "detached" });
   await page.getByRole("button", { name: "查看服务 合成边缘服务", exact: true }).click();
   let details = page.getByRole("region", { name: "资产详情", exact: true });
+  await details.getByRole("button", { name: "管理关联", exact: true }).click();
   await chooseOption(page, details.getByRole("combobox", { name: "选择关联资产" }), "合成服务账号");
   await details.getByRole("button", { name: "添加关联", exact: true }).click();
   assert.equal(

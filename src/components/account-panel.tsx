@@ -96,7 +96,7 @@ export function AccountPanel({ assetId, kind }: { assetId: string; kind: AssetKi
       <div className="mb-3 flex items-center gap-2">
         <UserRound className="size-4 text-muted" />
         <h3 className="text-meta font-semibold">{t(copy.title)}</h3>
-        {kind === "secret" && unlocked && (
+        {kind === "secret" && unlocked && checked && record && (
           <Button
             className="ml-auto"
             variant="ghost"
@@ -139,7 +139,7 @@ export function AccountPanel({ assetId, kind }: { assetId: string; kind: AssetKi
           </Button>
         </div>
       ) : !record ? (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => openComposer(kind, assetId)}>
             <KeyRound className="size-3.5" />
 

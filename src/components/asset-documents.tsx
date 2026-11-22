@@ -85,9 +85,11 @@ export function AssetDocuments({ asset }: { asset: AssetRef }) {
   }
   return (
     <section className="border-t border-line p-4" aria-label={t(account ? "账号资料" : "关联文档")}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">
-          {t(account ? "账号资料" : "关联文档")} · {bound.length}
+      <div className="detail-section-heading">
+        <h3 className="tool-heading">
+          <FileText className="size-4" aria-hidden="true" />
+          {t(account ? "账号资料" : "关联文档")}
+          <span className="detail-section-count">{bound.length}</span>
         </h3>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -175,7 +177,7 @@ export function AssetDocuments({ asset }: { asset: AssetRef }) {
         </div>
       ))}
       {!bound.length && (
-        <p className="text-xs text-muted">{t("还没有关联文档，可新建图文笔记。")}</p>
+        <p className="text-meta text-muted">{t("还没有关联文档，可新建图文笔记。")}</p>
       )}
     </section>
   );

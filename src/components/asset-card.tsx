@@ -53,6 +53,14 @@ export function openFromEvent(e: MouseEvent<HTMLElement>, kind: AssetKind, id: s
   });
 }
 
+export function AssetCardTitle({ compact, children }: { compact: boolean; children: string }) {
+  return compact ? (
+    <h3 className="truncate font-semibold tracking-tight text-ink">{children}</h3>
+  ) : (
+    <h1 className="detail-asset-title">{children}</h1>
+  );
+}
+
 export function ServerCard({ data, compact = true }: { data: ServerT; compact?: boolean }) {
   const liveCpu = useLive((s) => s.cpu[data.id]);
   const liveMem = useLive((s) => s.memory[data.id]);
@@ -84,7 +92,7 @@ export function ServerCard({ data, compact = true }: { data: ServerT; compact?: 
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-semibold tracking-tight text-ink">{data.name}</h3>
+            <AssetCardTitle compact={compact}>{data.name}</AssetCardTitle>
             <StatusBadge
               status={status}
               sonar={status === "online"}
@@ -338,7 +346,7 @@ export function DomainCard({ data, compact = true }: { data: Domain; compact?: b
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-semibold tracking-tight text-ink">{data.name}</h3>
+            <AssetCardTitle compact={compact}>{data.name}</AssetCardTitle>
             <span
               className={cn(
                 "badge",
@@ -409,7 +417,7 @@ export function MailCard({ data, compact = true }: { data: Mailbox; compact?: bo
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-semibold tracking-tight text-ink">{data.address}</h3>
+            <AssetCardTitle compact={compact}>{data.address}</AssetCardTitle>
             <StatusBadge status={data.status} sonar={data.status === "online"} />
           </div>
           <p className="mt-0.5 text-meta text-muted">
@@ -456,7 +464,7 @@ export function AiCard({ data, compact = true }: { data: AiAsset; compact?: bool
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-semibold tracking-tight text-ink">{data.name}</h3>
+            <AssetCardTitle compact={compact}>{data.name}</AssetCardTitle>
             <span className="code-text font-semibold text-ink">
               {data.monthlyUsdKnown === false ? (
                 <span className="text-2xs font-normal text-muted">{t("月费未记录")}</span>
@@ -547,7 +555,7 @@ export function SecretCard({ data, compact = true }: { data: Secret; compact?: b
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-semibold tracking-tight text-ink">{data.name}</h3>
+            <AssetCardTitle compact={compact}>{data.name}</AssetCardTitle>
             <span className="badge badge-tag-mock text-[11px]">{kindLabel}</span>
           </div>
           <p className="mt-0.5 font-mono text-2xs text-muted">
@@ -618,7 +626,7 @@ export function CertCard({ data, compact = true }: { data: Certificate; compact?
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-semibold tracking-tight text-ink">{data.cn}</h3>
+            <AssetCardTitle compact={compact}>{data.cn}</AssetCardTitle>
             <span
               className={cn(
                 "badge",

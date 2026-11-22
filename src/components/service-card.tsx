@@ -2,7 +2,7 @@ import { Blocks, ExternalLink, Globe, Mail, Zap } from "lucide-react";
 import type { ServiceAsset } from "@/lib/types";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { openFromEvent } from "./asset-card";
+import { AssetCardTitle, openFromEvent } from "./asset-card";
 import { CardTag } from "./tag-bar";
 import { StatusBadge } from "./ui/status-badge";
 import { AssetImage } from "./image-picker";
@@ -60,7 +60,7 @@ export function ServiceCard({ data, compact = true }: { data: ServiceAsset; comp
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-semibold tracking-tight">{data.name}</h3>
+            <AssetCardTitle compact={compact}>{data.name}</AssetCardTitle>
             <StatusBadge status={data.status} />
           </div>
           <p className="mt-1 truncate text-meta text-muted">

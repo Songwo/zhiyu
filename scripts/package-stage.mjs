@@ -1,7 +1,7 @@
-import { mkdtemp, readFile, realpath } from "node:fs/promises";
+import { cp, mkdtemp, readFile, realpath } from "node:fs/promises";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 
 /**
@@ -55,6 +55,22 @@ export function mainProcessPackages(root) {
   visit(join(root, "electron/main.mjs"));
   visit(join(root, "electron/preload.cjs"));
   return [...packages].sort();
+}
+
+const WEB_ONLY_RENDERER_ASSETS = new Set([
+  "__grok",
+  "installer-preview",
+  "openai-preview.html",
+  "og.jpg",
+]);
+
+/** Native packages keep the app and offline brand icons, not browser installation and social assets. */
+export async function copyDesktopRenderer(source, target) {
+  return cp(source, target, {
+    recursive: true,
+    filter: (path) =>
+      path === source || !WEB_ONLY_RENDERER_ASSETS.has(relative(source, path).split(sep)[0]),
+  });
 }
 
 export async function createPackageStage(parent = tmpdir()) {

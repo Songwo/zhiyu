@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { buildNativeTerminal } from "./build-native-terminal.mjs";
 import {
   DESKTOP_RUNTIME_DEPENDENCIES,
+  copyDesktopRenderer,
   createPackageStage,
   installPackageDependencies,
   mainProcessPackages,
@@ -46,7 +47,7 @@ await cp(join(root, "electron"), join(stage, "electron"), {
   recursive: true,
   filter: (source) => !source.endsWith(".test.mjs"),
 });
-await cp(join(root, "dist-desktop"), join(stage, "dist-desktop"), { recursive: true });
+await copyDesktopRenderer(join(root, "dist-desktop"), join(stage, "dist-desktop"));
 await writeFile(join(stage, "package.json"), JSON.stringify(appManifest, null, 2));
 // 保留仓库锁定的版本，不在打包时重新解析最新依赖版本。
 lock.packages[""] = appManifest;

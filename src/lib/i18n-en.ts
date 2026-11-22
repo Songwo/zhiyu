@@ -724,6 +724,8 @@ export const EN: Record<string, string> = {
   "每页显示 50 个": "50 per page",
   重置筛选: "Reset filters",
   标签筛选: "Filter by tag",
+  关联资料: "Related resources",
+  管理关联: "Manage links",
   费用与续费版块: "Spending and renewal sections",
   "已选标签：{0}": "Selected tags: {0}",
   搜索标签: "Search tags",

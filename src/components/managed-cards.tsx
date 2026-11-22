@@ -1,4 +1,5 @@
 import { WorkspaceControls, WorkspaceHeader, WorkspaceSearch } from "./ui/workspace-layout";
+import { useMotionPolicy } from "@/lib/motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CreditCard,
@@ -934,10 +935,21 @@ export function ManagedCardDetail({ data }: { data: ServiceAsset }) {
   const [flipped, setFlipped] = useState(false);
   const unlocked = useVault((state) => state.unlocked);
   const flipButton = useRef<HTMLButtonElement>(null);
+  const scene = useRef<HTMLDivElement>(null);
+  const tiltFrame = useRef(0);
+  const motionMode = useMotionPolicy();
   const appearance = cardAppearance(data.provider || "", card.network || "", card.kind);
   useEffect(() => {
     if (!unlocked) setFlipped(false);
   }, [unlocked]);
+  useEffect(() => {
+    const element = scene.current;
+    return () => {
+      cancelAnimationFrame(tiltFrame.current);
+      element?.style.removeProperty("--card-tilt-x");
+      element?.style.removeProperty("--card-tilt-y");
+    };
+  }, [motionMode]);
   const flip = (value: boolean) => {
     setFlipped(value);
     requestAnimationFrame(() => flipButton.current?.focus({ preventScroll: true }));
@@ -963,25 +975,33 @@ export function ManagedCardDetail({ data }: { data: ServiceAsset }) {
         ];
   return (
     <div className="managed-card-detail">
+      <h1 className="detail-asset-title">{data.name}</h1>
       <div className="card-display-stage">
         <div
           className="card-3d-scene"
+          ref={scene}
           data-flipped={flipped}
           onPointerMove={(event) => {
-            if (event.pointerType !== "mouse") return;
-            const box = event.currentTarget.getBoundingClientRect();
-            event.currentTarget.style.setProperty(
-              "--card-tilt-y",
-              `${((event.clientX - box.left) / box.width - 0.5) * 5}deg`,
-            );
-            event.currentTarget.style.setProperty(
-              "--card-tilt-x",
-              `${(0.5 - (event.clientY - box.top) / box.height) * 5}deg`,
-            );
+            if (event.pointerType !== "mouse" || motionMode !== "full") return;
+            const { clientX, clientY, currentTarget } = event;
+            cancelAnimationFrame(tiltFrame.current);
+            tiltFrame.current = requestAnimationFrame(() => {
+              const box = currentTarget.getBoundingClientRect();
+              if (!box.width || !box.height) return;
+              currentTarget.style.setProperty(
+                "--card-tilt-y",
+                `${((clientX - box.left) / box.width - 0.5) * 5}deg`,
+              );
+              currentTarget.style.setProperty(
+                "--card-tilt-x",
+                `${(0.5 - (clientY - box.top) / box.height) * 5}deg`,
+              );
+            });
           }}
           onPointerLeave={(event) => {
-            event.currentTarget.style.setProperty("--card-tilt-x", "0deg");
-            event.currentTarget.style.setProperty("--card-tilt-y", "0deg");
+            cancelAnimationFrame(tiltFrame.current);
+            event.currentTarget.style.removeProperty("--card-tilt-x");
+            event.currentTarget.style.removeProperty("--card-tilt-y");
           }}
         >
           <div className="card-3d-object">

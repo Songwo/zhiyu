@@ -26,7 +26,9 @@ const AssetWorkspace = lazy(() =>
   import("./asset-workspace").then((module) => ({ default: module.AssetWorkspace })),
 );
 import { IntegrationsEntry } from "./integrations/entry";
-import { DomainsCloudflareEntry } from "./integrations/domain-cloudflare";
+const DomainsCloudflareEntry = lazy(() =>
+  import("./integrations/domain-cloudflare").then((m) => ({ default: m.DomainsCloudflareEntry })),
+);
 import { ServiceCard } from "./service-card";
 import { AssetTypeManagerButton } from "./asset-type-manager";
 import { Overview } from "./overview";
@@ -50,7 +52,9 @@ import { WorkspaceControls, WorkspaceHeader, WorkspaceSearch } from "./ui/worksp
 import { CountUp } from "./ui/time-ago";
 import { isDesktop } from "@/lib/desktop";
 import { useLive } from "@/lib/live";
-import { GlobalNodesHub } from "./ui/global-nodes-hub";
+const GlobalNodesHub = lazy(() =>
+  import("./ui/global-nodes-hub").then((m) => ({ default: m.GlobalNodesHub })),
+);
 import { type ProbeKind } from "@/lib/probes";
 import { attentionOf, dotClass, KIND_LABEL } from "@/lib/status";
 import { useAppStore } from "@/lib/store";
@@ -86,7 +90,11 @@ export function MainView() {
         }
       >
         {view === "services" && <IntegrationsEntry />}
-        {view === "domains" && <DomainsCloudflareEntry />}
+        {view === "domains" && (
+          <Suspense fallback={null}>
+            <DomainsCloudflareEntry />
+          </Suspense>
+        )}
         <ViewBody />
       </Suspense>
     </m.div>

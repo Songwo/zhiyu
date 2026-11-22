@@ -20,7 +20,16 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { AiCard, CertCard, DomainCard, MailCard, SecretCard, ServerCard } from "./asset-card";
 const BoundIntegrationPanel = lazy(() =>
   import("./integrations/bound-integration-panel").then((module) => ({
@@ -32,17 +41,28 @@ import { ServiceCard } from "./service-card";
 import { AccountPanel } from "./account-panel";
 import { MailStatus } from "./mail-status";
 import { AiAccountsPanel } from "./ai-accounts";
-import { AssetRelations, SftpBrowser } from "./operations-panel";
+import { AssetRelations } from "./asset-relations";
+const SftpBrowser = lazy(() => import("./sftp-browser").then((m) => ({ default: m.SftpBrowser })));
 import { RefreshOneButton } from "./refresh-button";
-import { ServerNodesPanel } from "./server-nodes-panel";
-import { ServerServicesPanel } from "./server-services-panel";
-import { ServerDocsPanel } from "./server-docs-panel";
-import { ServerSecretsPanel } from "./server-secrets-panel";
-import { ServerOpsToolbox } from "./server-ops-toolbox";
+const ServerNodesPanel = lazy(() =>
+  import("./server-nodes-panel").then((m) => ({ default: m.ServerNodesPanel })),
+);
+const ServerServicesPanel = lazy(() =>
+  import("./server-services-panel").then((m) => ({ default: m.ServerServicesPanel })),
+);
+const ServerDocsPanel = lazy(() =>
+  import("./server-docs-panel").then((m) => ({ default: m.ServerDocsPanel })),
+);
+const ServerSecretsPanel = lazy(() =>
+  import("./server-secrets-panel").then((m) => ({ default: m.ServerSecretsPanel })),
+);
+const ServerOpsToolbox = lazy(() =>
+  import("./server-ops-toolbox").then((m) => ({ default: m.ServerOpsToolbox })),
+);
 import { Button } from "./ui/button";
 import { PROBEABLE, type ProbeKind } from "@/lib/probes";
 import { useAppStore, type ExpandState } from "@/lib/store";
-import type { AssetKind } from "@/lib/types";
+import type { AssetKind, Server } from "@/lib/types";
 import { t } from "@/lib/i18n";
 import { desktop } from "@/lib/desktop";
 import { useVault } from "@/lib/vault-state";
@@ -54,14 +74,12 @@ import { toast } from "sonner";
 import { TypedDeleteDialog } from "./typed-delete-dialog";
 import { cardPrivateId } from "@/lib/card-private.mjs";
 import { NetworkResearch } from "./network-research";
-import { m } from "motion/react";
-import { useMotionPreset } from "@/lib/motion";
 import { commitResourceChanges } from "@/lib/resource-relation-actions";
+import "./asset-detail.css";
 
 /**
- * 资产详情是主内容区里的一页，而不是浮在列表上的弹窗：顶部返回原列表，
- * 左列放资产本身与指标，右列放关联、文档和凭据。列表保持挂载，返回时
- * 筛选和滚动位置都还在。
+ * 详情页优先显示资产自身与对应操作。关联与文档是辅助上下文；
+ * 窄屏按相同的 DOM 顺序堆叠。列表仍保留筛选和滚动位置。
  */
 export function AssetDetailPage() {
   const expanded = useAppStore((s) => s.expanded);
@@ -73,14 +91,21 @@ export function AssetDetailPage() {
 type ServerTab = "overview" | "services" | "nodes" | "docs" | "secrets" | "ops" | "files";
 
 function AssetDetail({ asset }: { asset: ExpandState }) {
-  const animation = useMotionPreset();
   const view = useAppStore((s) => s.view);
   const setExpanded = useAppStore((s) => s.setExpanded);
   const openComposer = useAppStore((s) => s.openComposer);
   const remove = useAppStore((s) => s.remove);
-  const aiAssets = useAppStore((s) => s.aiAssets);
-  const servers = useAppStore((s) => s.servers);
-  const secrets = useAppStore((s) => s.secrets);
+  const currentServer = useAppStore((s) =>
+    asset.kind === "server" ? s.servers.find((item) => item.id === asset.id) : undefined,
+  );
+  const currentSecret = useAppStore((s) =>
+    asset.kind === "secret" ? s.secrets.find((item) => item.id === asset.id) : undefined,
+  );
+  const oauthAccountId = useAppStore((s) =>
+    asset.kind === "ai"
+      ? s.aiAssets.find((item) => item.id === asset.id)?.oauthAccountId
+      : undefined,
+  );
   const managedCard = useAppStore((s) =>
     asset.kind === "service" ? s.services.find((item) => item.id === asset.id)?.card : undefined,
   );
@@ -92,31 +117,26 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   useEffect(() => {
     if (asset.focus === "nodes") setServerTab("nodes");
   }, [asset.focus, asset.nodeId]);
-  const currentServer = asset.kind === "server" ? servers.find((s) => s.id === asset.id) : null;
-  const [alertTime, setAlertTime] = useState(Date.now);
-  const alertClockEnabled = Boolean(currentServer?.serviceScan);
-  useEffect(() => {
-    if (!alertClockEnabled) return;
-    const timer = setInterval(() => setAlertTime(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [alertClockEnabled]);
   const currentAccount =
-    asset.kind === "secret"
-      ? secrets.find((item) => item.id === asset.id && ["account", "password"].includes(item.kind))
-      : null;
+    currentSecret && ["account", "password"].includes(currentSecret.kind) ? currentSecret : null;
+  const detailRoot = useRef<HTMLElement>(null);
   const accountSection = useRef<HTMLDivElement>(null);
   const parent = NAV.find((item) => item.id === view);
 
   const close = useCallback(() => setExpanded(null), [setExpanded]);
 
+  useLayoutEffect(() => {
+    detailRoot.current?.closest(".workspace-scroll")?.scrollTo({ top: 0, behavior: "instant" });
+  }, [asset.kind, asset.id, serverTab]);
+
   useEffect(() => {
     if (asset.focus !== "account") return;
-    const timer = window.setTimeout(() => {
-      accountSection.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const frame = requestAnimationFrame(() => {
+      accountSection.current?.scrollIntoView({ block: "nearest", behavior: "instant" });
       accountSection.current?.focus({ preventScroll: true });
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [asset.focus]);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [asset.focus, serverTab]);
 
   // Esc 返回列表；编辑器、确认框或解锁框打开时让它们自己处理。
   useEffect(() => {
@@ -158,48 +178,39 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
     }
   };
 
-  const account = (
-    <div ref={accountSection} tabIndex={-1} aria-label={t("凭据位置")} className="detail-block">
-      <AccountPanel key={`${asset.kind}:${asset.id}`} assetId={asset.id} kind={asset.kind} />
+  const account = vaultApi() && asset.kind !== "service" && !oauthAccountId && (
+    <div
+      ref={accountSection}
+      tabIndex={-1}
+      aria-label={t("凭据位置")}
+      className="detail-block detail-credentials"
+    >
+      <AccountPanel assetId={asset.id} kind={asset.kind} />
     </div>
   );
-  const summary = (
-    <div className="detail-block detail-summary">
-      <ExpandedBody kind={asset.kind} id={asset.id} />
-    </div>
+  const summary = <ExpandedBody kind={asset.kind} id={asset.id} />;
+  const context = (
+    <aside className="detail-block detail-context" aria-label={t("关联资料")}>
+      <AssetRelations asset={asset} documentsSeparate />
+      <AssetDocuments asset={asset} />
+    </aside>
   );
-  const relations = (
-    <div className="detail-block">
-      <AssetRelations key={`links:${asset.kind}:${asset.id}`} asset={asset} />
-    </div>
-  );
-  const accountInAside =
-    !currentAccount &&
-    asset.kind !== "service" &&
-    (asset.kind !== "ai" || !aiAssets.find((item) => item.id === asset.id)?.oauthAccountId);
 
   let body: ReactNode;
   if (currentServer && serverTab !== "overview") {
     body = (
       <div className="detail-block">
-        {serverTab === "services" && (
-          <ServerServicesPanel key={`services:${asset.id}`} server={currentServer} />
-        )}
-        {serverTab === "nodes" && (
-          <ServerNodesPanel
-            key={`nodes:${asset.id}`}
-            server={currentServer}
-            focusId={asset.nodeId}
-          />
-        )}
-        {serverTab === "docs" && (
-          <ServerDocsPanel key={`docs:${asset.id}`} server={currentServer} />
-        )}
-        {serverTab === "secrets" && (
-          <ServerSecretsPanel key={`secrets:${asset.id}`} server={currentServer} />
-        )}
-        {serverTab === "ops" && <ServerOpsToolbox key={`ops:${asset.id}`} server={currentServer} />}
-        {serverTab === "files" && <SftpBrowser key={`files:${asset.id}`} serverId={asset.id} />}
+        <h1 className="detail-tab-asset-name">{currentServer.name}</h1>
+        <Suspense fallback={<DetailLoading />}>
+          {serverTab === "services" && <ServerServicesPanel server={currentServer} />}
+          {serverTab === "nodes" && (
+            <ServerNodesPanel server={currentServer} focusId={asset.nodeId} />
+          )}
+          {serverTab === "docs" && <ServerDocsPanel server={currentServer} />}
+          {serverTab === "secrets" && <ServerSecretsPanel server={currentServer} />}
+          {serverTab === "ops" && <ServerOpsToolbox server={currentServer} />}
+          {serverTab === "files" && <SftpBrowser serverId={asset.id} />}
+        </Suspense>
       </div>
     );
   } else if (currentServer) {
@@ -208,15 +219,13 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
         <div className="detail-column">
           {summary}
           <div className="detail-block">
-            <Suspense fallback={<p className="p-5 text-sm text-muted">{t("正在加载…")}</p>}>
-              <MetricHistory key={`metrics:${asset.id}`} serverId={asset.id} />
+            <Suspense fallback={<DetailLoading />}>
+              <MetricHistory serverId={asset.id} />
             </Suspense>
           </div>
-        </div>
-        <div className="detail-column">
-          {relations}
           {account}
         </div>
+        {context}
       </div>
     );
   } else {
@@ -224,23 +233,17 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
       <div className="detail-layout">
         <div className="detail-column">
           {summary}
-          {currentAccount && account}
+          {account}
         </div>
-        <div className="detail-column">
-          {relations}
-          <div className="detail-block">
-            <AssetDocuments asset={asset} />
-          </div>
-          {accountInAside && account}
-        </div>
+        {context}
       </div>
     );
   }
 
   return (
-    <m.section
-      {...animation}
-      className="asset-detail motion-asset-detail"
+    <section
+      ref={detailRoot}
+      className="asset-detail"
       aria-label={t("资产详情")}
       data-kind={asset.kind}
     >
@@ -336,165 +339,156 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
         </div>
       </div>
 
-      {/* 服务器详情的分页：中性图标、不换行，选中项为浅灰轨道上的白块。 */}
       {currentServer && (
-        <div className="detail-tabs" role="group" aria-label={t("资产详情")}>
-          {(
-            [
-              ["overview", "监控概览", Activity, 0],
-              [
-                "services",
-                "端口与容器",
-                Boxes,
-                containerIssues(currentServer.serviceScan, currentServer.containerAlerts, alertTime)
-                  .length,
-              ],
-              ["nodes", "自建节点", Zap, currentServer.nodes?.length ?? 0],
-              ["docs", "服务文档", BookOpen, 0],
-              ["secrets", "绑定密钥", KeyRound, currentServer.customSecrets?.length ?? 0],
-              ["ops", "运维工具", Wrench, 0],
-              ["files", "文件SFTP", FolderArchive, 0],
-            ] as const
-          ).map(([id, label, Icon, count]) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={serverTab === id}
-              onClick={() => setServerTab(id)}
-              className="detail-tab"
-            >
-              <Icon aria-hidden="true" />
-              <span>{t(label)}</span>
-              {count > 0 && <span className="detail-tab-count">{count}</span>}
-              {id === "docs" && Boolean(currentServer.docs?.trim()) && (
-                <span className="detail-tab-dot" aria-hidden="true" />
-              )}
-            </button>
-          ))}
-        </div>
+        <ServerDetailTabs server={currentServer} tab={serverTab} onChange={setServerTab} />
       )}
-
-      {/* 换分页时重建，内容按卡片依次浮入。 */}
       <div className="detail-body" key={serverTab}>
         {body}
       </div>
-    </m.section>
+    </section>
   );
 }
 
-function ExpandedBody({ kind, id }: { kind: AssetKind; id: string }) {
-  const servers = useAppStore((s) => s.servers);
-  const domains = useAppStore((s) => s.domains);
-  const mailboxes = useAppStore((s) => s.mailboxes);
-  const aiAssets = useAppStore((s) => s.aiAssets);
-  const secrets = useAppStore((s) => s.secrets);
-  const certs = useAppStore((s) => s.certs);
-  const services = useAppStore((s) => s.services);
+const SERVER_TABS = [
+  ["overview", "监控概览", Activity],
+  ["services", "端口与容器", Boxes],
+  ["nodes", "自建节点", Zap],
+  ["docs", "服务文档", BookOpen],
+  ["secrets", "绑定密钥", KeyRound],
+  ["ops", "运维工具", Wrench],
+  ["files", "文件SFTP", FolderArchive],
+] as const;
 
-  switch (kind) {
-    case "server": {
-      const d = servers.find((x) => x.id === id);
-      return d ? (
-        <>
-          <ServerCard data={d} compact={false} />
-          {d.integration && (
-            <Suspense fallback={<p>{t("正在加载…")}</p>}>
-              <BoundIntegrationPanel
-                key={`${id}:${d.integration.connectionId}:${d.integration.resourceType}:${d.integration.remoteId}:${d.integration.accountId ?? ""}`}
-                kind="server"
-                id={id}
-                integration={d.integration}
-              />
-            </Suspense>
+function ServerDetailTabs({
+  server,
+  tab,
+  onChange,
+}: {
+  server: Server;
+  tab: ServerTab;
+  onChange: (tab: ServerTab) => void;
+}) {
+  return (
+    <div className="detail-tabs" role="group" aria-label={t("资产详情")}>
+      {SERVER_TABS.map(([id, label, Icon]) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={tab === id}
+          onClick={() => onChange(id)}
+          className="detail-tab"
+        >
+          <Icon aria-hidden="true" />
+          <span>{t(label)}</span>
+          {id === "services" && server.serviceScan && <ServerAlertsBadge server={server} />}
+          {id === "nodes" && Boolean(server.nodes?.length) && (
+            <span className="detail-tab-count">{server.nodes?.length}</span>
           )}
-        </>
-      ) : (
-        <Missing />
-      );
-    }
-    case "domain": {
-      const d = domains.find((x) => x.id === id);
-      return d ? (
-        <>
-          <DomainCard data={d} compact={false} />
-          {d.integration && (
-            <Suspense fallback={<p>{t("正在加载…")}</p>}>
-              <BoundIntegrationPanel
-                key={`${id}:${d.integration.connectionId}:${d.integration.resourceType}:${d.integration.remoteId}:${d.integration.accountId ?? ""}`}
-                kind="domain"
-                id={id}
-                integration={d.integration}
-              />
-            </Suspense>
+          {id === "secrets" && Boolean(server.customSecrets?.length) && (
+            <span className="detail-tab-count">{server.customSecrets?.length}</span>
           )}
-        </>
-      ) : (
-        <Missing />
-      );
-    }
-    case "mail": {
-      const d = mailboxes.find((x) => x.id === id);
-      return d ? (
+          {id === "docs" && Boolean(server.docs?.trim()) && (
+            <span className="detail-tab-dot" aria-hidden="true" />
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ServerAlertsBadge({ server }: { server: Server }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const count = containerIssues(server.serviceScan, server.containerAlerts, now).length;
+  return count > 0 ? <span className="detail-tab-count">{count}</span> : null;
+}
+
+function DetailLoading() {
+  return (
+    <p className="detail-loading" role="status">
+      {t("正在加载…")}
+    </p>
+  );
+}
+
+function DetailSummary({ children }: { children: ReactNode }) {
+  return <div className="detail-block detail-summary">{children}</div>;
+}
+
+function ExpandedBody({ kind, id }: { kind: AssetKind; id: string }) {
+  const server = useAppStore((s) =>
+    kind === "server" ? s.servers.find((item) => item.id === id) : undefined,
+  );
+  const domain = useAppStore((s) =>
+    kind === "domain" ? s.domains.find((item) => item.id === id) : undefined,
+  );
+  const mailbox = useAppStore((s) =>
+    kind === "mail" ? s.mailboxes.find((item) => item.id === id) : undefined,
+  );
+  const ai = useAppStore((s) =>
+    kind === "ai" ? s.aiAssets.find((item) => item.id === id) : undefined,
+  );
+  const secret = useAppStore((s) =>
+    kind === "secret" ? s.secrets.find((item) => item.id === id) : undefined,
+  );
+  const cert = useAppStore((s) =>
+    kind === "cert" ? s.certs.find((item) => item.id === id) : undefined,
+  );
+  const service = useAppStore((s) =>
+    kind === "service" ? s.services.find((item) => item.id === id) : undefined,
+  );
+  const bound = server ?? domain ?? service;
+  let summary: ReactNode;
+  if (server) summary = <ServerCard data={server} compact={false} />;
+  else if (domain) summary = <DomainCard data={domain} compact={false} />;
+  else if (mailbox) summary = <MailCard data={mailbox} compact={false} />;
+  else if (ai) summary = <AiCard data={ai} compact={false} />;
+  else if (secret) summary = <SecretCard data={secret} compact={false} />;
+  else if (cert) summary = <CertCard data={cert} compact={false} />;
+  else if (service) summary = <ServiceCard data={service} compact={false} />;
+  else summary = <Missing />;
+  return (
+    <>
+      <DetailSummary>{summary}</DetailSummary>
+      {(kind === "server" || kind === "domain" || kind === "service") && bound?.integration && (
+        <div className="detail-block detail-functional">
+          <Suspense fallback={<DetailLoading />}>
+            <BoundIntegrationPanel
+              key={`${id}:${bound.integration.connectionId}:${bound.integration.resourceType}:${bound.integration.remoteId}:${bound.integration.accountId ?? ""}`}
+              kind={kind}
+              id={id}
+              integration={bound.integration}
+            />
+          </Suspense>
+        </div>
+      )}
+      {mailbox && (
+        <div className="detail-block detail-functional">
+          <MailStatus key={mailbox.id} mailbox={mailbox} />
+        </div>
+      )}
+      {ai && (
         <>
-          <MailCard data={d} compact={false} />
-          <div className="px-4">
-            <MailStatus key={d.id} mailbox={d} />
-          </div>
-        </>
-      ) : (
-        <Missing />
-      );
-    }
-    case "ai": {
-      const d = aiAssets.find((x) => x.id === id);
-      return d ? (
-        <>
-          <AiCard data={d} compact={false} />
-          <div className="px-4 pb-4">
+          <div className="detail-block detail-functional">
             <AiAccountsPanel
-              key={d.id}
-              assetId={d.id}
-              linkedAccountId={d.oauthAccountId}
-              initialProvider={d.oauthProvider}
+              key={ai.id}
+              assetId={ai.id}
+              linkedAccountId={ai.oauthAccountId}
+              initialProvider={ai.oauthProvider}
             />
           </div>
-          <Suspense fallback={<p className="p-4 text-sm text-muted">{t("正在加载…")}</p>}>
-            <PhoneBindings subscriptionId={d.id} />
-          </Suspense>
-        </>
-      ) : (
-        <Missing />
-      );
-    }
-    case "secret": {
-      const d = secrets.find((x) => x.id === id);
-      return d ? <SecretCard data={d} compact={false} /> : <Missing />;
-    }
-    case "service": {
-      const d = services.find((x) => x.id === id);
-      return d ? (
-        <>
-          <ServiceCard data={d} compact={false} />
-          {d.integration && (
-            <Suspense fallback={<p>{t("正在加载…")}</p>}>
-              <BoundIntegrationPanel
-                key={`${id}:${d.integration.connectionId}:${d.integration.resourceType}:${d.integration.remoteId}:${d.integration.accountId ?? ""}`}
-                kind="service"
-                id={id}
-                integration={d.integration}
-              />
+          <div className="detail-block">
+            <Suspense fallback={<DetailLoading />}>
+              <PhoneBindings subscriptionId={ai.id} />
             </Suspense>
-          )}
+          </div>
         </>
-      ) : (
-        <Missing />
-      );
-    }
-    case "cert": {
-      const d = certs.find((x) => x.id === id);
-      return d ? <CertCard data={d} compact={false} /> : <Missing />;
-    }
-  }
+      )}
+    </>
+  );
 }
 
 /** Narrow the asset kind down to the three the app can actually go and check. */

@@ -101,6 +101,7 @@ try {
   let details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByText("website-test-user", { exact: true }).waitFor();
   assert.equal(await details.getByText("website-test-password-2026", { exact: true }).count(), 0);
+  await details.getByRole("button", { name: "管理关联", exact: true }).click();
   await details.getByRole("combobox", { name: "选择关联资产", exact: true }).click();
   await page
     .getByRole("option")

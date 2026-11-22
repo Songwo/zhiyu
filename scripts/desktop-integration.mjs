@@ -113,6 +113,7 @@ try {
   await page.locator('[data-asset-id="qa-host"]').click();
   await page.locator(".metric-history .recharts-line-curve").first().waitFor();
   assert.equal(await page.locator(".metric-history .recharts-line-curve").count(), 3);
+  await page.getByRole("button", { name: "管理关联", exact: true }).click();
   await page.getByRole("combobox", { name: "选择关联资产" }).click();
   await page
     .getByRole("option")

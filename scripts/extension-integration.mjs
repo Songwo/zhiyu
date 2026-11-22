@@ -197,6 +197,7 @@ try {
   const details = page.getByRole("region", { name: "资产详情", exact: true });
   await details.getByRole("button", { name: "解除关联", exact: true }).click();
   assert.equal((await page.evaluate(() => window.sinan.store.load())).state.links.length, 0);
+  await details.getByRole("button", { name: "管理关联", exact: true }).click();
   await details.getByRole("button", { name: "搜索与多选关联" }).click();
   await details.getByLabel("搜索资产名称或类型").fill("owner");
   await details.getByLabel("选择搜索结果", { exact: false }).check();
