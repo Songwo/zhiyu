@@ -139,10 +139,11 @@ export function TitleBar() {
           type="button"
           className="workspace-search"
           onClick={() => setCommandOpen(true)}
-          aria-label={t("搜索资产")}
+          aria-label={t("搜索资产、页面与操作")}
         >
           <Search className="size-4" />
-          <span className="hidden sm:inline">{t("搜索资产")}</span>
+          <span className="hidden lg:inline">{t("搜索资产、页面与操作")}</span>
+          <span className="hidden sm:inline lg:hidden">{t("搜索")}</span>
           <kbd className="hidden sm:inline text-xs">{platform === "darwin" ? "⌘ K" : "Ctrl K"}</kbd>
         </button>
         <button

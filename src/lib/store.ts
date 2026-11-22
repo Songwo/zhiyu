@@ -121,6 +121,8 @@ export interface AppState extends Snapshot {
   sshServerId: string | null;
   sshSessionIds: string[];
   commandOpen: boolean;
+  navigationDirectory: "sidebar" | "drawer" | null;
+  setNavigationDirectory: (source: AppState["navigationDirectory"]) => void;
   settingsOpen: boolean;
   /** 系统设置作为主内容区的一页打开（头像菜单进入），与右上角的设置弹窗互不影响。 */
   settingsPage: boolean;
@@ -211,6 +213,7 @@ const emptyUi = {
   sshServerId: null,
   sshSessionIds: [] as string[],
   commandOpen: false,
+  navigationDirectory: null,
   settingsOpen: false,
   settingsPage: false,
   agentPrompt: null,
@@ -357,6 +360,7 @@ export const useAppStore = create<AppState>()(
           settingsPage: false,
           filter: "all",
           mobileNav: false,
+          navigationDirectory: null,
           query: "",
           tagFilter: [],
           phoneFilter: "all",
@@ -425,8 +429,22 @@ export const useAppStore = create<AppState>()(
       disconnectSsh: (id) =>
         set((state) => disconnectTerminalSession(state.sshSessionIds, state.sshServerId, id)),
       clearSshSessions: () => set({ sshServerId: null, sshSessionIds: [] }),
-      setCommandOpen: (commandOpen) => set({ commandOpen }),
-      setSettingsOpen: (settingsOpen) => set({ settingsOpen, commandOpen: false }),
+      setNavigationDirectory: (navigationDirectory) => set({ navigationDirectory }),
+      setCommandOpen: (commandOpen) =>
+        set((state) => ({
+          commandOpen,
+          ...(commandOpen && state.navigationDirectory
+            ? { navigationDirectory: null, mobileNav: false }
+            : {}),
+        })),
+      setSettingsOpen: (settingsOpen) =>
+        set((state) => ({
+          settingsOpen,
+          commandOpen: false,
+          ...(settingsOpen && state.navigationDirectory
+            ? { navigationDirectory: null, mobileNav: false }
+            : {}),
+        })),
       openSettingsPage: (tab) =>
         set({
           settingsPage: true,
@@ -471,7 +489,13 @@ export const useAppStore = create<AppState>()(
           tagFilter: [],
         }),
       clearUsageSetup: () => set({ usageSetupDraft: null }),
-      setMobileNav: (mobileNav) => set({ mobileNav }),
+      setMobileNav: (mobileNav) =>
+        set((state) => ({
+          mobileNav,
+          ...(!mobileNav && state.navigationDirectory === "drawer"
+            ? { navigationDirectory: null }
+            : {}),
+        })),
       setHydrated: (hydrated) => set({ hydrated }),
 
       upsertPhoneNumber: (record, targets) =>

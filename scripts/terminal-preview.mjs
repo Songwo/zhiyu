@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import { cp, mkdir, readdir, stat, access, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { _electron as electron, chromium } from "playwright";
@@ -34,7 +35,7 @@ const app = await electron.launch({ args: [resolve("electron/main.mjs")], env })
 const page = await app.firstWindow();
 await app.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.setSize(1280, 900); window.show(); window.focus(); });
 await page.locator('[data-app-ready="true"]').waitFor();
-await page.locator("nav:visible").getByRole("button", { name: /^终端/ }).first().click();
+await navigateDesktop(page, "终端");
 await app.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.show(); window.focus(); });
 console.log("PREVIEW_READY: 已打开保留服务器数据的终端预览");
 await new Promise((resolveExit) => app.process().once("exit", resolveExit));

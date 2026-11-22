@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -56,10 +57,7 @@ try {
     await page.goto("http://127.0.0.1:8080/", { waitUntil: "domcontentloaded" });
     await page.locator('[data-app-ready="true"]').waitFor({ timeout: 60000 });
     assert.equal(await page.evaluate(() => devicePixelRatio), dpi);
-    await page
-      .locator("nav")
-      .getByRole("button", { name: /^号码管理/ })
-      .click();
+    await navigateDesktop(page, "号码管理");
     const phone = page.locator('[data-phone-id="display-phone"]');
     await phone.waitFor();
     for (const zoom of [100, 110, 125, 150]) {

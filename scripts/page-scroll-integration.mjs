@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
+import { navigateDesktop } from "./navigation-helper.mjs";
 import { chromium } from "playwright";
 
 // 独立浏览器上下文与合成服务器，不读取桌面资料，也不连接远端主机。
@@ -28,7 +28,7 @@ try {
   });
   await page.goto(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:8080");
   await page.locator('[data-app-ready="true"]').waitFor();
-  await expandNavigationGroups(page);
+
   await page.evaluate(async () => {
     const { useAppStore } = await import(
       performance
@@ -70,12 +70,11 @@ try {
       },
     };
   });
-  const navigation = page.getByRole("navigation", { name: "主导航", exact: true });
-  await navigation.getByRole("button", { name: "用量记录", exact: true }).click();
+  await navigateDesktop(page, "用量记录");
   await page.getByRole("button", { name: "连接用量来源", exact: true }).waitFor();
   const usageBottom = await bottom();
   assert.ok(usageBottom > 100, "用量页确实滚动到底部，才能验证跨页面污染");
-  await navigation.getByRole("button", { name: "服务器", exact: true }).click();
+  await navigateDesktop(page, "服务器");
   await page.getByText("合成滚动服务器 1", { exact: true }).waitFor();
   assert.equal(await position(), 0, "用量页底部切换到服务器必须从顶部开始");
 
@@ -89,11 +88,11 @@ try {
   );
   assert.equal(await position(), serverBottom, "当前页面指标刷新保持阅读位置");
 
-  await navigation.getByRole("button", { name: "用量记录", exact: true }).click();
+  await navigateDesktop(page, "用量记录");
   await page.getByRole("button", { name: "连接用量来源", exact: true }).waitFor();
   assert.equal(await position(), 0, "已加载过的用量页再次进入仍从顶部开始");
   await bottom();
-  await navigation.getByRole("button", { name: "服务器", exact: true }).click();
+  await navigateDesktop(page, "服务器");
   await page.getByText("合成滚动服务器 1", { exact: true }).waitFor();
   assert.equal(await position(), 0, "缓存视图之间重复导航不会继承滚动位置");
   const unchangedPosition = await bottom();

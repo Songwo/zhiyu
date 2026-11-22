@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { _electron as electron } from "playwright";
 import { completeOnboarding } from "./onboarding-helper.mjs";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
+
 
 // 独立用户目录与合成文本；文本插入和 HTML 粘贴不使用系统剪贴板。
 const directory = await mkdtemp(join(tmpdir(), "zhiyu-editor-regression-"));
@@ -38,7 +38,7 @@ try {
     win.focus();
   });
   await completeOnboarding(page);
-  await expandNavigationGroups(page);
+
   await page.evaluate(async () => {
     for (const [id, title, markdown] of [
       ["doc-editor-source", "长文光标回归", "# 合成原文\n"],

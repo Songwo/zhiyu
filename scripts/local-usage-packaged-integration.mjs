@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { appendFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
@@ -160,10 +161,7 @@ try {
     300,
   );
   assert.ok(initialized.usage.records.some((row) => row.sampleAt.startsWith("2026-10-09")));
-  await page
-    .getByRole("button", { name: /^用量记录/ })
-    .first()
-    .click();
+  await navigateDesktop(page, "用量记录");
   await page.locator(".usage-chart-today").getByText("100 Token", { exact: true }).waitFor();
   await appendFile(logfile, usage(350, 40, "2026-10-09T12:01:00.000Z"));
   const updated = await instance.evaluate(async ({ BrowserWindow }) => {

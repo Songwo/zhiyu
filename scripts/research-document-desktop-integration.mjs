@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { _electron as electron } from "playwright";
 import { completeOnboarding } from "./onboarding-helper.mjs";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
 import { chooseOption } from "./select-helper.mjs";
 
 // 本机合成供应商 + 真实 Electron 密钥存储、IPC、文档与渲染；不接触私人资料或真实付费 Key。
@@ -65,7 +64,6 @@ try {
     win.showInactive();
   });
   await completeOnboarding(page);
-  await expandNavigationGroups(page);
   await instance.evaluate(
     async ({ ipcMain, safeStorage, BrowserWindow, app, net }, { file, url }) => {
       const requireModule = process

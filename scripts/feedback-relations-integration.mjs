@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { universalRelationFixture } from "./universal-relations-fixture.mjs";
 
-import { expandNavigationGroups } from "./navigation-helper.mjs";
+import { navigateDesktop } from "./navigation-helper.mjs";
 
 const url = new URL(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:4173/");
 assert.equal(url.hostname, "127.0.0.1");
@@ -138,8 +138,7 @@ async function navigate(page, label, mobile = false) {
   }
   const navigation = page.getByRole("navigation", { name: "主导航", exact: true });
   await navigation.waitFor();
-  await expandNavigationGroups(page);
-  await navigation.getByRole("button", { name: label, exact: true }).click();
+  await navigateDesktop(page, label);
 }
 
 async function waitReady(page) {

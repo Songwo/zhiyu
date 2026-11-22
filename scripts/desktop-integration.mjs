@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -108,10 +109,7 @@ try {
   );
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^服务器/ })
-    .click();
+  await navigateDesktop(page, "服务器");
   await page.locator('[data-asset-id="qa-host"]').click();
   await page.locator(".metric-history .recharts-line-curve").first().waitFor();
   assert.equal(await page.locator(".metric-history .recharts-line-curve").count(), 3);
@@ -148,10 +146,7 @@ try {
   assert.match(await readFile(calendarPath, "utf8"), /BEGIN:VEVENT/);
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^服务器/ })
-    .click();
+  await navigateDesktop(page, "服务器");
   await page.locator('[data-asset-id="qa-host"]').click();
   await page.getByRole("button", { name: "解除关联", exact: true }).click();
   assert.equal((await page.evaluate(() => window.sinan.store.load())).state.links.length, 0);

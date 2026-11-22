@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -237,7 +238,7 @@ try {
   await page.getByRole("dialog", { name: "设置", exact: true }).waitFor({ state: "detached" });
   checks.push("侧栏不显示关系图和设置，顶部原位置设置入口可打开");
   async function openAllResourceGraph() {
-    await sidebar.getByRole("button", { name: "标签", exact: true }).click();
+    await navigateDesktop(page, "标签");
     await page
       .getByRole("group", { name: "显示方式", exact: true })
       .getByRole("button", { name: "关系图", exact: true })
@@ -271,7 +272,7 @@ try {
   await page.screenshot({ path: "screenshots/workspace-v150-graph-before.png" });
   checks.push("标签页现有关系图视图可查看全部资源，展示真实账号与文档且没有虚构连线");
 
-  await sidebar.getByRole("button", { name: "用量记录", exact: true }).click();
+  await navigateDesktop(page, "用量记录");
   await page.getByRole("button", { name: "采集与监控", exact: true }).click();
   const monitor = page.getByRole("dialog", { name: "采集与监控", exact: true });
   await monitor.waitFor();

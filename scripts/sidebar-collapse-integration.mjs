@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -206,8 +207,8 @@ try {
   const menu = await exportButton.boundingBox();
   assert.ok(menu.width > 150 && menu.x + menu.width < 1440, "图标栏账户菜单应正常展开");
   await page.keyboard.press("Escape");
-  await sidebar.getByRole("button", { name: "更多工具", exact: true }).click();
-  await sidebar.getByRole("button", { name: "终端", exact: true }).click();
+
+  await navigateDesktop(page, "终端");
   assert.equal(
     await sidebar.getByRole("button", { name: "终端", exact: true }).getAttribute("aria-current"),
     "page",

@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, writeFile, readFile, mkdir, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -175,7 +176,7 @@ try {
     connectionId: connection.id,
     resourceKey: check.key,
   });
-  await page.getByRole("button", { name: "服务资产", exact: true }).click();
+  await navigateDesktop(page, "服务资产");
   await page.getByRole("button", { name: "查看服务 本机健康检查", exact: true }).click();
   await page
     .getByRole("region", { name: "资产详情", exact: true })

@@ -122,7 +122,13 @@ function TerminalWorkspace({ server, active }: { server: Server; active: boolean
   const disconnect = useAppStore((s) => s.disconnectSsh);
   const resolved = useSettings((s) => s.resolved);
   const overlayOpen = useAppStore(
-    (s) => s.commandOpen || s.settingsOpen || s.composerOpen || s.createPickerOpen || s.mobileNav,
+    (s) =>
+      s.commandOpen ||
+      s.settingsOpen ||
+      s.composerOpen ||
+      s.createPickerOpen ||
+      s.mobileNav ||
+      s.navigationDirectory !== null,
   );
   const vaultPrompt = useVault((s) => Boolean(s.prompt));
   const preferences = useSettings((s) => s.terminalAppearance);

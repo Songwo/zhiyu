@@ -117,7 +117,7 @@ const dayKey = (date: Date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 /** 首页「近期续费」：未来 14 天的到期与按周期推算的续费，点进资产详情或续费日历。 */
-export function UpcomingRenewals() {
+export function UpcomingRenewals({ showEmpty = false }: { showEmpty?: boolean }) {
   // 「今天」取浏览器时钟，与服务端可能不是同一天；资料载入后再渲染。
   const hydrated = useAppStore((s) => s.hydrated);
   const snapshot = useAppStore(
@@ -145,12 +145,13 @@ export function UpcomingRenewals() {
       .filter(({ days }) => days <= 14)
       .sort((a, b) => a.days - b.days);
   }, [reminders]);
-  if (!hydrated || (!entries.length && !memos.length)) return null;
+  const total = entries.length + memos.length;
+  if (!hydrated || (!total && !showEmpty)) return null;
   const state = useAppStore.getState();
   return (
     <PageSection
       title={t("近期续费")}
-      description={t("未来 14 天内到期或按周期续费的 {0} 项", entries.length + memos.length)}
+      description={total > 0 ? t("未来 14 天内到期或按周期续费的 {0} 项", total) : undefined}
       aria-label={t("近期续费")}
       action={
         <button type="button" className="section-link" onClick={() => state.setView("renewals")}>
@@ -159,91 +160,98 @@ export function UpcomingRenewals() {
         </button>
       }
     >
-      <div className="upcoming-list">
-        {memos.slice(0, 3).map(({ r, days }) => (
-          <div key={r.id} className="renewal-row">
-            <button
-              type="button"
-              className="upcoming-row"
-              data-kind="reminder"
-              onClick={() => state.setView("renewals")}
-            >
-              <span className="date-block" aria-label={r.dueAt}>
-                <span className="date-block-month">{r.dueAt.slice(5, 7)}</span>
-                <span className="date-block-day">{r.dueAt.slice(8, 10)}</span>
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="upcoming-name">{r.title}</span>
-                <span className="upcoming-meta">
-                  <i aria-hidden="true" />
-                  {t("提醒")} · {t(REPEAT_LABEL[r.repeat])}
-                </span>
-              </span>
-              <span
-                className={cn(
-                  "due-pill",
-                  days <= 3 ? "text-crit" : days <= 7 ? "text-warn" : "text-muted",
-                )}
+      {total === 0 ? (
+        <p className="overview-quiet-state">
+          <CalendarDays aria-hidden="true" />
+          {t("未来 14 天没有待办续费或提醒")}
+        </p>
+      ) : (
+        <div className="upcoming-list">
+          {memos.slice(0, 3).map(({ r, days }) => (
+            <div key={r.id} className="renewal-row">
+              <button
+                type="button"
+                className="upcoming-row"
+                data-kind="reminder"
+                onClick={() => state.setView("renewals")}
               >
-                {countdown(days)}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="renewed-action"
-              aria-label={t("完成 {0}", r.title)}
-              onClick={() => state.completeReminder(r.id)}
-            >
-              <Check aria-hidden="true" />
-              <span>{t("完成")}</span>
-            </button>
-          </div>
-        ))}
-        {entries.slice(0, Math.max(2, 5 - memos.length)).map((entry) => (
-          <div key={entry.key} className="renewal-row">
-            <button
-              type="button"
-              className="upcoming-row"
-              data-kind={entry.kind}
-              onClick={(event) => {
-                if (entry.kind === "phone") {
-                  state.openPhones({ id: entry.id });
-                  return;
-                }
-                const rect = event.currentTarget.getBoundingClientRect();
-                state.setExpanded({
-                  kind: entry.kind,
-                  id: entry.id,
-                  origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
-                });
-              }}
-            >
-              <span className="date-block" aria-label={entry.date}>
-                <span className="date-block-month">{entry.date.slice(5, 7)}</span>
-                <span className="date-block-day">{entry.date.slice(8, 10)}</span>
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="upcoming-name">{entry.name}</span>
-                <span className="upcoming-meta">
-                  <i aria-hidden="true" />
-                  {t(entry.kind === "phone" ? "号码" : KIND_LABEL[entry.kind])}
-                  {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
-                  {entry.projected ? ` · ${t("按周期推算")}` : ""}
+                <span className="date-block" aria-label={r.dueAt}>
+                  <span className="date-block-month">{r.dueAt.slice(5, 7)}</span>
+                  <span className="date-block-day">{r.dueAt.slice(8, 10)}</span>
                 </span>
-              </span>
-              <span
-                className={cn(
-                  "due-pill",
-                  entry.days <= 3 ? "text-crit" : entry.days <= 7 ? "text-warn" : "text-muted",
-                )}
+                <span className="min-w-0 flex-1">
+                  <span className="upcoming-name">{r.title}</span>
+                  <span className="upcoming-meta">
+                    <i aria-hidden="true" />
+                    {t("提醒")} · {t(REPEAT_LABEL[r.repeat])}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "due-pill",
+                    days <= 3 ? "text-crit" : days <= 7 ? "text-warn" : "text-muted",
+                  )}
+                >
+                  {countdown(days)}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="renewed-action"
+                aria-label={t("完成 {0}", r.title)}
+                onClick={() => state.completeReminder(r.id)}
               >
-                {entry.days === 0 ? t("今天") : t("{0} 天后", entry.days)}
-              </span>
-            </button>
-            <MarkRenewedButton entry={entry} projected={entry.projected} />
-          </div>
-        ))}
-      </div>
+                <Check aria-hidden="true" />
+                <span>{t("完成")}</span>
+              </button>
+            </div>
+          ))}
+          {entries.slice(0, Math.max(2, 5 - memos.length)).map((entry) => (
+            <div key={entry.key} className="renewal-row">
+              <button
+                type="button"
+                className="upcoming-row"
+                data-kind={entry.kind}
+                onClick={(event) => {
+                  if (entry.kind === "phone") {
+                    state.openPhones({ id: entry.id });
+                    return;
+                  }
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  state.setExpanded({
+                    kind: entry.kind,
+                    id: entry.id,
+                    origin: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
+                  });
+                }}
+              >
+                <span className="date-block" aria-label={entry.date}>
+                  <span className="date-block-month">{entry.date.slice(5, 7)}</span>
+                  <span className="date-block-day">{entry.date.slice(8, 10)}</span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="upcoming-name">{entry.name}</span>
+                  <span className="upcoming-meta">
+                    <i aria-hidden="true" />
+                    {t(entry.kind === "phone" ? "号码" : KIND_LABEL[entry.kind])}
+                    {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
+                    {entry.projected ? ` · ${t("按周期推算")}` : ""}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "due-pill",
+                    entry.days <= 3 ? "text-crit" : entry.days <= 7 ? "text-warn" : "text-muted",
+                  )}
+                >
+                  {entry.days === 0 ? t("今天") : t("{0} 天后", entry.days)}
+                </span>
+              </button>
+              <MarkRenewedButton entry={entry} projected={entry.projected} />
+            </div>
+          ))}
+        </div>
+      )}
     </PageSection>
   );
 }

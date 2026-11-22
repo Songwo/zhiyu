@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -228,8 +229,8 @@ try {
     },
   );
   const original = await getDocument();
-  await page.getByRole("button", { name: "更多工具", exact: true }).click();
-  await page.getByRole("button", { name: "AI 助手", exact: true }).click();
+
+  await navigateDesktop(page, "AI 助手");
   const input = page.getByRole("textbox", { name: "向模型提问", exact: true });
   const send = page.getByRole("button", { name: "发送", exact: true });
   const bodyPermission = page.getByLabel("本次允许检索文档正文", { exact: true });

@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -97,7 +98,7 @@ try {
   });
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page.getByRole("button", { name: /^标签/ }).first().click();
+  await navigateDesktop(page, "标签");
   await page.getByRole("button", { name: "表格视图", exact: true }).click();
   await page.locator(".asset-table tbody tr").first().waitFor();
   assert.equal(await page.locator(".asset-table tbody tr").count(), 25);

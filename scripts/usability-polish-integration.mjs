@@ -1,3 +1,4 @@
+import { navigateDesktop, openDesktopDirectory } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -77,9 +78,7 @@ try {
     waitUntil: "domcontentloaded",
   });
   await page.locator('[data-app-ready="true"]').waitFor();
-  await nav()
-    .getByRole("button", { name: /^号码管理/ })
-    .click();
+  await navigateDesktop(page, "号码管理");
   await page.locator("[data-phone-id]").first().waitFor();
   const initialCards = await page.locator("[data-phone-id]").count();
   console.log(JSON.stringify({ records: count, initialCards }));
@@ -141,27 +140,15 @@ try {
   );
   assert.deepEqual(saved.subscriptionIds, ["ux-ai-a", "ux-ai-b"]);
 
-  await nav()
-    .getByRole("button", { name: /^号码管理/ })
-    .click();
+  await navigateDesktop(page, "号码管理");
   await page.getByRole("textbox", { name: "搜索号码", exact: true }).fill("没有这个号码");
   await page.getByRole("button", { name: "重置筛选", exact: true }).click();
   await waitCount("[data-phone-id]", 50);
-  const tools = nav().getByRole("button", { name: "更多工具", exact: true });
-  assert.equal(await tools.getAttribute("aria-expanded"), "false");
-  await tools.click();
-  assert.ok(await nav().getByRole("button", { name: "终端", exact: true }).isVisible());
-  await page.reload();
-  await page.locator('[data-app-ready="true"]').waitFor();
-  assert.equal(
-    await nav()
-      .getByRole("button", { name: "更多工具", exact: true })
-      .getAttribute("aria-expanded"),
-    "true",
-  );
-  await nav()
-    .getByRole("button", { name: /^号码管理/ })
-    .click();
+  const directory = await openDesktopDirectory(page);
+  assert.ok(await directory.getByRole("button", { name: "终端", exact: true }).isVisible());
+  await page.keyboard.press("Escape");
+  await directory.waitFor({ state: "detached" });
+  await navigateDesktop(page, "号码管理");
   await page.locator('[data-phone-id="ux-phone-0"]').waitFor();
   await page.screenshot({ path: "release/screenshots/ux-polish-desktop.png" });
   await page.setViewportSize({ width: 390, height: 844 });

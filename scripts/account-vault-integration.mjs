@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -43,10 +44,7 @@ try {
       });
     });
   await mockClipboard();
-  await page
-    .locator("aside:visible nav")
-    .getByRole("button", { name: /^密钥库/ })
-    .click();
+  await navigateDesktop(page, "密钥库");
 
   // 让 Alice 的真实 IPC 写入挂起；关闭后打开 Bob，旧完成不能保存元数据或关闭 Bob。
   for (const lockAfterWrite of [false, true]) {
@@ -205,10 +203,7 @@ try {
     });
   });
   async function openAccount() {
-    await page
-      .locator("aside:visible nav")
-      .getByRole("button", { name: /^密钥库/ })
-      .click();
+    await navigateDesktop(page, "密钥库");
     const group = page.getByRole("button", { name: "打开分组 未分组", exact: true });
     const row = page.getByRole("checkbox", { name: `选择密钥 ${fixture.name}`, exact: true });
     await group.or(row).first().waitFor();

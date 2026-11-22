@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, rm, mkdir, readFile } from "node:fs/promises";
@@ -173,8 +174,8 @@ try {
   );
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page.getByRole("button", { name: "更多工具", exact: true }).click();
-  await page.getByRole("button", { name: "AI 助手", exact: true }).click();
+
+  await navigateDesktop(page, "AI 助手");
   await page.getByRole("button", { name: "模型与知识库", exact: true }).click();
   await page
     .getByRole("textbox", { name: "API Base URL", exact: true })
@@ -334,7 +335,7 @@ try {
     .getByText("IPC_DOCUMENT_BODY_MARKER", { exact: true })
     .waitFor();
   await page.screenshot({ path: "screenshots/agent-workspace/electron-document-source.png" });
-  await page.getByRole("button", { name: "AI 助手", exact: true }).click();
+  await navigateDesktop(page, "AI 助手");
   await page.getByRole("button", { name: "新对话", exact: true }).click();
   await page.getByRole("textbox", { name: "向模型提问" }).fill("停止测试");
   await page.getByRole("button", { name: "发送", exact: true }).click();

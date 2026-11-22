@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
+import { navigateDesktop } from "./navigation-helper.mjs";
 import { universalRelationFixture } from "./universal-relations-fixture.mjs";
 import { webResearchFixture } from "./web-research-fixture.mjs";
 
@@ -181,26 +181,8 @@ async function geometry(page, label) {
   results.push({ label, ...state });
 }
 async function navigate(page, name, mode, mobile) {
-  if (mode === "desktop" && !mobile) {
-    const navigation = page.locator("#primary-navigation");
-    if (name === "终端" && (await navigation.getAttribute("data-collapsed")) !== "true") {
-      const tools = navigation.getByRole("button", { name: "更多工具", exact: true });
-      if ((await tools.getAttribute("aria-expanded")) === "false") await tools.click();
-    }
-    await navigation.getByRole("button", { name, exact: true }).click();
-  } else if (mode === "desktop") {
-    await page.getByRole("button", { name: "打开菜单", exact: true }).click();
-    await expandNavigationGroups(page);
-    if (name === "终端") {
-      const tools = page
-        .getByRole("navigation", { name: "主导航", exact: true })
-        .getByRole("button", { name: "更多工具", exact: true });
-      if ((await tools.getAttribute("aria-expanded")) === "false") await tools.click();
-    }
-    await page
-      .getByRole("navigation", { name: "主导航", exact: true })
-      .getByRole("button", { name, exact: true })
-      .click();
+  if (mode === "desktop") {
+    await navigateDesktop(page, name);
   } else {
     if (mobile || !(await page.locator('.web-nav button[aria-haspopup="menu"]').isVisible())) {
       await page.getByRole("button", { name: "打开菜单", exact: true }).click();
@@ -297,7 +279,6 @@ try {
       );
       throw error;
     }
-    if (mode === "desktop") await expandNavigationGroups(page);
     for (const [width, height, collapsed] of [
       [2048, 1152, false],
       [2048, 1152, true],
@@ -315,7 +296,6 @@ try {
           await page
             .getByRole("button", { name: collapsed ? "收起主导航" : "展开主导航", exact: true })
             .click();
-        if (!collapsed) await expandNavigationGroups(page);
       }
       for (const [view, name] of mode === "web" ? [...views, ["host", "主机监控"]] : views) {
         try {
@@ -371,7 +351,6 @@ try {
             await page
               .getByRole("button", { name: collapsed ? "收起主导航" : "展开主导航", exact: true })
               .click();
-          if (!collapsed) await expandNavigationGroups(page);
           for (const [view, name] of views.filter(([view]) =>
             ["servers", "domains", "docs", "agent"].includes(view),
           )) {

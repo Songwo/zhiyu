@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
@@ -30,12 +31,7 @@ const screenshot = async (name) => {
 const saved = async () =>
   page.evaluate(() => JSON.parse(localStorage.getItem("sinan-assets-v1")).state);
 const ready = async () => page.locator('[data-app-ready="true"]').waitFor();
-const navigate = async (kind) => {
-  await page
-    .locator("nav")
-    .getByRole("button", { name: kind === "ai" ? /^AI 订阅/ : /^服务器/ })
-    .click();
-};
+const navigate = (kind) => navigateDesktop(page, kind === "ai" ? "AI 订阅" : "服务器");
 const open = async (kind) => {
   await navigate(kind);
   await page.keyboard.press("Control+n");

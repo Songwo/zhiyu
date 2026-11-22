@@ -20,21 +20,14 @@ import {
   Radio,
   Lock,
   Unlock,
-  ChevronDown,
-  Ellipsis,
+  ChevronRight,
+  LayoutGrid,
+  X,
   Plus,
   Network,
   type LucideIcon,
 } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type HTMLAttributes,
-} from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { isDesktop } from "@/lib/desktop";
 import { usePresence, useMotionPolicy } from "@/lib/motion";
@@ -52,6 +45,8 @@ import { safeImageDataUrl } from "../../electron/services/image-data.mjs";
 import { createInCurrentView } from "@/lib/create-asset";
 import { LogoMark } from "./logo";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import * as Dialog from "@radix-ui/react-dialog";
+import "./sidebar-navigation.css";
 import { SHORTCUTS_EVENT } from "./keyboard-shortcuts";
 
 export interface NavGroup {
@@ -63,12 +58,10 @@ export interface NavGroup {
     icon: LucideIcon;
     badgeKey?: keyof ReturnType<typeof attentionOf>;
     kind?: AssetKind;
-    countKey?:
-      "servers" | "domains" | "mailboxes" | "aiAssets" | "secrets" | "certs" | "services" | "nodes";
   }[];
 }
 
-// 按使用场景分组：日常入口在前，同类资产相邻，低频工具收进可折叠分组。
+// 完整功能目录与全局搜索共用一份导航定义。
 export const NAV_GROUPS: NavGroup[] = [
   {
     id: "workspace",
@@ -85,55 +78,20 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "infrastructure",
     title: "基础设施",
     items: [
-      {
-        id: "servers",
-        label: "服务器",
-        icon: Server,
-        badgeKey: "servers",
-        kind: "server",
-        countKey: "servers",
-      },
-      { id: "nodes", label: "自建节点", icon: Radio, countKey: "nodes" },
-      {
-        id: "domains",
-        label: "域名",
-        icon: Globe,
-        badgeKey: "domains",
-        kind: "domain",
-        countKey: "domains",
-      },
-      {
-        id: "certs",
-        label: "安全证书",
-        icon: Shield,
-        badgeKey: "certs",
-        kind: "cert",
-        countKey: "certs",
-      },
-      {
-        id: "services",
-        label: "服务资产",
-        icon: Cloud,
-        badgeKey: "services",
-        kind: "service",
-        countKey: "services",
-      },
+      { id: "servers", label: "服务器", icon: Server, badgeKey: "servers", kind: "server" },
+      { id: "nodes", label: "自建节点", icon: Radio },
+      { id: "domains", label: "域名", icon: Globe, badgeKey: "domains", kind: "domain" },
+      { id: "certs", label: "安全证书", icon: Shield, badgeKey: "certs", kind: "cert" },
+      { id: "services", label: "服务资产", icon: Cloud, badgeKey: "services", kind: "service" },
     ],
   },
   {
     id: "accounts",
     title: "账号与订阅",
     items: [
-      { id: "ai", label: "AI 订阅", icon: Bot, badgeKey: "ai", kind: "ai", countKey: "aiAssets" },
+      { id: "ai", label: "AI 订阅", icon: Bot, badgeKey: "ai", kind: "ai" },
       { id: "usage", label: "用量记录", icon: ChartNoAxesCombined },
-      {
-        id: "mail",
-        label: "邮箱",
-        icon: Mail,
-        badgeKey: "mail",
-        kind: "mail",
-        countKey: "mailboxes",
-      },
+      { id: "mail", label: "邮箱", icon: Mail, badgeKey: "mail", kind: "mail" },
       { id: "phones", label: "号码管理", icon: Phone, badgeKey: "phones" },
       { id: "cards", label: "U 卡与支付卡", icon: CreditCard },
       { id: "esims", label: "eSIM 卡", icon: Smartphone },
@@ -143,14 +101,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "security",
     title: "安全与整理",
     items: [
-      {
-        id: "vault",
-        label: "密钥库",
-        icon: KeyRound,
-        badgeKey: "vault",
-        kind: "secret",
-        countKey: "secrets",
-      },
+      { id: "vault", label: "密钥库", icon: KeyRound, badgeKey: "vault", kind: "secret" },
       { id: "tags", label: "标签", icon: Tags },
     ],
   },
@@ -164,13 +115,19 @@ export const NAV_GROUPS: NavGroup[] = [
 // 扁平导出给快捷键或其他模块使用
 export const NAV = NAV_GROUPS.flatMap((g) => g.items);
 
+type NavItem = NavGroup["items"][number];
+const commonViews = ["overview", "renewals", "mail", "docs"];
+const commonItems = commonViews.map((id) => NAV.find((item) => item.id === id)!);
+
 export function Sidebar({
   className,
   collapsible = false,
   ...rest
 }: HTMLAttributes<HTMLElement> & { collapsible?: boolean }) {
   const preference = useSettings((s) => s.sidebarCollapsed);
-  const groupPrefix = useId();
+  const directorySource = collapsible ? "sidebar" : "drawer";
+  const directoryOpen = useAppStore((s) => s.navigationDirectory === directorySource);
+  const setNavigationDirectory = useAppStore((s) => s.setNavigationDirectory);
   const collapsed = collapsible && preference;
   const [motionReady, setMotionReady] = useState(false);
   useEffect(() => {
@@ -184,50 +141,12 @@ export function Sidebar({
       cancelAnimationFrame(inner);
     };
   }, []);
-  const view = useAppStore((s) => s.view);
+  const view = useAppStore((s) => (s.settingsPage ? undefined : s.view));
   const setView = useAppStore((s) => s.setView);
-  const servers = useAppStore((s) => s.servers);
-  const domains = useAppStore((s) => s.domains);
-  const mailboxes = useAppStore((s) => s.mailboxes);
-  const aiAssets = useAppStore((s) => s.aiAssets);
-  const secrets = useAppStore((s) => s.secrets);
-  const certs = useAppStore((s) => s.certs);
-  const services = useAppStore((s) => s.services);
   const counts = useAppStore(useShallow(attentionOf));
-  const toolsExpanded = useSettings((s) => s.toolsExpanded);
-  const setToolsExpanded = useSettings((s) => s.setToolsExpanded);
-  const expandedGroups = useSettings((s) => s.sidebarExpandedGroups);
-  const setGroupExpanded = useSettings((s) => s.setSidebarGroupExpanded);
-  useEffect(() => {
-    if (view === "terminal") setToolsExpanded(true);
-  }, [view, setToolsExpanded]);
-
-  const totalNodesCount = useMemo(() => {
-    return servers.reduce((acc, s) => acc + (s.nodes?.length || 0), 0);
-  }, [servers]);
-
-  const assetCounts = useMemo(
-    () => ({
-      servers: servers.length,
-      domains: domains.length,
-      mailboxes: mailboxes.length,
-      aiAssets: aiAssets.length,
-      secrets: secrets.length,
-      certs: certs.length,
-      services: services.length,
-      nodes: totalNodesCount,
-    }),
-    [
-      servers.length,
-      domains.length,
-      mailboxes.length,
-      aiAssets.length,
-      secrets.length,
-      certs.length,
-      services.length,
-      totalNodesCount,
-    ],
-  );
+  const currentItem = commonViews.some((id) => id === view)
+    ? undefined
+    : NAV.find((item) => item.id === view);
 
   // 选中项背后的高亮块随选中项滑动，而不是每个按钮各自闪一下背景。
   const navRef = useRef<HTMLElement>(null);
@@ -271,7 +190,7 @@ export function Sidebar({
       observer.disconnect();
       nav.removeEventListener("scroll", fade);
     };
-  }, [view, toolsExpanded, collapsed, expandedGroups]);
+  }, [view, collapsed]);
 
   return (
     <Tooltip.Provider delayDuration={250} skipDelayDuration={100}>
@@ -342,116 +261,120 @@ export function Sidebar({
                 : { duration: 0 }
             }
           />
-          {NAV_GROUPS.map((group) => {
-            const expanded =
-              group.id === "tools" ? toolsExpanded : expandedGroups[group.id] === true;
-            return (
-              <div key={group.id} className="sidebar-section" data-group={group.id}>
-                {group.id === "tools" ? (
-                  <button
-                    type="button"
-                    aria-expanded={toolsExpanded}
-                    aria-controls={`${groupPrefix}-sidebar-group-${group.id}`}
-                    aria-label={t("更多工具")}
-                    title={collapsed ? t("更多工具") : undefined}
-                    onClick={() => setToolsExpanded(!toolsExpanded)}
-                    className="sidebar-tools-toggle flex w-full items-center justify-between"
-                  >
-                    <Ellipsis className="sidebar-tools-icon size-5" aria-hidden="true" />
-                    <span className="sidebar-tools-label">{t("更多工具")}</span>
-                    <ChevronDown
-                      className={cn(
-                        "sidebar-tools-chevron size-3.5",
-                        toolsExpanded && "rotate-180",
-                      )}
-                    />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="sidebar-group-toggle"
-                    aria-label={t(group.title)}
-                    aria-expanded={expanded}
-                    aria-controls={`${groupPrefix}-sidebar-group-${group.id}`}
-                    onClick={() => setGroupExpanded(group.id, !expanded)}
-                  >
-                    <span>{t(group.title)}</span>
-                    <span className="sidebar-group-meta">
-                      <span aria-hidden="true">{group.items.length}</span>
-                      <ChevronDown
-                        className={cn("sidebar-group-chevron", expanded && "is-expanded")}
-                        aria-hidden="true"
-                      />
-                    </span>
-                  </button>
-                )}
-                <div id={`${groupPrefix}-sidebar-group-${group.id}`}>
-                  {group.items.map((item) => {
-                    const active = view === item.id;
-                    const Icon = item.icon;
-                    const attentionCount = item.badgeKey ? counts[item.badgeKey] : 0;
-                    const totalCount = item.countKey ? assetCounts[item.countKey] : 0;
-
-                    return (
-                      <div
-                        key={item.id}
-                        hidden={!expanded && !active && !(collapsed && group.id !== "tools")}
+          <div className="sidebar-nav-list">
+            <span className="sidebar-nav-caption sidebar-item-label">{t("常用入口")}</span>
+            {commonItems.map((item) => (
+              <SidebarPage
+                key={item.id}
+                item={item}
+                active={view === item.id}
+                attention={item.badgeKey ? counts[item.badgeKey] : 0}
+                compact={collapsed}
+                onSelect={() => setView(item.id)}
+              />
+            ))}
+            {currentItem && (
+              <div className="sidebar-current">
+                <span className="sidebar-nav-caption sidebar-item-label">{t("当前页面")}</span>
+                <SidebarPage
+                  item={currentItem}
+                  active
+                  attention={currentItem.badgeKey ? counts[currentItem.badgeKey] : 0}
+                  compact={collapsed}
+                  onSelect={() => setView(currentItem.id)}
+                />
+              </div>
+            )}
+            <div className="sidebar-directory-entry">
+              <Dialog.Root
+                open={directoryOpen}
+                onOpenChange={(open) => setNavigationDirectory(open ? directorySource : null)}
+              >
+                <Tooltip.Root>
+                  <Dialog.Trigger asChild>
+                    <Tooltip.Trigger asChild>
+                      <button
+                        type="button"
+                        aria-label={t("全部功能")}
+                        className="sidebar-nav-item sidebar-directory-trigger flex w-full items-center justify-between gap-2 text-left"
                       >
-                        <Tooltip.Root>
-                          <Tooltip.Trigger asChild>
-                            <button
-                              type="button"
-                              aria-label={t(item.label)}
-                              onClick={() => setView(item.id)}
-                              data-active={active}
-                              aria-current={active ? "page" : undefined}
-                              className="sidebar-nav-item group flex w-full items-center justify-between gap-2 text-left"
-                            >
-                              <span className="sidebar-item-content flex min-w-0 items-center gap-3">
-                                <Icon
-                                  className="sidebar-item-icon size-[18px] shrink-0"
-                                  strokeWidth={1.75}
-                                />
-                                <span className="sidebar-item-label truncate">{t(item.label)}</span>
-                              </span>
-                              <span className="sidebar-item-counts flex shrink-0 items-center gap-1.5">
-                                {attentionCount > 0 && (
-                                  <span className="sidebar-badge-attention">{attentionCount}</span>
-                                )}
-                                {totalCount > 0 && (
-                                  <span className="sidebar-badge-count">{totalCount}</span>
-                                )}
-                              </span>
-                              {attentionCount > 0 && (
-                                <span className="sidebar-attention-dot" aria-hidden="true" />
-                              )}
-                            </button>
-                          </Tooltip.Trigger>
-                          {collapsed && (
-                            <Tooltip.Portal>
-                              <Tooltip.Content
-                                side="right"
-                                sideOffset={10}
-                                className="sidebar-tooltip"
+                        <span className="sidebar-item-content flex min-w-0 items-center gap-3">
+                          <LayoutGrid
+                            className="sidebar-item-icon size-[18px] shrink-0"
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                          />
+                          <span className="sidebar-item-label truncate">{t("全部功能")}</span>
+                        </span>
+                        <ChevronRight
+                          className="sidebar-directory-chevron size-4 shrink-0"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </Tooltip.Trigger>
+                  </Dialog.Trigger>
+                  {collapsed && <SidebarTooltip label={t("全部功能")} />}
+                </Tooltip.Root>
+                <Dialog.Portal>
+                  <Dialog.Overlay className="sidebar-directory-overlay" />
+                  <Dialog.Content
+                    className="sidebar-directory"
+                    onCloseAutoFocus={(event) => {
+                      const { commandOpen, settingsOpen, mobileNav } = useAppStore.getState();
+                      if (commandOpen || settingsOpen || (!collapsible && !mobileNav))
+                        event.preventDefault();
+                    }}
+                  >
+                    <header className="sidebar-directory-head">
+                      <div>
+                        <Dialog.Title asChild>
+                          <h2>{t("全部功能")}</h2>
+                        </Dialog.Title>
+                        <Dialog.Description>{t("按分类浏览知屿的所有页面。")}</Dialog.Description>
+                      </div>
+                      <Dialog.Close className="sidebar-directory-close" aria-label={t("关闭")}>
+                        <X className="size-5" aria-hidden="true" />
+                      </Dialog.Close>
+                    </header>
+                    <div className="sidebar-directory-grid">
+                      {NAV_GROUPS.map((group) => (
+                        <section key={group.id} aria-label={t(group.title)}>
+                          <h3>{t(group.title)}</h3>
+                          {group.items.map(({ id, label, icon: Icon, badgeKey }) => {
+                            const attention = badgeKey ? counts[badgeKey] : 0;
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                className="sidebar-directory-page"
+                                aria-current={view === id ? "page" : undefined}
+                                aria-description={
+                                  attention > 0 ? t("{0} 项待处理", attention) : undefined
+                                }
+                                onClick={() => setView(id)}
                               >
-                                {t(item.label)}
-                                {attentionCount > 0 && (
-                                  <span className="ml-2 text-xs">
-                                    {t("{0} 项待处理", attentionCount)}
+                                <Icon
+                                  className="size-4 shrink-0"
+                                  strokeWidth={1.75}
+                                  aria-hidden="true"
+                                />
+                                <span>{t(label)}</span>
+                                {attention > 0 && (
+                                  <span className="sidebar-badge-attention" aria-hidden="true">
+                                    {attention}
                                   </span>
                                 )}
-                                <Tooltip.Arrow className="fill-ink" />
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          )}
-                        </Tooltip.Root>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                              </button>
+                            );
+                          })}
+                        </section>
+                      ))}
+                    </div>
+                  </Dialog.Content>
+                </Dialog.Portal>
+              </Dialog.Root>
+            </div>
+          </div>
         </nav>
 
         {/* 密钥库入口固定在导航底部，收起后仍可直接操作。 */}
@@ -461,6 +384,72 @@ export function Sidebar({
         </div>
       </aside>
     </Tooltip.Provider>
+  );
+}
+
+function SidebarAttention({ count }: { count: number }) {
+  if (!count) return null;
+  return (
+    <>
+      <span className="sidebar-item-counts sidebar-badge-attention" aria-hidden="true">
+        {count}
+      </span>
+      <span className="sidebar-attention-dot" aria-hidden="true" />
+    </>
+  );
+}
+
+function SidebarTooltip({ label, attention = 0 }: { label: string; attention?: number }) {
+  return (
+    <Tooltip.Portal>
+      <Tooltip.Content side="right" sideOffset={10} className="sidebar-tooltip">
+        {label}
+        {attention > 0 && <span className="ml-2 text-xs">{t("{0} 项待处理", attention)}</span>}
+        <Tooltip.Arrow className="fill-ink" />
+      </Tooltip.Content>
+    </Tooltip.Portal>
+  );
+}
+
+function SidebarPage({
+  item,
+  active,
+  attention,
+  compact,
+  onSelect,
+}: {
+  item: NavItem;
+  active: boolean;
+  attention: number;
+  compact: boolean;
+  onSelect: () => void;
+}) {
+  const { icon: Icon, label } = item;
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <button
+          type="button"
+          aria-label={t(label)}
+          aria-description={attention > 0 ? t("{0} 项待处理", attention) : undefined}
+          aria-current={active ? "page" : undefined}
+          data-active={active}
+          className="sidebar-nav-item flex w-full items-center justify-between gap-2 text-left"
+          onClick={onSelect}
+        >
+          <span className="sidebar-item-content flex min-w-0 items-center gap-3">
+            <Icon
+              className="sidebar-item-icon size-[18px] shrink-0"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span className="sidebar-item-label truncate">{t(label)}</span>
+          </span>
+          <SidebarAttention count={attention} />
+        </button>
+      </Tooltip.Trigger>
+      {compact && <SidebarTooltip label={t(label)} attention={attention} />}
+    </Tooltip.Root>
   );
 }
 

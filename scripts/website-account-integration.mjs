@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -36,10 +37,7 @@ try {
   await composer.getByRole("button", { name: "添加", exact: true }).click();
   await composer.waitFor({ state: "detached" });
 
-  await page
-    .locator("aside.app-sidebar:visible")
-    .getByRole("button", { name: "密钥库", exact: true })
-    .click();
+  await navigateDesktop(page, "密钥库");
   await page.getByRole("button", { name: "打开分组 未分组", exact: true }).click();
   await page
     .getByRole("region", { name: "密钥分组", exact: true })
@@ -135,10 +133,7 @@ try {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page
-    .locator("aside.app-sidebar:visible")
-    .getByRole("button", { name: "密钥库", exact: true })
-    .click();
+  await navigateDesktop(page, "密钥库");
   await page.getByRole("button", { name: "打开分组 未分组", exact: true }).click();
   await accountRow().click();
   details = page.getByRole("region", { name: "资产详情", exact: true });

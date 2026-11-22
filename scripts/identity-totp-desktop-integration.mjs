@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { createHmac } from "node:crypto";
@@ -197,10 +198,7 @@ try {
     await importDialog().getByRole("button", { name: "确认导入身份", exact: true }).waitFor();
   }
   async function openAccount(name = customName) {
-    await page
-      .locator("aside:visible nav")
-      .getByRole("button", { name: /^密钥库/ })
-      .click();
+    await navigateDesktop(page, "密钥库");
     const group = page.getByRole("button", { name: "打开分组 未分组", exact: true });
     const row = page.getByRole("checkbox", { name: `选择密钥 ${name}`, exact: true });
     await group.or(row).first().waitFor();
@@ -212,10 +210,7 @@ try {
     await identityPanel().getByText("@qa_identity_owner", { exact: true }).waitFor();
   }
 
-  await page
-    .locator("aside:visible nav")
-    .getByRole("button", { name: /^密钥库/ })
-    .click();
+  await navigateDesktop(page, "密钥库");
   // 新主身份入口位于个人资料；通过原有真实 IPC 播种旧版本身份资产，验证升级兼容。
   assert.equal(await page.getByRole("button", { name: "导入身份", exact: true }).count(), 0);
   const configured = await page.evaluate(

@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -126,8 +127,7 @@ try {
         );
         await page.goto(origin, { waitUntil: "domcontentloaded" });
         await page.locator('[data-app-ready="true"]').waitFor();
-        if (mobile) await page.getByRole("button", { name: "打开菜单", exact: true }).click();
-        await page.getByRole("button", { name: "AI 助手", exact: true }).last().click();
+        await navigateDesktop(page, "AI 助手");
         await page.locator(".agent-workspace").waitFor();
         let rail = await openContext(page, mobile);
         await rail.getByRole("textbox", { name: "搜索历史对话" }).fill("部署");

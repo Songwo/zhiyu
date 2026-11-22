@@ -1,3 +1,4 @@
+import { navigateDesktop, openDesktopDirectory } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -135,10 +136,7 @@ try {
   );
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^服务器/ })
-    .click();
+  await navigateDesktop(page, "服务器");
   await page.locator('[data-asset-id="qa-native"]').click();
   await page.evaluate(() => {
     window.nativeEvents = [];
@@ -192,11 +190,21 @@ try {
   await page.waitForFunction(
     () => window.nativeEvents.filter((event) => event.type === "layout").at(-1)?.visible === false,
   );
-  await page.locator("nav").getByRole("button", { name: /^终端/ }).first().click();
+  await navigateDesktop(page, "终端");
   await page.waitForFunction(
     () => window.nativeEvents.filter((event) => event.type === "layout").at(-1)?.visible === true,
   );
   assert.equal(shells, 1, "切换页面保留原有连接");
+  const featureDirectory = await openDesktopDirectory(page);
+  await featureDirectory.waitFor();
+  await page.waitForFunction(
+    () => window.nativeEvents.filter((event) => event.type === "layout").at(-1)?.visible === false,
+  );
+  await page.keyboard.press("Escape");
+  await featureDirectory.waitFor({ state: "detached" });
+  await page.waitForFunction(
+    () => window.nativeEvents.filter((event) => event.type === "layout").at(-1)?.visible === true,
+  );
   await page.getByRole("button", { name: "锁定滚动", exact: true }).click();
   await page.waitForFunction(
     () =>
@@ -328,7 +336,7 @@ try {
   await configureTerminal([["终端配色", "跟随软件"]]);
   await configureTerminal([["终端字体", "Cascadia Mono"]]);
   await configureTerminal([["终端字号", "14 px"]]);
-  await page.locator("nav").getByRole("button", { name: /^终端/ }).first().click();
+  await navigateDesktop(page, "终端");
   await assert.rejects(
     page.evaluate(() => window.sinan.ssh.nativeOpen({ id: "not-saved", host: "example.test" })),
     /no longer exists/,
@@ -396,7 +404,7 @@ try {
   );
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page.locator("nav").getByRole("button", { name: /^终端/ }).first().click();
+  await navigateDesktop(page, "终端");
   await page.getByRole("button", { name: "终端外观预览", exact: true }).click();
   await page.getByRole("button", { name: "终端设置", exact: true }).click();
   assert.match(
@@ -428,7 +436,7 @@ try {
     });
     await page.reload();
     await page.locator('[data-app-ready="true"]').waitFor();
-    await page.locator("nav").getByRole("button", { name: /^终端/ }).first().click();
+    await navigateDesktop(page, "终端");
     await page.getByRole("button", { name: "终端外观预览", exact: true }).click();
     await page.locator('[data-native-mounted="true"]').waitFor();
     await configureTerminal([["终端配色", "跟随软件"]]);

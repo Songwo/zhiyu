@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import { chooseOption } from "./select-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
@@ -100,10 +101,7 @@ try {
     });
   });
   await page.reload();
-  await page
-    .getByRole("button", { name: /^自建节点/ })
-    .first()
-    .click();
+  await navigateDesktop(page, "自建节点");
   await page.getByRole("button", { name: "添加节点", exact: true }).click();
   await page
     .getByLabel("粘贴分享链接（一行一个）")
@@ -153,10 +151,7 @@ try {
   assert.equal(usage.records[0].upload, 1024);
   assert.equal(usage.records[0].download, 4096);
   assert.equal(loginRequests, 2);
-  await page
-    .getByRole("button", { name: /^自建节点/ })
-    .first()
-    .click();
+  await navigateDesktop(page, "自建节点");
   await page.getByText("流量统计已连接", { exact: true }).waitFor();
   await page.getByRole("button", { name: "查看流量记录", exact: true }).click();
   await page.getByRole("tab", { name: /订阅与来源/ }).click();

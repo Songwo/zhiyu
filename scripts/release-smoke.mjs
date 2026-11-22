@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -52,9 +53,7 @@ try {
   );
   await page.getByRole("button", { name: "忽略网站", exact: true }).click();
   await page.getByText("桌面验证用户", { exact: true }).waitFor();
-  const tools = page.locator("nav").getByRole("button", { name: "更多工具", exact: true });
-  if ((await tools.getAttribute("aria-expanded")) === "false") await tools.click();
-  await page.locator("nav").getByRole("button", { name: "AI 助手", exact: true }).click();
+  await navigateDesktop(page, "AI 助手");
   await page.getByRole("button", { name: "模型与知识库", exact: true }).click();
   await verifyOptions(page, page.getByRole("combobox", { name: "授权服务商" }), [
     "OpenAI / ChatGPT",
@@ -85,10 +84,7 @@ try {
   await page.reload();
   await page.getByText("桌面验证用户", { exact: true }).waitFor();
   assert.equal(await page.getByRole("dialog", { name: "首次设置" }).count(), 0);
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^AI 订阅/ })
-    .click();
+  await navigateDesktop(page, "AI 订阅");
   await page.getByRole("button", { name: "添加 AI 订阅", exact: true }).click();
   const composer = page.getByRole("dialog", { name: "添加 AI 订阅", exact: true });
   await composer.getByRole("button", { name: /^订阅账号/ }).click();
@@ -113,7 +109,7 @@ try {
   await page.screenshot({ path: "screenshots/nanpad-packaged-ai-login.png" });
   await composer.getByRole("button", { name: "完成", exact: true }).click();
   await composer.waitFor({ state: "detached" });
-  await page.locator("nav").getByRole("button", { name: "号码管理", exact: true }).click();
+  await navigateDesktop(page, "号码管理");
   await page.getByRole("button", { name: "添加号码", exact: true }).click();
   const phoneForm = page.getByRole("form", { name: "添加号码", exact: true });
   await phoneForm.getByRole("textbox", { name: "号码", exact: true }).fill("00123456789");
@@ -126,7 +122,7 @@ try {
   );
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page.locator("nav").getByRole("button", { name: "号码管理", exact: true }).click();
+  await navigateDesktop(page, "号码管理");
   await page.getByText("00123456789", { exact: true }).waitFor();
   assert.equal((await page.evaluate(() => window.sinan.store.load())).state.phoneNumbers.length, 1);
   for (const zoomPercent of [100, 110, 125, 150]) {

@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -179,7 +180,7 @@ try {
     },
   );
 
-  await page.getByRole("button", { name: "AI 订阅", exact: true }).click();
+  await navigateDesktop(page, "AI 订阅");
   const dialog = page.getByRole("dialog", { name: "添加 AI 订阅", exact: true });
   const open = async () => {
     await page.getByRole("button", { name: "添加 AI 订阅", exact: true }).click();
@@ -384,10 +385,7 @@ try {
   assert.equal((await saved()).find((item) => item.id === manualSubscription.id).usagePct, 73);
 
   // 自动回调与额度失败分阶段验收；所有链接和响应仅在隔离测试进程内生成。
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^AI 订阅/ })
-    .click();
+  await navigateDesktop(page, "AI 订阅");
   await instance.evaluate(() => {
     globalThis.__qaOpenaiIdentity = "qa-openai-forbidden";
     globalThis.__qaDelayToken = true;

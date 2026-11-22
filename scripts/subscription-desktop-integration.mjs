@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
@@ -274,10 +275,7 @@ try {
   await completeOnboarding(page);
   assert.equal((await page.evaluate(() => window.sinan.usage.localStatus())).enabled, false);
   assert.equal((await state()).records.length, 0);
-  await page
-    .getByRole("button", { name: /^用量记录/ })
-    .first()
-    .click();
+  await navigateDesktop(page, "用量记录");
   await addSource("隔离机场", "/first");
   const first = (await state()).sources.find((source) => source.name === "隔离机场");
   assert.ok(first);

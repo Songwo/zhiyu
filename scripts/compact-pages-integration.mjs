@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { demoSnapshot } from "../electron/services/demo.mjs";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
+import { navigateDesktop } from "./navigation-helper.mjs";
 
 // 合成工作区验证紧凑页头、按需说明及首屏数据，禁止连接外部服务。
 const url = process.env.NANPAD_QA_URL;
@@ -84,12 +84,7 @@ try {
         ["renewals", "费用与续费"],
         ["phones", "号码管理"],
       ]) {
-        if (width < 768) await page.getByRole("button", { name: "打开菜单", exact: true }).click();
-        await expandNavigationGroups(page);
-        await page
-          .getByRole("navigation", { name: "主导航", exact: true })
-          .getByRole("button", { name: label, exact: true })
-          .click();
+        await navigateDesktop(page, label);
         await page.waitForFunction(
           () =>
             ![...document.querySelectorAll("main [role=status]")].some(
@@ -133,8 +128,20 @@ try {
           const empty = await page.locator(".reminder-empty").boundingBox();
           assert.ok(empty.height < 150, "空提醒不应挤占续费数据");
         }
-        if (id === "overview")
-          assert.equal(await page.locator(".overview-shortcuts button").count(), 4);
+        if (id === "overview") {
+          assert.equal(await page.locator(".overview-summary-line button").count(), 4);
+          assert.ok(
+            await page
+              .locator(".overview-data-grid")
+              .evaluate((priority) =>
+                Boolean(
+                  priority.compareDocumentPosition(
+                    document.querySelector(".overview-summary-line"),
+                  ) & Node.DOCUMENT_POSITION_FOLLOWING,
+                ),
+              ),
+          );
+        }
         if ([1440, 390].includes(width))
           await page.screenshot({ path: `screenshots/compact-${theme}-${width}-${id}.png` });
         results.push({ theme, width, id });

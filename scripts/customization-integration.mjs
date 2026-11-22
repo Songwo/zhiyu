@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -120,10 +121,7 @@ try {
   await settings.getByRole("button", { name: "返回", exact: true }).click();
   await settings.waitFor({ state: "detached" });
 
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^AI 订阅/ })
-    .click();
+  await navigateDesktop(page, "AI 订阅");
   await page.getByRole("button", { name: "添加 AI 订阅", exact: true }).click();
   let composer = page.getByRole("dialog", { name: "添加 AI 订阅", exact: true });
   await composer.getByRole("button", { name: "仅手动记录", exact: true }).click();
@@ -175,10 +173,7 @@ try {
   await page.reload();
   await page.getByText("桌面验证用户", { exact: true }).waitFor();
   assert.equal(await page.getByRole("img", { name: "个人头像", exact: true }).count(), 0);
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^AI 订阅/ })
-    .click();
+  await navigateDesktop(page, "AI 订阅");
   await loadedImage(
     page
       .locator(`[data-asset-id="${asset.id}"]`)

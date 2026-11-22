@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -115,11 +116,9 @@ try {
     );
   });
   await scenario("切换资产分类不会继承上一分类的筛选", async (page) => {
-    await nav(page).getByRole("button", { name: /^域名/ }).click();
+    await navigateDesktop(page, "域名");
     await page.getByRole("button", { name: /^即将到期/ }).click();
-    await nav(page)
-      .getByRole("button", { name: /^AI 订阅/ })
-      .click();
+    await navigateDesktop(page, "AI 订阅");
     assert.equal(
       await main(page).getByText("正常订阅", { exact: true }).count(),
       1,
@@ -154,9 +153,7 @@ try {
     await page.getByText("+44 7700 900777", { exact: true }).waitFor();
     await page.reload();
     await page.locator('[data-app-ready="true"]').waitFor();
-    await nav(page)
-      .getByRole("button", { name: /^号码管理/ })
-      .click();
+    await navigateDesktop(page, "号码管理");
     await page.getByText("+44 7700 900777", { exact: true }).waitFor();
   });
   await scenario("选择新建文档及分类新增按钮对应正确类型", async (page) => {
@@ -166,7 +163,7 @@ try {
       .getByRole("button", { name: "新建文档", exact: true })
       .click();
     await page.locator(".document-title").waitFor();
-    await nav(page).getByRole("button", { name: /^域名/ }).click();
+    await navigateDesktop(page, "域名");
     await page.getByRole("button", { name: "添加域名", exact: true }).click();
     await page.getByRole("heading", { name: "添加域名", exact: true }).waitFor();
   });
@@ -211,9 +208,7 @@ try {
     assert.equal(hosts[0].sshConfigured, false);
   });
   await scenario("嵌套订阅下拉按 Escape 只关闭下拉，固定完成按钮可操作", async (page) => {
-    await nav(page)
-      .getByRole("button", { name: /^AI 订阅/ })
-      .click();
+    await navigateDesktop(page, "AI 订阅");
     await page.getByRole("button", { name: "添加 AI 订阅", exact: true }).click();
     const editor = page.getByRole("dialog", { name: "添加 AI 订阅", exact: true });
     await editor.getByRole("button", { name: /^订阅账号/ }).click();
@@ -226,9 +221,7 @@ try {
     await editor.waitFor({ state: "hidden" });
   });
   await scenario("手机号码弹窗保存始终可见且关闭后保留列表焦点", async (page) => {
-    await nav(page)
-      .getByRole("button", { name: /^号码管理/ })
-      .click();
+    await navigateDesktop(page, "号码管理");
     await page.setViewportSize({ width: 390, height: 600 });
     await page.getByRole("button", { name: "添加号码", exact: true }).click();
     const editor = page.getByRole("dialog", { name: "添加号码", exact: true });
@@ -255,7 +248,7 @@ try {
       await page.getByRole("button", { name: "打开菜单", exact: true }).isVisible(),
       false,
     );
-    await nav(page).getByRole("button", { name: /^域名/ }).click();
+    await navigateDesktop(page, "域名");
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.getByRole("banner").count(), 1, "手机不应出现重复的品牌栏");
     for (const name of ["全部域名", "卡片视图", "表格视图", "关系图", "批量整理"]) {

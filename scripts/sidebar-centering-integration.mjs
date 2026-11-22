@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { _electron as electron } from "playwright";
 import { completeOnboarding } from "./onboarding-helper.mjs";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
 
 const directory = await mkdtemp(join(tmpdir(), "zhiyu-sidebar-centering-"));
 const env = { ...process.env, NANPAD_TEST_DATA_DIR: directory };
@@ -32,7 +31,6 @@ try {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await completeOnboarding(page);
-  await expandNavigationGroups(page);
   await page.locator('[data-app-ready="true"]').waitFor();
   const sidebar = page.locator("#primary-navigation");
   assert.equal(await sidebar.getByRole("button", { name: "关系图", exact: true }).count(), 0);
@@ -65,7 +63,7 @@ try {
         const rect = root.getBoundingClientRect();
         const border = parseFloat(getComputedStyle(root).borderRightWidth);
         const nav = root.querySelector("nav");
-        const names = ["文档资产", "用量记录", "解锁密钥库"];
+        const names = ["文档资产", "全部功能", "解锁密钥库"];
         return {
           railCenter: rect.left + (rect.width - border) / 2,
           scrolls: nav.scrollHeight > nav.clientHeight,
@@ -110,10 +108,6 @@ try {
       await page.screenshot({ path: `screenshots/sidebar-centered-${zoom}-${theme}.png` });
     }
   }
-  assert.ok(
-    measurements.some((row) => row.scrolls),
-    "覆盖存在滚动条的导航",
-  );
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({ ok: true, zooms: [100, 125, 150], themes: ["light", "dark"], measurements }),

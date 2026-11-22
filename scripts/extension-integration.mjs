@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { readFile, mkdtemp, rm } from "node:fs/promises";
@@ -164,10 +165,7 @@ try {
   await page.getByText("第二个站点", { exact: true }).waitFor();
   await page.getByRole("button", { name: "忽略网站", exact: true }).click();
 
-  await page
-    .getByRole("navigation", { name: "主导航", exact: true })
-    .getByRole("button", { name: "标签", exact: true })
-    .click();
+  await navigateDesktop(page, "标签");
   await page.getByRole("button", { name: "批量整理", exact: true }).click();
   let organizer = page.getByRole("dialog", { name: "批量整理", exact: true });
   await organizer.getByLabel("选择搜索结果", { exact: false }).check();

@@ -10,11 +10,8 @@ import {
   Server,
   Globe,
   Radio,
-  Bot,
   CalendarClock,
-  FileText,
-  Phone,
-  ChartNoAxesCombined,
+  CircleCheck,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -136,7 +133,7 @@ export function Overview() {
       ))}
     </section>
   );
-  const attentionSection = attention.length > 0 && (
+  const attentionSection = attention.length ? (
     <PageSection
       title={t("待处理事项")}
       description={t("点击分类查看异常资产")}
@@ -183,7 +180,7 @@ export function Overview() {
         ))}
       </div>
     </PageSection>
-  );
+  ) : null;
   const serverSection = servers.length > 0 && (
     <PageSection
       title={t("服务器")}
@@ -268,35 +265,28 @@ export function Overview() {
           {t("添加资产")}
         </Button>
       </header>
-      <nav className="overview-shortcuts" aria-label={t("常用操作")}>
-        {(
-          [
-            { view: "docs", label: "打开文档", icon: FileText },
-            { view: "phones", label: "管理号码", icon: Phone },
-            { view: "usage", label: "查看用量", icon: ChartNoAxesCombined },
-            { view: "ai", label: "查看 AI 订阅", icon: Bot },
-          ] as const
-        ).map(({ view, label, icon: Icon }) => (
-          <Button key={view} variant="ghost" size="sm" onClick={() => setView(view)}>
-            <Icon />
-            {t(label)}
-          </Button>
-        ))}
-      </nav>
-
-      {statStrip}
-
       <div className="overview-data-grid">
-        <div className="overview-data-column">
-          {attentionSection}
-          {serverSection}
-        </div>
-        <div className="overview-data-column">
-          <UpcomingRenewals />
-          <ActivityJournal />
-        </div>
+        {attentionSection ?? (
+          <PageSection title={t("待处理事项")} aria-label={t("待处理事项")}>
+            <p className="overview-quiet-state">
+              <CircleCheck aria-hidden="true" />
+              {t("暂无待处理事项")}
+            </p>
+          </PageSection>
+        )}
+        <UpcomingRenewals showEmpty />
       </div>
+      <section className="overview-summary-line" aria-label={t("资产摘要")}>
+        {stats.map(({ label, value, view }) => (
+          <button type="button" key={view} onClick={() => setView(view)}>
+            <span>{t(label)}</span>
+            <strong>{value}</strong>
+          </button>
+        ))}
+      </section>
       <QuickStart />
+      {serverSection}
+      <ActivityJournal />
     </div>
   );
 }

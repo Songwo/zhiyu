@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { universalRelationFixture } from "./universal-relations-fixture.mjs";
 import { chooseOption } from "./select-helper.mjs";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
+import { navigateDesktop } from "./navigation-helper.mjs";
 
 // 在独立浏览器资料中验收原版图谱组件，只使用合成资产。
 const url = new URL(process.env.NANPAD_QA_URL ?? "http://127.0.0.1:53633/");
@@ -115,11 +115,7 @@ try {
       });
       await page.goto(url.href);
       await page.locator("[data-app-ready=true]").waitFor();
-      if (width < 768) {
-        await page.getByRole("button", { name: "打开菜单", exact: true }).click();
-        await expandNavigationGroups(page);
-      }
-      await page.getByRole("button", { name: "资产关系图", exact: true }).first().click();
+      await navigateDesktop(page, "资产关系图");
       try {
         await page
           .locator(".resource-graph-compact .asset-graph-node")
@@ -255,7 +251,7 @@ try {
         assert.equal(persisted.width, 5);
         await page.reload();
         await page.locator("[data-app-ready=true]").waitFor();
-        await page.getByRole("button", { name: "资产关系图", exact: true }).first().click();
+        await navigateDesktop(page, "资产关系图");
         await page.locator(".asset-graph-node").first().waitFor();
         assert.deepEqual(
           await page.evaluate(
@@ -283,7 +279,7 @@ try {
         });
         await page.reload();
         await page.locator("[data-app-ready=true]").waitFor();
-        await page.getByRole("button", { name: "资产关系图", exact: true }).first().click();
+        await navigateDesktop(page, "资产关系图");
         await page.locator(".asset-graph-node").first().waitFor();
         const selectConnection = async () => {
           await page.getByRole("button", { name: "适应画布", exact: true }).click();

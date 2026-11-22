@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, appendFile, readFile, rm } from "node:fs/promises";
@@ -166,10 +167,7 @@ try {
     }
   });
   assert.equal(rejected, true, "渲染层不能指定任意扫描目录");
-  await page
-    .getByRole("button", { name: /^用量记录/ })
-    .first()
-    .click();
+  await navigateDesktop(page, "用量记录");
   await page.getByRole("button", { name: "采集与监控", exact: true }).click();
   await page.evaluate(() => window.sinan.vault.lock());
   await page.getByRole("button", { name: "立即采集", exact: true }).click();

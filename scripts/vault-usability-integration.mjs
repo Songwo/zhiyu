@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -88,7 +89,7 @@ try {
     }),
   );
   const sidebar = page.locator("aside.app-sidebar:visible");
-  await sidebar.getByRole("button", { name: "密钥库", exact: true }).click();
+  await navigateDesktop(page, "密钥库");
   await page.getByRole("button", { name: "打开分组 未分组", exact: true }).click();
   const row = page.getByRole("button", { name: `查看账号与凭据 ${fixture.name}`, exact: true });
   await row.waitFor();

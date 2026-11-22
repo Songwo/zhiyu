@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { _electron as electron } from "playwright";
 import { completeOnboarding } from "./onboarding-helper.mjs";
-import { expandNavigationGroups } from "./navigation-helper.mjs";
+import { navigateDesktop } from "./navigation-helper.mjs";
 import { chooseOption } from "./select-helper.mjs";
 import { demoSnapshot } from "../electron/services/demo.mjs";
 import { resolveBrandIcon } from "../src/lib/brand-icons.mjs";
@@ -58,13 +58,12 @@ try {
   await page.emulateMedia({ reducedMotion: "reduce" });
   page.on("pageerror", (error) => errors.push(error.message));
   await completeOnboarding(page);
-  await expandNavigationGroups(page);
+
   assert.equal(await instance.evaluate(({ app }) => app.getPath("userData")), directory);
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  const nav = () => page.getByRole("navigation", { name: "主导航", exact: true });
   // AI 与其他资产的默认图标直接来自包内，已上传的资产图片优先。
-  await nav().getByRole("button", { name: "AI 订阅", exact: true }).click();
+  await navigateDesktop(page, "AI 订阅");
   const knownAi = sample.aiAssets.find((asset) => !asset.imageDataUrl && resolveBrandIcon(asset));
   assert.ok(knownAi, "演示资产应有可识别的 AI 服务商");
   const expectedBrand = resolveBrandIcon(knownAi).id;
@@ -88,7 +87,7 @@ try {
   );
   assert.equal(await page.locator(`[data-asset-id="${customAi.id}"] [data-brand-icon]`).count(), 0);
   // 新建支付卡，说明识别可校正、卡号不落普通资料。
-  await nav().getByRole("button", { name: "U 卡与支付卡", exact: true }).click();
+  await navigateDesktop(page, "U 卡与支付卡");
   await page.getByRole("button", { name: "添加支付卡", exact: true }).first().click();
   let editor = page.getByRole("dialog", { name: "添加支付卡", exact: true });
   await editor.getByRole("textbox", { name: "卡片名称", exact: true }).fill("合成订阅 Visa");
@@ -173,12 +172,12 @@ try {
   );
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
-  await nav().getByRole("button", { name: "U 卡与支付卡", exact: true }).click();
+  await navigateDesktop(page, "U 卡与支付卡");
   await page.getByRole("button", { name: "查看卡片 合成订阅 Visa", exact: true }).first().click();
   await page.getByText(target.name, { exact: true }).first().waitFor();
   await page.getByRole("region", { name: "关联文档", exact: true }).waitFor();
   // eSIM 的套餐日期与保号日期独立保留；最近期限进入续费链路。
-  await nav().getByRole("button", { name: "eSIM 卡", exact: true }).click();
+  await navigateDesktop(page, "eSIM 卡");
   await page.getByRole("button", { name: "添加 eSIM", exact: true }).first().click();
   editor = page.getByRole("dialog", { name: "添加 eSIM", exact: true });
   await editor.getByLabel("卡片名称", { exact: true }).fill("合成日本 eSIM");
@@ -208,7 +207,7 @@ try {
     !JSON.stringify(await page.evaluate(() => window.sinan.store.load())).includes(activation),
   );
   // 国内银行实际录入：只补空字段，发行行和卡组织分开，既有选择显式采用后才能替换。
-  await nav().getByRole("button", { name: "U 卡与支付卡", exact: true }).click();
+  await navigateDesktop(page, "U 卡与支付卡");
   await page.getByRole("button", { name: "添加支付卡", exact: true }).first().click();
   editor = page.getByRole("dialog", { name: "添加支付卡", exact: true });
   await editor.getByLabel("卡片名称", { exact: true }).fill("合成工行国内卡");
@@ -282,11 +281,11 @@ try {
     page.getByRole("combobox", { name: "筛选地域", exact: true }),
     "全部地域",
   );
-  await nav().getByRole("button", { name: "eSIM 卡", exact: true }).click();
+  await navigateDesktop(page, "eSIM 卡");
   // 桌面和窄屏都必须能看见卡片，且没有横向溢出。
   await mkdir("screenshots", { recursive: true });
   await page.screenshot({ path: "screenshots/cards-esim-desktop.png" });
-  await nav().getByRole("button", { name: "U 卡与支付卡", exact: true }).click();
+  await navigateDesktop(page, "U 卡与支付卡");
   await page.getByRole("button", { name: "查看卡片 合成订阅 Visa", exact: true }).first().waitFor();
   await page.screenshot({ path: "screenshots/cards-payment-desktop.png" });
   async function checkVisibleLastFour() {
@@ -349,7 +348,7 @@ try {
   await page.emulateMedia({ colorScheme: "light" });
   await page.setViewportSize({ width: 1280, height: 800 });
   // 删除服务器必须逐字输入完整名称；取消、错误名称和尾部空格均不能删除。
-  await nav().getByRole("button", { name: "服务器", exact: true }).click();
+  await navigateDesktop(page, "服务器");
   const server = sample.servers[0];
   await page.locator(`[data-asset-id="${server.id}"]`).first().click();
   await page.getByRole("button", { name: "删除", exact: true }).click();
@@ -374,7 +373,7 @@ try {
     async (id) => !(await window.sinan.store.load()).state.servers.some((x) => x.id === id),
     server.id,
   );
-  await nav().getByRole("button", { name: "U 卡与支付卡", exact: true }).click();
+  await navigateDesktop(page, "U 卡与支付卡");
   await page.getByRole("button", { name: "查看卡片 合成订阅 Visa", exact: true }).first().click();
   await page.getByRole("button", { name: "删除", exact: true }).click();
   await confirmation().getByLabel("请输入完整名称以确认删除").fill("合成订阅 Visa");

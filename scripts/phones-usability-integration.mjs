@@ -1,3 +1,4 @@
+import { navigateDesktop } from "./navigation-helper.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -55,10 +56,7 @@ const row = () => page.locator("[data-phone-id]").filter({ hasText: "+1 555 100 
 try {
   await page.goto("http://127.0.0.1:8080/", { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.locator('[data-app-ready="true"]').waitFor({ timeout: 90000 });
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^号码管理/ })
-    .click();
+  await navigateDesktop(page, "号码管理");
   await page.getByText("还没有保存号码", { exact: true }).waitFor();
   await page.getByRole("button", { name: "添加号码", exact: true }).click();
   const form = page.getByRole("form", { name: "添加号码", exact: true });
@@ -108,7 +106,7 @@ try {
   await page.getByRole("option", { name: "全部号码", exact: true }).click();
   await page.screenshot({ path: "release/screenshots/phone-desktop.png" });
 
-  await page.getByRole("button", { name: /^AI 订阅/ }).click();
+  await navigateDesktop(page, "AI 订阅");
   await page.locator('[data-asset-id="qa-ai-a"]').click();
   await page.getByRole("button", { name: "解绑号码 +1 555 100 2000", exact: true }).click();
   assert.deepEqual(
@@ -128,10 +126,7 @@ try {
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('[data-app-ready="true"]').waitFor();
-  await page
-    .locator("nav")
-    .getByRole("button", { name: /^号码管理/ })
-    .click();
+  await navigateDesktop(page, "号码管理");
   await page.locator("[data-phone-id]").first().waitFor();
   assert.equal(await page.locator("[data-phone-id]").count(), 2);
   await page.setViewportSize({ width: 390, height: 844 });
