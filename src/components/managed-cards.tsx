@@ -1,16 +1,13 @@
-import { PageHelp } from "./ui/page-help";
+import { WorkspaceControls, WorkspaceHeader, WorkspaceSearch } from "./ui/workspace-layout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CreditCard,
   Plus,
-  Search,
   Smartphone,
   Wifi,
   Pencil,
   ArrowUpRight,
-  CalendarClock,
   Link2,
-  Layers,
   Rotate3D,
   Copy,
   Globe2,
@@ -229,67 +226,69 @@ export function ManagedCardsWorkspace({ kind }: { kind: ManagedCard["kind"] }) {
       .setExpanded({ kind: "service", id: asset.id, origin: { x: 0, y: 0, w: 0, h: 0 } });
   return (
     <section className="cards-workspace" aria-label={esim ? t("eSIM 卡") : t("U 卡与支付卡")}>
-      <header className="cards-page-header">
-        <div className="page-heading-summary">
-          <h1>{esim ? t("eSIM 卡") : t("U 卡与支付卡")}</h1>
-          <PageHelp>
-            {esim
-              ? t("套餐和保号期限分开记，关联设备、账号与出行资料。")
-              : t("卡组织、发卡服务商与有效期，一眼看清。")}
-          </PageHelp>
-        </div>
-        <Button onClick={add}>
-          <Plus className="size-4" />
-          {esim ? t("添加 eSIM") : t("添加支付卡")}
-        </Button>
-      </header>
-      <div className="cards-summary">
-        <span>
-          <Layers />
-          {t("共 {0} 张卡片", records.length)}
-        </span>
-        <span>
-          <CalendarClock />
-          {t("30 天内到期或已过期 {0} 张", upcoming)}
-        </span>
-        <span>
-          <Link2 />
-          {t("支持关联资产与文档")}
-        </span>
-      </div>
-      <div className="cards-controls">
-        <div className="cards-search">
-          <Search aria-hidden="true" />
-          <Input
-            aria-label={t("搜索卡片")}
+      <WorkspaceHeader
+        title={esim ? t("eSIM 卡") : t("U 卡与支付卡")}
+        meta={
+          <>
+            <span>{t("共 {0} 张卡片", records.length)}</span>
+            {upcoming > 0 && (
+              <span className="page-meta-warn">{t("30 天内到期或已过期 {0} 张", upcoming)}</span>
+            )}
+          </>
+        }
+        help={
+          esim ? (
+            t("套餐和保号期限分开记，关联设备、账号与出行资料。")
+          ) : (
+            <>
+              {t("卡组织、发卡服务商与有效期，一眼看清。")} {t("支持关联资产与文档")}
+            </>
+          )
+        }
+        actions={
+          <Button onClick={add}>
+            <Plus />
+            {esim ? t("添加 eSIM") : t("添加支付卡")}
+          </Button>
+        }
+      />
+      <WorkspaceControls
+        className="cards-controls"
+        search={
+          <WorkspaceSearch
+            label={t("搜索卡片")}
             placeholder={t("搜索名称、服务商、尾号或地区")}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={setQuery}
           />
-        </div>
-        <Select
-          aria-label={t("筛选地域")}
-          value={regionFilter}
-          onValueChange={setRegionFilter}
-          options={[
-            { value: "all", label: t("全部地域") },
-            ...Object.entries(REGION_LABELS).map(([value, label]) => ({
-              value,
-              label: `${t(label)} (${records.filter((asset) => cardRegionGroup(asset.card!) === value).length})`,
-            })),
-          ]}
-        />
-        <Select
-          aria-label={t("筛选卡片")}
-          value={filter}
-          onValueChange={setFilter}
-          options={[
-            { value: "all", label: t("全部卡片") },
-            { value: "attention", label: t("即将到期与已过期") },
-            ...(!esim ? FORMS.slice(1).map((value) => ({ value, label: t(value) })) : []),
-          ]}
-        />
-      </div>
+        }
+        filters={
+          <>
+            <Select
+              aria-label={t("筛选地域")}
+              value={regionFilter}
+              onValueChange={setRegionFilter}
+              options={[
+                { value: "all", label: t("全部地域") },
+                ...Object.entries(REGION_LABELS).map(([value, label]) => ({
+                  value,
+                  label: `${t(label)} (${records.filter((asset) => cardRegionGroup(asset.card!) === value).length})`,
+                })),
+              ]}
+            />
+            <Select
+              aria-label={t("筛选卡片")}
+              value={filter}
+              onValueChange={setFilter}
+              options={[
+                { value: "all", label: t("全部卡片") },
+                { value: "attention", label: t("即将到期与已过期") },
+                ...(!esim ? FORMS.slice(1).map((value) => ({ value, label: t(value) })) : []),
+              ]}
+            />
+          </>
+        }
+      />
       {visible.length ? (
         <div className="managed-cards-grid">
           {visible.map((asset) => {

@@ -29,7 +29,7 @@ function blank(title = "", repeat: Reminder["repeat"] = "none", leadDays = 3): R
 }
 
 /** 费用与续费页的「备忘提醒」：自己写的事项与日期，大号倒计时。 */
-export function RemindersSection() {
+export function RemindersSection({ sectionId }: { sectionId: string }) {
   const reminders = useAppStore((s) => s.reminders);
   const hydrated = useAppStore((s) => s.hydrated);
   const [editing, setEditing] = useState<Reminder | null>(null);
@@ -46,6 +46,8 @@ export function RemindersSection() {
   const state = useAppStore.getState();
   return (
     <PageSection
+      id={sectionId}
+      tabIndex={-1}
       title={t("备忘提醒")}
       description={t("自己写的事项与日期：证件、保修、交费、续费……到期前按设定天数提醒")}
       aria-label={t("备忘提醒")}

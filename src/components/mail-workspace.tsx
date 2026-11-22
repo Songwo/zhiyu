@@ -30,6 +30,7 @@ import { openFromEvent } from "./asset-card";
 import { MailReader } from "./mail-reader";
 import { MailAvatar, MailAppearanceEditor } from "./mail-avatar";
 import { CollectionCard } from "./ui/collection-card";
+import { WorkspaceSectionHeader } from "./ui/workspace-layout";
 
 export function MailWorkspace() {
   const state = useAppStore();
@@ -82,9 +83,11 @@ export function MailWorkspace() {
   }
   return (
     <section className="collection-workspace p-4" aria-label={t("邮箱文件夹")}>
-      <div className="collection-toolbar mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {active !== null && (
+      <WorkspaceSectionHeader
+        title={active === null ? t("邮箱文件夹") : t(folder?.name ?? "未分组")}
+        meta={t("{0} 个邮箱", active === null ? matching.length : displayed.length)}
+        leading={
+          active !== null && (
             <Button
               variant="ghost"
               size="icon-sm"
@@ -95,34 +98,30 @@ export function MailWorkspace() {
                 setSelected([]);
               }}
             >
-              <ArrowLeft className="size-4" />
+              <ArrowLeft />
             </Button>
-          )}
-          <h2 className="truncate text-lg font-semibold">
-            {active === null ? t("邮箱文件夹") : t(folder?.name ?? "未分组")}
-          </h2>
-          <span className="text-meta text-muted">
-            {t("{0} 个邮箱", active === null ? matching.length : displayed.length)}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {folder?.id && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("编辑文件夹")}
-              title={t("编辑文件夹")}
-              onClick={() => setEditor(folder)}
-            >
-              <Pencil className="size-4" />
+          )
+        }
+        actions={
+          <>
+            {folder?.id && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("编辑文件夹")}
+                title={t("编辑文件夹")}
+                onClick={() => setEditor(folder)}
+              >
+                <Pencil />
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setEditor("new")}>
+              <FolderPlus />
+              {t("新建文件夹")}
             </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setEditor("new")}>
-            <FolderPlus className="size-4" />
-            {t("新建文件夹")}
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
       {active === null ? (
         <div className="collection-grid">
           {query &&

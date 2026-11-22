@@ -182,14 +182,17 @@
   border-top: 1px solid var(--color-line);
 }
 .integration-entry {
-  margin: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--color-line);
-  border-radius: 0.875rem;
-  background: var(--color-card);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
+  margin: 12px 16px 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.integration-entry > .min-w-0 {
+  flex-basis: 210px;
 }
 .settings-dialog.integrations-settings-dialog {
   max-width: 70rem;

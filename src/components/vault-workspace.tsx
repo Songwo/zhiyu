@@ -34,6 +34,7 @@ import { Button } from "./ui/button";
 import { Field, Input, Select } from "./ui/input";
 import { openFromEvent } from "./asset-card";
 import { CollectionCard } from "./ui/collection-card";
+import { WorkspaceSectionHeader } from "./ui/workspace-layout";
 import { BrowserPasswordTransfer } from "./browser-password-transfer";
 
 import { useVault } from "@/lib/vault-state";
@@ -137,9 +138,11 @@ export function VaultWorkspace() {
           )}
         </div>
       )}
-      <div className="collection-toolbar mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {active !== null && (
+      <WorkspaceSectionHeader
+        title={active === null ? t("密钥分组") : t(folder?.name ?? "未分组")}
+        meta={t("{0} 项资料", active === null ? matching.length : displayed.length)}
+        leading={
+          active !== null && (
             <Button
               variant="ghost"
               size="icon-sm"
@@ -150,50 +153,44 @@ export function VaultWorkspace() {
                 setSelected([]);
               }}
             >
-              <ArrowLeft className="size-4" />
+              <ArrowLeft />
             </Button>
-          )}
-          <h2 className="truncate text-lg font-semibold">
-            {active === null ? t("密钥分组") : t(folder?.name ?? "未分组")}
-          </h2>
-          <span className="text-meta text-muted">
-            {t("{0} 项资料", active === null ? matching.length : displayed.length)}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {
-            <Button variant="outline" size="sm" onClick={() => setTransferOpen(true)}>
-              <ArrowDownUp className="size-4" />
+          )
+        }
+        actions={
+          <>
+            {folder?.id && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("编辑分组")}
+                title={t("编辑分组")}
+                onClick={() => setEditor(folder)}
+              >
+                <Pencil />
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => setTransferOpen(true)}>
+              <ArrowDownUp />
               {t("浏览器密码")}
             </Button>
-          }
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              state.openComposer("secret", null, { kind: "account", folderId: active ?? "" })
-            }
-          >
-            <UserRound className="size-4" />
-            {t("添加账号")}
-          </Button>
-          {folder?.id && (
             <Button
               variant="ghost"
-              size="icon-sm"
-              aria-label={t("编辑分组")}
-              title={t("编辑分组")}
-              onClick={() => setEditor(folder)}
+              size="sm"
+              onClick={() =>
+                state.openComposer("secret", null, { kind: "account", folderId: active ?? "" })
+              }
             >
-              <Pencil className="size-4" />
+              <UserRound />
+              {t("添加账号")}
             </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setEditor("new")}>
-            <FolderPlus className="size-4" />
-            {t("新建分组")}
-          </Button>
-        </div>
-      </div>
+            <Button variant="outline" size="sm" onClick={() => setEditor("new")}>
+              <FolderPlus />
+              {t("新建分组")}
+            </Button>
+          </>
+        }
+      />
       {active === null ? (
         <div className="collection-grid">
           {query &&

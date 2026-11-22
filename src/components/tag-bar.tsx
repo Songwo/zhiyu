@@ -1,11 +1,13 @@
-import { LayoutGrid, Rows3, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { ChevronDown, Tags, Rows3 } from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
+import * as Popover from "@radix-ui/react-popover";
 import { useAppStore } from "@/lib/store";
 import { useSettings } from "@/lib/settings";
 import { tagCounts } from "@/lib/tags";
 import type { Taggable } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { Button } from "./ui/button";
 
 /**
  * The collection the current view lists, before any filtering.
@@ -55,14 +57,8 @@ function useViewCollection(): Array<Partial<Taggable>> {
   }
 }
 
-/**
- * The grouping strip under the search field.
- *
- * It lists the tags actually present in the *unfiltered* list for this view, so
- * the set of chips does not collapse out from under the pointer as you narrow
- * things down. Selecting more than one tag intersects them.
- */
-export function TagBar() {
+/** 标签从未筛选的集合取数；关闭面板后，已选标签仍显示在工具栏上。 */
+export function TagFilter({ canGroup }: { canGroup: boolean }) {
   const items = useViewCollection();
   const selected = useAppStore((s) => s.tagFilter);
   const toggleTag = useAppStore((s) => s.toggleTag);
@@ -70,51 +66,121 @@ export function TagBar() {
   const grouped = useAppStore((s) => s.groupByTag);
   const setGroupByTag = useAppStore((s) => s.setGroupByTag);
   const layout = useSettings((s) => s.assetLayout);
+  const [tagQuery, setTagQuery] = useState("");
+  const tagQueryId = useId();
 
   const counts = tagCounts(items);
-  if (counts.length === 0) return null;
+  const showGrouping = canGroup && layout === "cards";
+  if (counts.length === 0 && selected.length === 0) return null;
+  const needle = tagQuery.trim().toLocaleLowerCase();
+  const options = counts.filter(({ tag }) => tag.toLocaleLowerCase().includes(needle));
+  const matching = new Set(counts.map(({ tag }) => tag));
 
   return (
-    <div className="flex items-center gap-2 px-4 pb-2">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-        {counts.map(({ tag, count }) => {
-          const on = selected.includes(tag);
-          return (
-            <button
-              key={tag}
-              type="button"
-              className={cn("tag-chip", on && "tag-chip-on")}
-              aria-pressed={on}
-              onClick={() => toggleTag(tag)}
-            >
-              {tag}
-              <span className="tabular-nums opacity-55">{count}</span>
-            </button>
-          );
-        })}
-        {selected.length > 0 && (
-          <button type="button" className="tag-chip tag-chip-clear" onClick={clearTags}>
-            <X className="size-3" />
-
-            {t("清除")}
-          </button>
-        )}
-      </div>
-
-      {layout === "cards" && (
-        <button
-          type="button"
-          className="tag-toggle shrink-0"
-          aria-pressed={grouped}
-          data-on={grouped}
-          title={grouped ? t("改为平铺") : t("按标签分组")}
-          onClick={() => setGroupByTag(!grouped)}
+    <Popover.Root
+      onOpenChange={(open) => {
+        if (!open) setTagQuery("");
+      }}
+    >
+      <Popover.Trigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="workspace-tag-trigger"
+          aria-label={t("标签筛选")}
+          aria-description={selected.length ? t("已选标签：{0}", selected.join("、")) : undefined}
+          data-selected={selected.length > 0}
         >
-          {grouped ? <Rows3 className="size-3.5" /> : <LayoutGrid className="size-3.5" />}
-          {grouped ? t("分组") : t("平铺")}
-        </button>
-      )}
-    </div>
+          <Tags aria-hidden="true" />
+          {t("标签")}
+          {selected.length > 0 && (
+            <span
+              className="workspace-tag-selection"
+              aria-hidden="true"
+              title={selected.join("、")}
+            >
+              <span>{selected[0]}</span>
+              {selected.length > 1 && <b>+{selected.length - 1}</b>}
+            </span>
+          )}
+          <ChevronDown aria-hidden="true" />
+        </Button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          className="workspace-tag-panel"
+          sideOffset={8}
+          collisionPadding={12}
+          aria-label={t("标签筛选")}
+        >
+          <label className="sr-only" htmlFor={tagQueryId}>
+            {t("搜索标签")}
+          </label>
+          <input
+            id={tagQueryId}
+            className="ui-input h-9 w-full rounded-sm px-3 text-meta"
+            placeholder={t("搜索标签")}
+            value={tagQuery}
+            onChange={(event) => setTagQuery(event.target.value)}
+          />
+          <div className="workspace-tag-options" role="group" aria-label={t("标签")}>
+            {options.map(({ tag, count }) => (
+              <button
+                key={tag}
+                type="button"
+                className={cn("tag-chip", selected.includes(tag) && "tag-chip-on")}
+                aria-pressed={selected.includes(tag)}
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+                <span className="tabular-nums opacity-55" aria-hidden="true">
+                  {count}
+                </span>
+              </button>
+            ))}
+            {!needle &&
+              selected
+                .filter((tag) => !matching.has(tag))
+                .map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className="tag-chip tag-chip-on"
+                    aria-pressed="true"
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+            {!options.length && needle && (
+              <p className="text-meta text-muted" role="status">
+                {t("没有匹配的标签")}
+              </p>
+            )}
+          </div>
+          {(showGrouping || selected.length > 0) && (
+            <div className="workspace-tag-panel-footer">
+              {showGrouping && (
+                <Button
+                  variant={grouped ? "secondary" : "ghost"}
+                  size="sm"
+                  aria-pressed={grouped}
+                  onClick={() => setGroupByTag(!grouped)}
+                >
+                  <Rows3 />
+                  {t("按标签分组")}
+                </Button>
+              )}
+              {selected.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearTags}>
+                  {t("清除标签筛选")}
+                </Button>
+              )}
+            </div>
+          )}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
@@ -126,6 +192,7 @@ export function CardTag({ tag }: { tag: string }) {
     <button
       type="button"
       className={cn("chip chip-mute tag-inline", selected.includes(tag) && "tag-inline-on")}
+      aria-pressed={selected.includes(tag)}
       onClick={(e) => {
         // The card itself opens the detail sheet; the tag only filters.
         e.stopPropagation();

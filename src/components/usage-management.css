@@ -1,3 +1,16 @@
+.usage-command-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-line);
+}
+.usage-overview-panel:not([hidden]) {
+  display: grid;
+  gap: 12px;
+}
 .usage-workspace-tabs {
   display: flex;
   gap: 4px;
@@ -563,7 +576,11 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, color-mix(in oklab, var(--tone) 60%, transparent), var(--tone));
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--tone) 60%, transparent),
+    var(--tone)
+  );
   transform-origin: left;
   animation: usage-meter-in 820ms var(--ease-out-soft) 200ms both;
 }

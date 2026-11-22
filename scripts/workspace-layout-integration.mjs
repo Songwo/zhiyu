@@ -163,7 +163,7 @@ async function geometry(page, label) {
       state.headingHeight <= (state.availableWidth < 768 ? 150 : 90) * state.zoom,
       label + " 紧凑页头占位过高：" + state.headingHeight,
     );
-    assert.ok(state.headingFontSize <= 18, label + " 页头标题应保持紧凑");
+    assert.ok(state.headingFontSize <= 20, label + " 页头标题应保持紧凑");
   }
   assert.equal(state.decorativeHeroCount, 0, label + " 数据页不应保留装饰头图");
   if (state.railWidth) {

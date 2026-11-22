@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   CalendarArrowDown,
   CalendarCheck2,
@@ -33,7 +33,7 @@ import { Button } from "./ui/button";
 import { MarkRenewedButton } from "./mark-renewed";
 import { RemindersSection } from "./reminders-section";
 import { PageSection } from "./ui/page";
-import { PageHelp } from "./ui/page-help";
+import { WorkspaceHeader } from "./ui/workspace-layout";
 import { Input } from "./ui/input";
 
 const WINDOWS = [30, 90] as const;
@@ -56,17 +56,47 @@ export function RenewalsWorkspace() {
   const summary = useMemo(() => spendSummary(snapshot), [snapshot]);
   const timeline = useMemo(() => renewalTimeline(snapshot, { withinDays }), [snapshot, withinDays]);
   const due = timeline.filter((entry) => entry.days >= 0).length;
+  const hydrated = useAppStore((state) => state.hydrated);
+  const sectionId = useId();
+  const calendarId = `${sectionId}-calendar`;
+  const timelineId = `${sectionId}-timeline`;
+  const remindersId = `${sectionId}-reminders`;
   return (
-    <div className="overview-layout page-stagger">
+    <div className="overview-layout renewals-workspace page-stagger">
       <SpendHero summary={summary} due={due} withinDays={withinDays} />
-      <RemindersSection />
-      <RenewalCalendar snapshot={snapshot} />
+      <nav className="renewals-section-links" aria-label={t("费用与续费版块")}>
+        {(
+          [
+            [calendarId, "续费日历"],
+            [timelineId, "到期时间线"],
+            ...(hydrated ? [[remindersId, "备忘提醒"]] : []),
+          ] as const
+        ).map(([id, label]) => (
+          <Button
+            key={id}
+            variant="ghost"
+            size="sm"
+            aria-controls={id}
+            onClick={() => {
+              const target = document.getElementById(id);
+              target?.focus({ preventScroll: true });
+              target?.scrollIntoView({ block: "start" });
+            }}
+          >
+            {t(label)}
+          </Button>
+        ))}
+      </nav>
+      <RenewalCalendar snapshot={snapshot} sectionId={calendarId} />
+      <RemindersSection sectionId={remindersId} />
       <PageSection
+        id={timelineId}
+        tabIndex={-1}
         title={t("到期时间线")}
         description={t("未来 {0} 天内到期的资产，以及近 30 天已过期的。", withinDays)}
         aria-label={t("到期时间线")}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="segmented" role="group" aria-label={t("时间范围")}>
               {WINDOWS.map((days) => (
                 <button
@@ -136,23 +166,21 @@ function SpendHero({
       : currencies.map((c) => formatMoney(summary.byCurrency[c].monthly, c)).join(" + ");
   return (
     <section className="spend-summary">
-      <header className="overview-compact-head">
-        <div className="page-heading-summary">
-          <h1 className="page-title">{t("费用与续费")}</h1>
-          <span className="overview-headline">
-            {currencies.length ? t("每月支出 {0}", monthly) : t("还没有填写费用")}
-          </span>
-          <PageHelp>{t("年付按 12 个月摊到每月，月付乘 12 计入全年；一次性费用单列。")}</PageHelp>
-        </div>
-        <details className="spend-rate-details">
-          <summary>
-            <span>{t("汇率与折算")}</span>
-            <span>{usdToCny ? `1 USD = ${usdToCny} CNY` : t("未启用换算")}</span>
-            <ChevronDown aria-hidden="true" />
-          </summary>
-          <RateInput />
-        </details>
-      </header>
+      <WorkspaceHeader
+        title={t("费用与续费")}
+        meta={currencies.length ? t("每月支出 {0}", monthly) : t("还没有填写费用")}
+        help={t("年付按 12 个月摊到每月，月付乘 12 计入全年；一次性费用单列。")}
+        actions={
+          <details className="spend-rate-details">
+            <summary>
+              <span>{t("汇率与折算")}</span>
+              <span>{usdToCny ? `1 USD = ${usdToCny} CNY` : t("未启用换算")}</span>
+              <ChevronDown aria-hidden="true" />
+            </summary>
+            <RateInput />
+          </details>
+        }
+      />
       <section className="hero-stats" aria-label={t("费用概览")}>
         {currencies.map((currency) => {
           const totals = summary.byCurrency[currency];
@@ -369,7 +397,13 @@ function monthGrid(month: string) {
  * 续费日历：月视图里每天列出到期和按周期推算的续费，右侧是所选日期的事项。
  * 周一开头，固定 6 行，切换月份时整页从切换方向滑入。
  */
-function RenewalCalendar({ snapshot }: { snapshot: Parameters<typeof renewalCalendar>[0] }) {
+function RenewalCalendar({
+  snapshot,
+  sectionId,
+}: {
+  snapshot: Parameters<typeof renewalCalendar>[0];
+  sectionId: string;
+}) {
   const today = dayKey(new Date());
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [selected, setSelected] = useState(today);
@@ -407,6 +441,8 @@ function RenewalCalendar({ snapshot }: { snapshot: Parameters<typeof renewalCale
 
   return (
     <PageSection
+      id={sectionId}
+      tabIndex={-1}
       title={t("续费日历")}
       description={
         monthText

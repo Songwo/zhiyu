@@ -21,7 +21,7 @@ const UsageWorkspace = lazy(() =>
 );
 import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Search, SquareTerminal, X, LayoutGrid, Table2, Network, Plus } from "lucide-react";
+import { SquareTerminal, X, LayoutGrid, Table2, Network, Plus } from "lucide-react";
 const AssetWorkspace = lazy(() =>
   import("./asset-workspace").then((module) => ({ default: module.AssetWorkspace })),
 );
@@ -43,11 +43,10 @@ import { AiCard, CertCard, DomainCard, MailCard, SecretCard, ServerCard } from "
 const AgentView = lazy(() =>
   import("./agent-view").then((module) => ({ default: module.AgentView })),
 );
-import { GroupHeading, TagBar } from "./tag-bar";
+import { GroupHeading, TagFilter } from "./tag-bar";
 import { RefreshAllButton } from "./refresh-button";
 import { Button } from "./ui/button";
-import { PageHelp } from "./ui/page-help";
-import { Input } from "./ui/input";
+import { WorkspaceControls, WorkspaceHeader, WorkspaceSearch } from "./ui/workspace-layout";
 import { CountUp } from "./ui/time-ago";
 import { isDesktop } from "@/lib/desktop";
 import { useLive } from "@/lib/live";
@@ -194,27 +193,25 @@ export function TopTabs() {
   if (["docs", "overview", "renewals", "cards", "esims", "relations", "phones"].includes(view))
     return null;
   const desc = PAGE_DESC[view];
-  const meta = LIST_VIEWS.includes(view) ? <PageMeta view={view} /> : null;
+  const hasList = LIST_VIEWS.includes(view);
+  const kind = item?.kind;
   return (
     <>
-      <div className="page-view-heading">
-        <div className="page-heading-summary">
-          <h1 className="page-title">
-            {t(item?.label ?? (view === "relations" ? "关系图" : "资产总览"))}
-          </h1>
-          {meta}
-          {desc && <PageHelp>{t(desc)}</PageHelp>}
-        </div>
-        <div className="page-actions">
-          {item?.kind && (
-            <Button onClick={() => openComposer(item.kind!)}>
+      <WorkspaceHeader
+        className="page-view-heading"
+        title={t(item?.label ?? "资产总览")}
+        meta={hasList && <PageMeta view={view} />}
+        help={desc && t(desc)}
+        actions={
+          kind && (
+            <Button onClick={() => openComposer(kind)}>
               <Plus />
-              {t(CREATE_LABELS[item.kind])}
+              {t(CREATE_LABELS[kind])}
             </Button>
-          )}
-        </div>
-      </div>
-      {LIST_VIEWS.includes(view) && <ListHeader />}
+          )
+        }
+      />
+      {hasList && <ListHeader key={view} view={view} />}
     </>
   );
 }
@@ -260,67 +257,54 @@ function PageMeta({ view }: { view: ViewId }) {
   );
 }
 
-function ListHeader() {
-  const view = useAppStore((s) => s.view);
+function ListHeader({ view }: { view: ViewId }) {
   const filter = useAppStore((s) => s.filter);
   const setFilter = useAppStore((s) => s.setFilter);
   const query = useAppStore((s) => s.query);
   const setQuery = useAppStore((s) => s.setQuery);
-  const setCommandOpen = useAppStore((s) => s.setCommandOpen);
+  const tagCount = useAppStore((s) => s.tagFilter.length);
+  const clearTags = useAppStore((s) => s.clearTags);
   const title = TITLE[view] || { all: "全部", attention: "需处理" };
   const layout = useSettings((s) => s.assetLayout);
   const setLayout = useSettings((s) => s.setAssetLayout);
   const hydrated = useAppStore((s) => s.hydrated);
-  const counts = useAppStore(useShallow(attentionOf));
-  const pending = counts[BADGE_KEY[view]];
-
+  const pending = useAppStore((s) => attentionOf(s)[BADGE_KEY[view]]);
   const shownLayout = hydrated ? layout : "cards";
+  const collection = view === "mail" || view === "vault";
+  const canGroup = !collection && view !== "tags";
+
   return (
     <div className="asset-list-toolbar">
-      <div className="asset-list-toolbar-row">
-        <div className="segmented" role="group" aria-label={t("筛选")}>
-          <button
-            type="button"
-            onClick={() => setFilter("all")}
-            aria-pressed={filter === "all"}
-            className="segmented-item"
-          >
-            {t(title.all)}
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("attention")}
-            aria-pressed={filter === "attention"}
-            className="segmented-item"
-          >
-            <span>{t(title.attention)}</span>
-            {pending > 0 && <span className="segmented-count">{pending}</span>}
-          </button>
-        </div>
-
-        <div className="asset-list-search">
-          <Search className="asset-list-search-icon" aria-hidden="true" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("筛选当前列表")}
-            className="h-9 pl-9 text-meta"
-          />
-        </div>
-
-        <div className="ml-auto flex items-center gap-1.5">
-          <RefreshAllButton kind={PROBE_KIND[view]} />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="xl:hidden"
-            onClick={() => setCommandOpen(true)}
-            aria-label={t("搜索资产")}
-          >
-            <Search />
-          </Button>
-          {view !== "terminal" && view !== "mail" && (
-            <>
+      <WorkspaceControls
+        search={<WorkspaceSearch label={t("筛选当前列表")} value={query} onChange={setQuery} />}
+        filters={
+          <>
+            <div className="segmented" role="group" aria-label={t("筛选")}>
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                aria-pressed={filter === "all"}
+                className="segmented-item"
+              >
+                {t(title.all)}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("attention")}
+                aria-pressed={filter === "attention"}
+                className="segmented-item"
+              >
+                <span>{t(title.attention)}</span>
+                {pending > 0 && <span className="segmented-count">{pending}</span>}
+              </button>
+            </div>
+            <TagFilter canGroup={canGroup} />
+          </>
+        }
+        actions={
+          <>
+            <RefreshAllButton kind={PROBE_KIND[view]} />
+            {!collection && (
               <div className="segmented segmented-icons" role="group" aria-label={t("显示方式")}>
                 {(
                   [
@@ -338,17 +322,31 @@ function ListHeader() {
                     onClick={() => setLayout(mode)}
                     className="segmented-item"
                   >
-                    <Icon />
+                    <Icon aria-hidden="true" />
                   </button>
                 ))}
               </div>
-              <AssetOrganizer />
-            </>
-          )}
+            )}
+            {view !== "mail" && <AssetOrganizer />}
+          </>
+        }
+      />
+      {(tagCount > 0 || filter !== "all") && (
+        <div className="workspace-filter-state">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFilter("all");
+              setQuery("");
+              clearTags();
+            }}
+          >
+            <X aria-hidden="true" />
+            {t("重置筛选")}
+          </Button>
         </div>
-      </div>
-
-      <TagBar />
+      )}
     </div>
   );
 }

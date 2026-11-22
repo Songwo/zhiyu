@@ -294,8 +294,44 @@ export function UsageWorkspace() {
 
   return (
     <div className="usage-workspace space-y-6 px-4 pb-8 pt-1">
-      <div className="flex flex-wrap items-start justify-end gap-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="usage-command-bar">
+        <div className="usage-workspace-tabs" role="tablist" aria-label={t("用量工作区")}>
+          {(
+            [
+              { value: "overview", label: "用量概览", icon: Activity },
+              { value: "sources", label: "订阅与来源", icon: Settings2 },
+            ] as const
+          ).map((item, index, items) => (
+            <button
+              key={item.value}
+              id={`usage-tab-${item.value}`}
+              role="tab"
+              type="button"
+              aria-selected={tab === item.value}
+              aria-controls={`usage-panel-${item.value}`}
+              tabIndex={tab === item.value ? 0 : -1}
+              onClick={() => setTab(item.value)}
+              onKeyDown={(event) => {
+                if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                event.preventDefault();
+                const next =
+                  event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                      ? items.length - 1
+                      : (index + (event.key === "ArrowRight" ? 1 : -1) + items.length) %
+                        items.length;
+                setTab(items[next].value);
+                document.getElementById(`usage-tab-${items[next].value}`)?.focus();
+              }}
+            >
+              <item.icon className="size-4" />
+              {t(item.label)}
+              {item.value === "sources" && <span>{sources.length}</span>}
+            </button>
+          ))}
+        </div>
+        <div className="workspace-heading-actions">
           <LocalUsageControl
             status={localStatus}
             onChange={load}
@@ -304,7 +340,7 @@ export function UsageWorkspace() {
               setLocalHistoryRequest((value) => value + 1);
             }}
           />
-          <Button variant="outline" disabled={busy} onClick={() => void refresh()}>
+          <Button variant="ghost" disabled={busy} onClick={() => void refresh()}>
             <RefreshCw className={busy ? "animate-spin" : ""} />
             {t("刷新全部")}
           </Button>
@@ -313,42 +349,6 @@ export function UsageWorkspace() {
             {t("连接用量来源")}
           </Button>
         </div>
-      </div>
-      <AntigravityQuota />
-      <div className="usage-workspace-tabs" role="tablist" aria-label={t("用量工作区")}>
-        {(
-          [
-            { value: "overview", label: "用量概览", icon: Activity },
-            { value: "sources", label: "订阅与来源", icon: Settings2 },
-          ] as const
-        ).map((item, index, items) => (
-          <button
-            key={item.value}
-            id={`usage-tab-${item.value}`}
-            role="tab"
-            type="button"
-            aria-selected={tab === item.value}
-            aria-controls={`usage-panel-${item.value}`}
-            tabIndex={tab === item.value ? 0 : -1}
-            onClick={() => setTab(item.value)}
-            onKeyDown={(event) => {
-              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-              event.preventDefault();
-              const next =
-                event.key === "Home"
-                  ? 0
-                  : event.key === "End"
-                    ? items.length - 1
-                    : (index + (event.key === "ArrowRight" ? 1 : -1) + items.length) % items.length;
-              setTab(items[next].value);
-              document.getElementById(`usage-tab-${items[next].value}`)?.focus();
-            }}
-          >
-            <item.icon className="size-4" />
-            {t(item.label)}
-            {item.value === "sources" && <span>{sources.length}</span>}
-          </button>
-        ))}
       </div>
       {error && (
         <p role="alert" className="text-sm text-crit">
@@ -360,7 +360,9 @@ export function UsageWorkspace() {
         role="tabpanel"
         aria-labelledby="usage-tab-overview"
         hidden={tab !== "overview"}
+        className="usage-overview-panel"
       >
+        <AntigravityQuota />
         <UsageInsights
           data={data}
           localHistoryRequest={localHistoryRequest}

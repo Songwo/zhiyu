@@ -1,4 +1,4 @@
-import { PageHelp } from "./ui/page-help";
+import { WorkspaceControls, WorkspaceHeader, WorkspaceSearch } from "./ui/workspace-layout";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   ArrowUpRight,
@@ -9,9 +9,7 @@ import {
   Pencil,
   Phone,
   Plus,
-  Search,
   Trash2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { phoneExpiry } from "../../electron/services/phone-numbers.mjs";
@@ -143,24 +141,24 @@ export function PhoneWorkspace() {
   };
   return (
     <div className="phone-workspace min-w-0 space-y-5 px-4 pb-24 pt-1">
-      <header className="overview-compact-head">
-        <div className="page-heading-summary">
-          <h1 className="page-title">{t("号码管理")}</h1>
-          <span className="page-meta">{t("共 {0} 项", records.length)}</span>
-          <PageHelp>
-            <p className="max-w-2xl text-meta leading-relaxed text-muted">
+      <WorkspaceHeader
+        title={t("号码管理")}
+        meta={t("共 {0} 项", records.length)}
+        help={
+          <>
+            <p>
               {t("保存号码、到期日及关联账号。到期前 30 天开始提示，系统通知在应用打开时提醒。")}
             </p>
-            <p className="mt-1 text-2xs leading-relaxed text-muted">
-              {t("号码信息保存在本机资产文件中，不记录验证码。")}
-            </p>
-          </PageHelp>
-        </div>
-        <Button className="min-h-11" onClick={() => setEditing("new")}>
-          <Plus />
-          {t("添加号码")}
-        </Button>
-      </header>
+            <p className="mt-1">{t("号码信息保存在本机资产文件中，不记录验证码。")}</p>
+          </>
+        }
+        actions={
+          <Button className="min-h-11" onClick={() => setEditing("new")}>
+            <Plus />
+            {t("添加号码")}
+          </Button>
+        }
+      />
 
       {editing && (
         <PhoneEditor
@@ -170,50 +168,37 @@ export function PhoneWorkspace() {
         />
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="relative min-w-0 flex-1 basis-60">
-          <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted" />
-          <Input
-            className="min-h-11 pl-9 pr-11"
-            aria-label={t("搜索号码")}
+      <WorkspaceControls
+        search={
+          <WorkspaceSearch
+            label={t("搜索号码")}
             placeholder={t("搜索号码、名称、服务商或备注")}
             value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPaging({ query: event.target.value, filter, page: 1 });
+            onChange={(value) => {
+              setQuery(value);
+              setPaging({ query: value, filter, page: 1 });
             }}
           />
-          {query && (
-            <button
-              type="button"
-              aria-label={t("清除搜索")}
-              className="absolute right-0 top-0 grid size-11 place-items-center rounded-md text-muted hover:text-ink"
-              onClick={() => {
-                setQuery("");
-                setPaging({ query: "", filter, page: 1 });
-              }}
-            >
-              <X className="size-4" />
-            </button>
-          )}
-        </label>
-        <Select
-          className="w-44"
-          aria-label={t("到期筛选")}
-          value={filter}
-          onValueChange={(value) => {
-            setFilter(value as PhoneFilter);
-            setPaging({ query: deferredQuery, filter: value as PhoneFilter, page: 1 });
-          }}
-          options={[
-            { value: "all", label: t("全部号码") },
-            { value: "attention", label: t("需关注（{0}）", attention) },
-            { value: "expired", label: t("已到期") },
-            { value: "active", label: t("30 天后到期") },
-            { value: "unknown", label: t("未填到期日") },
-          ]}
-        />
-      </div>
+        }
+        filters={
+          <Select
+            className="w-44"
+            aria-label={t("到期筛选")}
+            value={filter}
+            onValueChange={(value) => {
+              setFilter(value as PhoneFilter);
+              setPaging({ query: deferredQuery, filter: value as PhoneFilter, page: 1 });
+            }}
+            options={[
+              { value: "all", label: t("全部号码") },
+              { value: "attention", label: t("需关注（{0}）", attention) },
+              { value: "expired", label: t("已到期") },
+              { value: "active", label: t("30 天后到期") },
+              { value: "unknown", label: t("未填到期日") },
+            ]}
+          />
+        }
+      />
       <p className="text-2xs text-muted" role="status" aria-live="polite">
         {t("共 {0} 个号码，按到期日从近到远排列。", shown.length)}{" "}
         {page.totalPages > 1 && t("每页显示 50 个")}

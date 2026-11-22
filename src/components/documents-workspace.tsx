@@ -25,7 +25,6 @@ import {
   Redo2,
   Plus,
   FileText,
-  Search,
   Save,
   Download,
   Trash2,
@@ -52,6 +51,7 @@ import { desktop } from "@/lib/desktop";
 import { downloadJson, downloadText } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { EditorDialog } from "./ui/editor-dialog";
+import { WorkspaceSearch } from "./ui/workspace-layout";
 import { t } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings";
 import { DocumentMarkdownImport } from "./document-markdown-import";
@@ -177,15 +177,7 @@ export function DocumentsWorkspace() {
           <DocumentMarkdownImport onCreate={() => void newDocument()} />
         </div>
         <div className="documents-list-heading">
-          <label className="documents-search">
-            <Search className="size-4" />
-            <input
-              aria-label={t("搜索文档")}
-              placeholder={t("搜索文档")}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
+          <WorkspaceSearch label={t("搜索文档")} value={query} onChange={setQuery} />
           <div className="documents-filters" data-filter={filter}>
             {[
               ["all", "全部文档"],

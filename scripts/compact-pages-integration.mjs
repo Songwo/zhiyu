@@ -15,6 +15,7 @@ for (const [index, domain] of snapshot.domains.entries())
     dns: "Cloudflare",
     expiresAt: "2028-12-01",
     autoRenew: true,
+    tags: index === 0 ? [...domain.tags, "审核样例"] : domain.tags,
   });
 snapshot.servers = [];
 snapshot.services = [
@@ -81,8 +82,12 @@ try {
         ["overview", "资产总览"],
         ["domains", "域名"],
         ["cards", "U 卡与支付卡"],
+        ["esims", "eSIM 卡"],
         ["renewals", "费用与续费"],
         ["phones", "号码管理"],
+        ["mail", "邮箱"],
+        ["vault", "密钥库"],
+        ["docs", "文档资产"],
       ]) {
         await navigateDesktop(page, label);
         await page.waitForFunction(
@@ -92,41 +97,96 @@ try {
             ),
         );
         assert.equal(await page.locator(".depth-hero").count(), 0);
-        const help = page.getByRole("button", { name: "使用说明", exact: true });
-        try {
-          await help.click({ timeout: 10000 });
-        } catch (error) {
-          console.error(
-            JSON.stringify({
-              id,
-              width,
-              theme,
-              errors,
-              body: (await page.locator("body").innerText()).slice(-2200),
-            }),
+        if (id === "docs") {
+          const search = page.getByRole("textbox", { name: "搜索文档", exact: true });
+          await search.fill("仅用于验收");
+          await page.getByRole("button", { name: "清除搜索", exact: true }).click();
+          assert.equal(await search.inputValue(), "");
+          assert.equal(await search.evaluate((input) => input === document.activeElement), true);
+        } else {
+          const help = page.getByRole("button", { name: "使用说明", exact: true });
+          try {
+            await help.click({ timeout: 10000 });
+          } catch (error) {
+            console.error(
+              JSON.stringify({
+                id,
+                width,
+                theme,
+                errors,
+                body: (await page.locator("body").innerText()).slice(-2200),
+              }),
+            );
+            await page.screenshot({ path: "screenshots/compact-pages-failure.png" });
+            throw error;
+          }
+          const content = page.locator(".page-help-content");
+          await content.waitFor();
+          const rect = await content.boundingBox();
+          assert(rect.x >= 0 && rect.x + rect.width <= width + 1, `${id} 说明超出窗口`);
+          assert.ok((await content.innerText()).trim().length > 5);
+          await page.keyboard.press("Escape");
+          await content.waitFor({ state: "detached" });
+          // Radix 在卸载后的下一帧恢复焦点，等待实际焦点状态。
+          await page.waitForFunction(
+            () => document.activeElement?.getAttribute("aria-label") === "使用说明",
           );
-          await page.screenshot({ path: "screenshots/compact-pages-failure.png" });
-          throw error;
         }
-        const content = page.locator(".page-help-content");
-        await content.waitFor();
-        const rect = await content.boundingBox();
-        assert(rect.x >= 0 && rect.x + rect.width <= width + 1, `${id} 说明超出窗口`);
-        assert.ok((await content.innerText()).trim().length > 5);
-        await page.keyboard.press("Escape");
-        await content.waitFor({ state: "detached" });
-        // Radix 在卸载后的下一帧恢复焦点，等待实际焦点状态。
-        await page.waitForFunction(
-          () => document.activeElement?.getAttribute("aria-label") === "使用说明",
-        );
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
           false,
         );
         if (id === "cards") assert.equal(await page.locator(".managed-card-entry").count(), 1);
-        if (id === "renewals" && width >= 1024) {
-          const empty = await page.locator(".reminder-empty").boundingBox();
-          assert.ok(empty.height < 150, "空提醒不应挤占续费数据");
+        if (id === "domains" && [1440, 390].includes(width)) {
+          const tags = page.getByRole("button", { name: "标签筛选", exact: true });
+          assert.equal(await tags.getAttribute("aria-expanded"), "false");
+          await tags.click();
+          const panel = page.getByRole("dialog", { name: "标签筛选", exact: true });
+          const tagSearch = panel.getByRole("textbox", { name: "搜索标签", exact: true });
+          await tagSearch.fill("审核");
+          const option = panel.getByRole("button", { name: "审核样例", exact: true });
+          await option.click();
+          assert.equal(await option.getAttribute("aria-pressed"), "true");
+          if (theme === "light")
+            await page.screenshot({ path: `screenshots/compact-${theme}-${width}-tag-filter.png` });
+          await page.keyboard.press("Escape");
+          await panel.waitFor({ state: "detached" });
+          assert.equal(await tags.getAttribute("data-selected"), "true");
+          assert.equal(await page.locator(".asset-card-grid article").count(), 1);
+          const search = page.getByRole("textbox", { name: "筛选当前列表", exact: true });
+          await search.fill("not-a-domain.example.test");
+          assert.equal(await page.locator(".asset-card-grid article").count(), 0);
+          await page.getByRole("button", { name: "重置筛选", exact: true }).click();
+          assert.equal(await search.inputValue(), "");
+          assert.equal(
+            await page.locator(".asset-card-grid article").count(),
+            snapshot.domains.length,
+          );
+        }
+        if (id === "renewals") {
+          const calendar = page.getByRole("region", { name: "续费日历", exact: true });
+          const notes = page.getByRole("region", { name: "备忘提醒", exact: true });
+          assert.ok((await calendar.boundingBox()).y < (await notes.boundingBox()).y);
+          if (width >= 1024) {
+            const empty = await page.locator(".reminder-empty").boundingBox();
+            assert.ok(empty.height < 150, "空提醒不应挤占续费数据");
+          }
+          if (width === 390) {
+            const jumps = page.getByRole("navigation", { name: "费用与续费版块", exact: true });
+            await jumps.getByRole("button", { name: "备忘提醒", exact: true }).click();
+            assert.equal(
+              await notes.evaluate((section) => section === document.activeElement),
+              true,
+            );
+            await notes.getByRole("button", { name: "新建提醒", exact: true }).click();
+            const editor = page.getByRole("dialog", { name: "新建提醒", exact: true });
+            await editor.waitFor();
+            await page.keyboard.press("Escape");
+            await editor.waitFor({ state: "detached" });
+            await page.locator(".workspace-scroll").evaluate((node) => {
+              node.scrollTop = 0;
+            });
+          }
         }
         if (id === "overview") {
           assert.equal(await page.locator(".overview-summary-line button").count(), 4);
