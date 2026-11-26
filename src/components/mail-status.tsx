@@ -74,30 +74,30 @@ export function MailStatus({ mailbox }: { mailbox: Mailbox }) {
   }
 
   return (
-    <section className="border-t border-line py-5" aria-label={t("收件箱状态")}>
-      <Button
-        className="mb-4"
-        variant="outline"
-        disabled={Boolean(mailbox.demo)}
-        onClick={async () => {
-          if (await useVault.getState().require(t("查看和发送邮件需要解锁密钥库。")))
-            setReading(true);
-        }}
-      >
-        <Inbox className="size-4" />
-        {t("打开收件箱与写信")}
-      </Button>
-      {reading && <MailReader mailboxId={mailbox.id} close={() => setReading(false)} />}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-meta font-semibold">
-          <MailCheck className="size-4" />
+    <section className="py-2" aria-label={t("收件箱状态")}>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h3 className="flex items-center gap-2 text-meta font-semibold text-ink">
+          <MailCheck className="size-4 text-muted" />
           {t("收件箱状态")}
         </h3>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={Boolean(mailbox.demo)}
+            onClick={async () => {
+              if (await useVault.getState().require(t("查看和发送邮件需要解锁密钥库。")))
+                setReading(true);
+            }}
+          >
+            <Inbox className="size-3.5" />
+            {t("打开收件箱与写信")}
+          </Button>
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="icon-sm"
             disabled={disabled}
             aria-label={t("IMAP 连接设置")}
             title={t("IMAP 连接设置")}
@@ -107,16 +107,18 @@ export function MailStatus({ mailbox }: { mailbox: Mailbox }) {
           </Button>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon-sm"
             disabled={disabled || !mailbox.imap}
+            aria-label={t("检查新邮件")}
+            title={t("检查新邮件")}
             onClick={refresh}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-            {t("检查新邮件")}
           </Button>
         </div>
       </div>
+      {reading && <MailReader mailboxId={mailbox.id} close={() => setReading(false)} />}
       {editing && (
         <div className="mt-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px]">

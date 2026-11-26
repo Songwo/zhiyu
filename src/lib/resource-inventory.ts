@@ -22,7 +22,7 @@ export const resourceKindLabel = (ref: ResourceRef & { typeLabel?: string }) =>
         ? "自建节点"
         : KIND_LABEL[ref.kind]);
 
-const selectInventory = (state: AppState) => ({
+export const selectResourceSnapshot = (state: AppState) => ({
   servers: state.servers,
   domains: state.domains,
   mailboxes: state.mailboxes,
@@ -35,7 +35,7 @@ const selectInventory = (state: AppState) => ({
 });
 
 export function useResourceInventory() {
-  const snapshot = useAppStore(useShallow(selectInventory));
+  const snapshot = useAppStore(useShallow(selectResourceSnapshot));
   const links = useAppStore((state) => state.links);
   const documents = useDocuments((state) => state.list);
   const loaded = useDocuments((state) => state.loaded);

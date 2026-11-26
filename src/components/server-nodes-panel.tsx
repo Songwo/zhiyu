@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { randomId } from "@/lib/random-id";
 import { t } from "@/lib/i18n";
 import { type UsageSource } from "@/lib/usage";
-import { Plus, Copy, Trash2, RefreshCw, Pencil, Activity, Link2 } from "lucide-react";
+import { Plus, Copy, Trash2, RefreshCw, Pencil, Activity, Link2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Select } from "./ui/select";
@@ -160,7 +160,7 @@ export function ServerNodesPanel({ server, focusId }: { server: Server; focusId?
     ["flow", "Flow"],
   ];
   return (
-    <div ref={panelRef} className="space-y-4 p-4">
+    <div ref={panelRef} className="space-y-6 p-5">
       {relating && server.nodes?.some((node) => node.id === relating) && (
         <EditorDialog title={t("节点关联")} onClose={() => setRelating(null)}>
           <div className="editor-scroll">
@@ -168,11 +168,17 @@ export function ServerNodesPanel({ server, focusId }: { server: Server; focusId?
           </div>
         </EditorDialog>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="font-semibold">{server.name} · 节点管理</h3>
-          <p className="mt-1 text-xs text-muted">
-            录入真实连接信息；TCP 检测不验证代理认证，也不测下载带宽。
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+            <Zap className="size-4 text-muted" />
+            {t("自建节点")}
+            {Boolean(server.nodes?.length) && (
+              <span className="detail-section-count">{server.nodes?.length}</span>
+            )}
+          </h3>
+          <p className="mt-1 text-2xs text-muted">
+            {t("录入真实连接信息；TCP 检测核验端口连通，不代表下载带宽。")}
           </p>
         </div>
         <Button
@@ -185,9 +191,9 @@ export function ServerNodesPanel({ server, focusId }: { server: Server; focusId?
           }}
         >
           <Plus />
-          添加节点
+          {t("添加节点")}
         </Button>
-      </div>
+      </header>
       {saved && (
         <div
           role="status"

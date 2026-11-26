@@ -447,6 +447,79 @@ try {
       );
       await page.getByRole("button", { name: "适应画布", exact: true }).click();
       await page.screenshot({ path: `screenshots/graph-compact-${theme}-${width}.png` });
+      if (theme === "light" && width === 1440) {
+        await navigateDesktop(page, "服务器");
+        const scope = page.getByRole("group", { name: "资源范围", exact: true });
+        const current = scope.getByRole("button", { name: "当前资产及关联", exact: true });
+        const all = scope.getByRole("button", { name: "全部资源", exact: true });
+        const server = page.locator('.asset-graph-node[data-asset-id="server-a"]');
+        const standalone = page.locator('.asset-graph-node[data-asset-id="service-b"]');
+        await server.waitFor();
+        assert.equal(await current.getAttribute("aria-pressed"), "true");
+        assert.equal(await standalone.count(), 0, "当前范围不含未关联服务");
+        await all.click();
+        await standalone.waitFor();
+        assert.equal(await all.getAttribute("aria-pressed"), "true");
+        await page.getByRole("button", { name: "适应画布", exact: true }).click();
+        await server.locator(".graph-node-meta").click();
+        const openAsset = page.getByRole("button", { name: "打开资产 server-a", exact: true });
+        await openAsset.waitFor();
+        await page.screenshot({ path: "screenshots/asset-graph-scope-preview.png" });
+        await openAsset.click();
+        const detail = page.getByRole("region", { name: "资产详情", exact: true });
+        await detail.getByRole("heading", { name: "server-a", exact: true }).waitFor();
+        await detail.getByRole("button", { name: "查看完整关联链", exact: true }).click();
+        await page.locator(".resource-graph-compact").waitFor();
+        await page.getByRole("button", { name: "链路详情", exact: true }).waitFor();
+        await standalone.waitFor({ state: "detached" });
+        await navigateDesktop(page, "服务器");
+        await current.click();
+        await server.waitFor();
+        await standalone.waitFor({ state: "detached" });
+        const search = page.getByRole("textbox", { name: "筛选当前列表", exact: true });
+        await search.fill("no-matching-asset-test");
+        await page.getByText("当前范围没有资源", { exact: true }).waitFor();
+        await search.clear();
+        await server.waitFor();
+      }
+      if (theme === "dark" && width === 390) {
+        // 拉开纵向布局的跨度，确保初始视口和主动适应画布使用不同的缩放策略。
+        await page.evaluate(() => {
+          const saved = JSON.parse(localStorage.getItem("sinan-assets-v1"));
+          const template = saved.state.services[0];
+          saved.state.services.push(
+            ...Array.from({ length: 75 }, (_, index) => ({
+              ...template,
+              id: `dense-${index}`,
+              name: `Dense test ${index}`,
+            })),
+          );
+          saved.state.links.push({
+            from: { kind: "mail", id: "mail-a" },
+            to: { kind: "service", id: template.id },
+          });
+          localStorage.setItem("sinan-assets-v1", JSON.stringify(saved));
+        });
+        await page.reload();
+        await page.locator("[data-app-ready=true]").waitFor();
+        await navigateDesktop(page, "资产关系图");
+        await page.waitForFunction(() => {
+          const flow = document.querySelector(".asset-graph .react-flow");
+          const zoom = flow?.querySelector(".react-flow__viewport")?.style.transform;
+          const node = flow?.querySelector('.asset-graph-node[data-asset-id="mail-a"]');
+          if (!zoom?.includes("scale(0.55)") || !node) return false;
+          const canvas = flow.getBoundingClientRect();
+          const asset = node.getBoundingClientRect();
+          return (
+            asset.left >= canvas.left && asset.right <= canvas.right && asset.top >= canvas.top
+          );
+        });
+        await page.getByRole("button", { name: "适应画布", exact: true }).click();
+        await page.waitForFunction(() => {
+          const transform = document.querySelector(".react-flow__viewport")?.style.transform;
+          return Number(transform?.match(/scale\(([^)]+)\)/)?.[1]) < 0.55;
+        });
+      }
       results.push({ theme, width, ...geometry });
       await context.close();
     }

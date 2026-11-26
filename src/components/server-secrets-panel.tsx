@@ -94,31 +94,31 @@ export function ServerSecretsPanel({ server }: { server: Server }) {
   }
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-6 p-5">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/50 pb-3">
-        <div>
-          <h3 className="flex items-center gap-2 text-sm font-semibold tracking-tight text-ink">
-            <KeyRound className="size-4 text-amber-400" />
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+            <KeyRound className="size-4 text-muted" />
             {t("服务器绑定密钥 & 凭据")}
-            <span className="rounded-full bg-line/60 px-2 py-0.5 text-xs text-muted font-mono">
-              {customSecrets.length}
-            </span>
+            {customSecrets.length > 0 && (
+              <span className="detail-section-count">{customSecrets.length}</span>
+            )}
           </h3>
-          <p className="text-xs text-muted mt-0.5">
+          <p className="mt-1 text-2xs text-muted">
             {t("管理与该服务器绑定的敏感变量、部署私钥、数据库口令及关联全局密钥库凭据")}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 font-mono">
+        <div className="badge badge-valid flex items-center gap-1.5 font-mono text-2xs">
           <ShieldCheck className="size-3.5" />
           <span>{t("安全沙盒防护中")}</span>
         </div>
-      </div>
+      </header>
 
       {/* Add New Secret Form */}
-      <div className="rounded-xl border border-line bg-surface-subtle p-3.5 space-y-3">
+      <div className="rounded-xl border border-line bg-surface/40 p-4 space-y-3">
         <div className="text-xs font-semibold text-ink flex items-center gap-1.5">
-          <Plus className="size-3.5 text-ink" />
+          <Plus className="size-3.5 text-muted" />
           {t("添加专属敏感键值对 (如环境变量/口令)")}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">

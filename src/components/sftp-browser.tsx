@@ -49,12 +49,17 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
   }
   const join = (name: string) => `${path.replace(/\/$/, "")}/${name}`;
   return (
-    <section className="detail-section">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="tool-heading">
-          <FolderOpen className="size-4" />
-          SFTP
-        </h3>
+    <section className="detail-section space-y-6 p-5">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+            <FolderOpen className="size-4 text-muted" aria-hidden="true" />
+            SFTP
+          </h3>
+          <p className="mt-1 text-2xs text-muted">
+            {t("远程目录浏览与安全文件传输（需要已配置主机 SSH 访问与密钥库解锁）。")}
+          </p>
+        </div>
         <Button
           variant="outline"
           size="sm"
@@ -71,12 +76,12 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
         >
           {open ? t("收起") : t("浏览文件")}
         </Button>
-      </div>
+      </header>
       {!hostBridge() && <p className="tool-empty">{t("文件浏览需要桌面版")}</p>}
       {open && (
-        <div className="mt-3 space-y-3">
+        <div className="space-y-3">
           <form
-            className="flex min-w-0 gap-1"
+            className="flex min-w-0 gap-1.5"
             onSubmit={(e) => {
               e.preventDefault();
               if (!busy) void load(draft);
@@ -94,7 +99,7 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
               <ArrowUp className="size-4" />
             </Button>
             <input
-              className="tool-input min-w-0 flex-1 font-mono"
+              className="ui-input min-w-0 flex-1 font-mono text-xs"
               aria-label={t("远程路径")}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -122,7 +127,7 @@ export function SftpBrowser({ serverId }: { serverId: string }) {
             </Button>
           </form>
           <input
-            className="tool-input w-full"
+            className="ui-input w-full text-xs"
             aria-label={t("筛选文件")}
             placeholder={t("筛选文件")}
             value={query}

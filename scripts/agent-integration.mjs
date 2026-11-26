@@ -131,6 +131,16 @@ try {
   delete env.SINAN_DEV_URL;
   instance = await electron.launch({ args: [resolve("electron/main.mjs")], env, timeout: 45000 });
   const page = await instance.firstWindow();
+  async function openContextPanel() {
+    const sidebar = page.getByRole("complementary", { name: "对话上下文", exact: true });
+    if (await sidebar.isVisible()) return sidebar;
+    await page.getByRole("button", { name: "对话上下文", exact: true }).click();
+    return page.getByRole("dialog", { name: "对话上下文", exact: true });
+  }
+  async function startConversation() {
+    const context = await openContextPanel();
+    await context.getByRole("button", { name: "新对话", exact: true }).click();
+  }
   await instance.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows()[0];
     window.webContents.setBackgroundThrottling(false);
@@ -218,7 +228,7 @@ try {
   await page.screenshot({ path: "screenshots/nanpad-agent-mobile.png" });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.getByRole("button", { name: "新对话", exact: true }).click();
+  await startConversation();
   const mailboxPermission = page.getByRole("checkbox", { name: "本次允许查询邮箱" });
   assert.equal(await mailboxPermission.isChecked(), false);
   await mailboxPermission.check();
@@ -261,7 +271,7 @@ try {
   );
   assert.ok(!JSON.stringify(requests).includes("fixture-vault-private-value"));
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.getByRole("button", { name: "新对话", exact: true }).click();
+  await startConversation();
   await page.evaluate(async (serverId) => {
     const now = new Date().toISOString();
     await window.sinan.documents.save({
@@ -324,8 +334,9 @@ try {
     "仍需保留普通提问历史",
   );
   assert.ok(!followup.body.tools.some((tool) => tool.function.name === "get_document"));
-  await page
-    .locator(".agent-context-desktop .agent-source-title")
+  const context = await openContextPanel();
+  await context
+    .locator(".agent-source-title")
     .filter({ hasText: "IPC 文档工具验证" })
     .first()
     .click();
@@ -336,7 +347,7 @@ try {
     .waitFor();
   await page.screenshot({ path: "screenshots/agent-workspace/electron-document-source.png" });
   await navigateDesktop(page, "AI 助手");
-  await page.getByRole("button", { name: "新对话", exact: true }).click();
+  await startConversation();
   await page.getByRole("textbox", { name: "向模型提问" }).fill("停止测试");
   await page.getByRole("button", { name: "发送", exact: true }).click();
   await page.getByText("等待测试取消", { exact: true }).waitFor();

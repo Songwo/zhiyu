@@ -76,11 +76,7 @@ export function MainView() {
     <m.div
       key={view}
       {...animation}
-      className={cn(
-        view === "docs" && "documents-view",
-        view === "agent" && "agent-view-frame",
-        view === "relations" && "relations-view-frame",
-      )}
+      className={cn(view === "docs" && "documents-view", view === "agent" && "agent-view-frame")}
     >
       <Suspense
         fallback={

@@ -3,7 +3,7 @@ import { StatusBadge } from "./ui/status-badge";
 import { combinedInCny, renewalTimeline, spendSummary } from "../../electron/services/renewals.mjs";
 import { formatMoney } from "@/lib/billing";
 import { useSettings } from "@/lib/settings";
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import {
   ArrowUpRight,
   Plus,
@@ -27,7 +27,10 @@ import { PageSection, RowButton } from "./ui/page";
 import { createAsset } from "@/lib/create-asset";
 import { isWeb } from "@/lib/web";
 import { PageHelp } from "./ui/page-help";
-import { HostPulse } from "./host-monitor";
+
+const HostPulse = lazy(() =>
+  import("./host-monitor").then((module) => ({ default: module.HostPulse })),
+);
 
 export function Overview() {
   const servers = useAppStore((s) => s.servers);
@@ -236,7 +239,9 @@ export function Overview() {
             {t("添加资产")}
           </Button>
         </header>
-        <HostPulse />
+        <Suspense fallback={null}>
+          <HostPulse />
+        </Suspense>
         {statStrip}
         <div className="web-dashboard-grid">
           <div className="web-dashboard-col">

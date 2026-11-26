@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   ArrowDown,
   ArrowUp,
@@ -22,13 +23,14 @@ import { useAppStore } from "@/lib/store";
 import { useSettings } from "@/lib/settings";
 import { useDocuments } from "@/lib/documents";
 import { confirmedRelations, relatedResources, resourceRows } from "@/lib/resource-relations.mjs";
+import { selectResourceSnapshot } from "@/lib/resource-inventory";
 import { assetRows, filterAssetRows, VIEW_ASSET_KIND, type AssetRow } from "@/lib/asset-view";
 import type { AssetKind } from "@/lib/types";
 import { formatBilling } from "@/lib/billing";
 import { refKey } from "@/lib/operations";
 import { KIND_LABEL } from "@/lib/status";
 import { t, getLocale, intlLocale } from "@/lib/i18n";
-import { daysUntil, formatDate, formatUsd } from "@/lib/utils";
+import { cn, daysUntil, formatDate, formatUsd } from "@/lib/utils";
 import { openFromEvent } from "./asset-card";
 import { Button } from "./ui/button";
 import { Select } from "./ui/input";
@@ -38,63 +40,66 @@ import { DnsManager } from "./integrations/dns-manager";
 const AssetGraph = lazy(() => import("./asset-graph"));
 
 export function AssetWorkspace() {
-  const s = useAppStore();
+  const snapshot = useAppStore(useShallow(selectResourceSnapshot));
+  const { view, query, filter, tagFilter, links } = useAppStore(
+    useShallow((state) => ({
+      view: state.view,
+      query: state.query,
+      filter: state.filter,
+      tagFilter: state.tagFilter,
+      links: state.links,
+    })),
+  );
   const configuredLayout = useSettings((state) => state.assetLayout);
-  const layout = s.view === "relations" ? "graph" : configuredLayout;
-  const kind = VIEW_ASSET_KIND[s.view];
-  const documents = useDocuments((state) => state.list);
+  const standaloneGraph = view === "relations";
+  const graph = standaloneGraph || configuredLayout === "graph";
+  const kind = VIEW_ASSET_KIND[view];
+  const documents = useDocuments((state) => (graph ? state.list : null));
   const [all, setAll] = useState(false);
   useEffect(() => {
-    if (layout === "graph") void useDocuments.getState().load();
-  }, [layout]);
+    if (graph) void useDocuments.getState().load();
+  }, [graph]);
   // 行数据只算一次；关系图用的资源、关联和图节点只在图视图里才计算，表格视图不为它们付出代价。
-  const base = useMemo(() => assetRows(s), [s]);
+  const base = useMemo(() => assetRows(snapshot), [snapshot]);
   const rows = useMemo(
-    () => filterAssetRows(base, s.view, s.query, s.filter === "attention", s.tagFilter),
-    [base, s.view, s.query, s.filter, s.tagFilter],
+    () => filterAssetRows(base, view, query, filter === "attention", tagFilter),
+    [base, view, query, filter, tagFilter],
   );
-  const graph = layout === "graph";
   const resources = useMemo(
-    () => (graph ? resourceRows(base, documents, s) : []),
-    [graph, base, documents, s],
+    () => (documents ? resourceRows(base, documents, snapshot) : []),
+    [base, documents, snapshot],
   );
   const relations = useMemo(
-    () => (graph ? confirmedRelations(resources, s.links, documents) : []),
-    [graph, resources, s.links, documents],
+    () => (documents ? confirmedRelations(resources, links, documents) : []),
+    [resources, links, documents],
   );
   const graphRows = useMemo(() => {
     if (!graph) return [];
-    return s.view === "relations" || all
-      ? s.query
+    const search = query.toLocaleLowerCase();
+    return standaloneGraph || all
+      ? search
         ? relatedResources(
             resources,
             relations,
-            resources.filter((row) => row.search.includes(s.query.toLocaleLowerCase())),
+            resources.filter((row) => row.search.includes(search)),
           )
         : resources
       : relatedResources(resources, relations, rows);
-  }, [graph, s.view, s.query, all, resources, relations, rows]);
+  }, [graph, standaloneGraph, query, all, resources, relations, rows]);
   return (
     <div
-      className={
-        s.view === "relations" ? "asset-workspace asset-workspace-relations" : "asset-workspace"
-      }
+      className={cn(
+        "asset-workspace",
+        graph && "asset-workspace-graph",
+        standaloneGraph && "asset-workspace-relations",
+      )}
     >
-      {s.view !== "relations" && (
+      {!graph && (
         <div className="workspace-summary flex flex-wrap items-center justify-between gap-2">
-          <span>
-            {layout === "graph"
-              ? t("{0} 项资源", graphRows.length.toLocaleString(intlLocale()))
-              : t("{0} 项资产", rows.length.toLocaleString(intlLocale()))}
-          </span>
-          {layout === "graph" && (
-            <Button size="sm" variant="ghost" onClick={() => setAll(!all)}>
-              {t(all ? "当前资产与关联资源" : "全部资源")}
-            </Button>
-          )}
+          <span>{t("{0} 项资产", rows.length.toLocaleString(intlLocale()))}</span>
         </div>
       )}
-      {layout === "graph" ? (
+      {graph ? (
         <Suspense
           fallback={
             <p className="workspace-empty" role="status">
@@ -106,7 +111,9 @@ export function AssetWorkspace() {
             rows={graphRows}
             resources={resources}
             relations={relations}
-            compact={s.view === "relations"}
+            compact={standaloneGraph}
+            all={standaloneGraph || all}
+            onScopeChange={standaloneGraph ? undefined : setAll}
           />
         </Suspense>
       ) : rows.length === 0 ? (

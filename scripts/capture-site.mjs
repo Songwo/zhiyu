@@ -46,11 +46,12 @@ try {
   // 跟随 Vite 的实际模块地址，避免 HMR 时间戳产生第二份状态实例。
   page.on("request", (request) => {
     const url = new URL(request.url());
-    const name = /^\/src\/lib\/(profile|store|documents|vault-state)\.ts$/.exec(url.pathname)?.[1];
-    if (name) modules[name] = request.url();
+    const name = /\/src\/lib\/(profile|store|documents|vault-state)\.ts$/.exec(url.pathname)?.[1];
+    if (name && url.origin === origin) modules[name] = request.url();
   });
   await page.goto(origin, { waitUntil: "networkidle" });
   await page.locator('[data-app-ready="true"]').waitFor();
+  assert.ok(modules.profile && modules.store, "未找到开发版的工作区状态模块");
   await page.evaluate(async (paths) => {
     window.__siteModules = paths;
     const { useProfile } = await import(paths.profile);

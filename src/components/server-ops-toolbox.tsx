@@ -110,26 +110,26 @@ export function ServerOpsToolbox({ server }: { server: Server }) {
   }
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-6 p-5">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/50 pb-3">
-        <div>
-          <h3 className="flex items-center gap-2 text-sm font-semibold tracking-tight text-ink">
-            <Wrench className="size-4 text-amber-400" />
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+            <Wrench className="size-4 text-muted" />
             {t("服务器运维指令工具箱")}
           </h3>
-          <p className="text-xs text-muted mt-0.5">
+          <p className="mt-1 text-2xs text-muted">
             {t(
               "预设 Xray 代理、Docker 编排、网络端口、安全防火墙等高频运维诊断命令，支持一键复制与在终端直达执行",
             )}
           </p>
         </div>
 
-        <Button variant="primary" size="sm" onClick={() => openSsh(server.id)}>
-          <SquareTerminal className="mr-1 size-3.5" />
+        <Button variant="outline" size="sm" onClick={() => openSsh(server.id)}>
+          <SquareTerminal className="size-3.5" />
           {t("开启玻璃终端")}
         </Button>
-      </div>
+      </header>
 
       {/* Commands Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -142,7 +142,7 @@ export function ServerOpsToolbox({ server }: { server: Server }) {
             >
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-mono font-medium text-amber-400 uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                  <span className="badge badge-tag-mock font-mono text-[10px]">
                     {t(item.category)}
                   </span>
                   <div className="flex items-center gap-1">
@@ -151,10 +151,11 @@ export function ServerOpsToolbox({ server }: { server: Server }) {
                       size="icon-sm"
                       onClick={() => copyCommand(item.cmd)}
                       title={t("复制命令")}
+                      aria-label={t("复制命令")}
                       className="size-7 text-muted hover:text-ink"
                     >
                       {isCopied ? (
-                        <Check className="size-3 text-emerald-400" />
+                        <Check className="size-3 text-ok" />
                       ) : (
                         <Copy className="size-3" />
                       )}

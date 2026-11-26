@@ -185,16 +185,18 @@ export function ServerDocsPanel({ server }: { server: Server }) {
     URL.revokeObjectURL(url);
   }
   return (
-    <div className="space-y-3">
-      <div className="px-4 pt-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <BookOpen className="size-4" />
-          {t("服务文档")}
-        </h3>
-        <p className="mt-2 text-sm text-muted">
-          {t("统一使用图文文档，编辑自动保存；可插入图片、链接，也可随时解除关联。")}
-        </p>
-      </div>
+    <div className="space-y-6 p-5">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+            <BookOpen className="size-4 text-muted" />
+            {t("服务文档")}
+          </h3>
+          <p className="mt-1 text-2xs text-muted">
+            {t("统一使用图文文档，编辑自动保存；可插入图片、链接，也可随时解除关联。")}
+          </p>
+        </div>
+      </header>
       <AssetDocuments asset={{ kind: "server", id: server.id }} />
       {error && (
         <p role="alert" className="mx-4 break-words text-sm text-crit">

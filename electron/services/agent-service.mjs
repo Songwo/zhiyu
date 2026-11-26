@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { APIError } from "openai/core/error.mjs";
 import { readFile, mkdir, writeFile, rename, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -522,6 +522,7 @@ export class AgentService {
         );
       }
     } else if (!isLoopback(config.baseUrl)) throw new Error("请先在模型配置中保存 API Key。");
+    const { default: OpenAI } = await import("openai");
     return new OpenAI({
       baseURL: config.baseUrl,
       apiKey,
@@ -656,6 +657,7 @@ export class AgentService {
     if (!config.embeddingEnabled)
       return { index, search: async (query) => index.search(query, config.topK) };
     if (!config.embeddingModel) throw new Error("启用向量检索后必须填写本地 Embedding 模型名。");
+    const { default: OpenAI } = await import("openai");
     const client = new OpenAI({
       baseURL: config.embeddingBaseUrl,
       apiKey: "local-no-key",
@@ -1248,7 +1250,7 @@ function isLoopback(value) {
   return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(value).hostname);
 }
 function publicError(error) {
-  if (error instanceof OpenAI.APIError || error instanceof OpenAI.APIConnectionError) {
+  if (error instanceof APIError) {
     const code = error.status;
     return new Error(
       code === 401 || code === 403

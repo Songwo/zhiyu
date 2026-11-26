@@ -518,13 +518,19 @@ async function createWindow() {
     if (/^https?:/.test(url)) shell.openExternal(url);
   });
 
-  // 渲染页面仅放行智能粘贴和凭据复制需要的剪贴板权限，拒绝其余设备权限。
+  // 关系图的全屏仅由应用主页面请求；自动全屏和设备权限继续拒绝。
   const RENDERER_PERMISSIONS = new Set(["clipboard-read", "clipboard-sanitized-write"]);
-  const ses = win.webContents.session;
-  ses.setPermissionRequestHandler((_contents, permission, callback) =>
-    callback(RENDERER_PERMISSIONS.has(permission)),
+  const renderer = win.webContents;
+  const ses = renderer.session;
+  const canUsePermission = (contents, permission, details) =>
+    RENDERER_PERMISSIONS.has(permission) ||
+    (permission === "fullscreen" && contents === renderer && details?.isMainFrame === true);
+  ses.setPermissionRequestHandler((contents, permission, callback, details) =>
+    callback(canUsePermission(contents, permission, details)),
   );
-  ses.setPermissionCheckHandler((_contents, permission) => RENDERER_PERMISSIONS.has(permission));
+  ses.setPermissionCheckHandler((contents, permission, _origin, details) =>
+    canUsePermission(contents, permission, details),
+  );
 
   if (DEV_URL) {
     await win.loadURL(DEV_URL);

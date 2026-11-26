@@ -265,7 +265,7 @@ async function runMain(browser, errors, results) {
   assert(spendBox && spendBox.height < 280, `费用顶部仍过高：${spendBox?.height}`);
   const rateDetails = page.locator(".spend-rate-details");
   assert.equal(await rateDetails.getAttribute("open"), null);
-  const monthlyHeadline = page.locator(".spend-summary .overview-headline");
+  const monthlyHeadline = spend.getByText(/^每月支出 /);
   const beforeRate = await monthlyHeadline.innerText();
   await rateDetails.locator("summary").click();
   await rateDetails.getByLabel("美元兑人民币汇率", { exact: true }).waitFor();

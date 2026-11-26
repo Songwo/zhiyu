@@ -43,6 +43,7 @@ export const RELATIONS_EN: Record<string, string> = {
   全屏查看图谱: "View graph fullscreen",
   退出图谱全屏: "Exit graph fullscreen",
   "无法全屏显示：{0}": "Cannot enter fullscreen: {0}",
+  "无法退出图谱全屏：{0}": "Cannot exit graph fullscreen: {0}",
   图谱说明: "Graph help",
   链路详情: "Connection details",
   "实线表示已保存关联，虚线表示文档绑定；号码和节点可直接关联其他资源。":

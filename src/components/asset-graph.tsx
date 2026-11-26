@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+} from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -39,6 +47,8 @@ import {
   Shrink,
   Palette,
   X,
+  ArrowUpRight,
+  Network,
 } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import "@xyflow/react/dist/style.css";
@@ -90,6 +100,17 @@ const ICONS = {
   phone: Phone,
   node: Radio,
 };
+async function openGraphResource(asset: ResourceRef, event: MouseEvent<HTMLButtonElement>) {
+  const { x, y, width: w, height: h } = event.currentTarget.getBoundingClientRect();
+  try {
+    if (document.fullscreenElement?.classList.contains("asset-graph"))
+      await document.exitFullscreen();
+    await openResource(asset, { x, y, w, h });
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : String(error));
+  }
+}
+
 function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
   const updateNodeInternals = useUpdateNodeInternals();
   useEffect(() => updateNodeInternals(id), [id, data.vertical, updateNodeInternals]);
@@ -123,12 +144,7 @@ function GraphNode({ id, data, isConnectable }: NodeProps<AssetNode>) {
       <button
         className="nodrag asset-name"
         title={t("查看 {0}", asset.name)}
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          void openResource(asset, { x: rect.x, y: rect.y, w: rect.width, h: rect.height }).catch(
-            (error) => toast.error(String(error.message)),
-          );
-        }}
+        onClick={(event) => openGraphResource(asset, event)}
       >
         <span>{asset.name}</span>
         <small>{asset.detail}</small>
@@ -177,6 +193,8 @@ export default function AssetGraph(props: {
   resources: ResourceRow[];
   relations: Relation[];
   compact?: boolean;
+  all: boolean;
+  onScopeChange?: (all: boolean) => void;
 }) {
   const [manage, setManage] = useState(false);
   const focus = useAppStore((state) => state.relationFocus);
@@ -198,55 +216,55 @@ export default function AssetGraph(props: {
           : "resource-graph-workspace"
       }
     >
-      {props.compact ? (
-        <header className="resource-graph-header">
-          <div className="resource-graph-title">
-            <h1>{t("资产关系图")}</h1>
-            <span>{t("{0} 项资源", shown.length)}</span>
+      <header className="resource-graph-header">
+        {props.compact && <h1 className="resource-graph-title">{t("资产关系图")}</h1>}
+        {props.onScopeChange && (
+          <div className="resource-graph-scope" role="group" aria-label={t("资源范围")}>
+            {[false, true].map((all) => (
+              <Button
+                key={String(all)}
+                size="sm"
+                variant={!root && props.all === all ? "secondary" : "ghost"}
+                aria-pressed={!root && props.all === all}
+                onClick={() => {
+                  onFocus(null);
+                  props.onScopeChange?.(all);
+                }}
+              >
+                {t(all ? "全部资源" : "当前资产及关联")}
+              </Button>
+            ))}
           </div>
-          <div className="resource-graph-actions">
-            <Popover.Root>
-              <Popover.Trigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t("图谱说明")}
-                  title={t("图谱说明")}
-                >
-                  <Info />
-                </Button>
-              </Popover.Trigger>
-              <Popover.Portal>
-                <Popover.Content
-                  className="resource-graph-help"
-                  sideOffset={8}
-                  align="end"
-                  collisionPadding={12}
-                >
-                  <h2>{t("图谱说明")}</h2>
-                  <p>{t("实线表示已保存关联，虚线表示文档绑定；号码和节点可直接关联其他资源。")}</p>
-                  <p>
-                    {t(
-                      "选择一个邮箱或账号，查看直接、间接关联及相连文档。搜索会保留已确认的关联链；建议需要确认后才进入图中。",
-                    )}
-                  </p>
-                </Popover.Content>
-              </Popover.Portal>
-            </Popover.Root>
-            <Button
-              variant="outline"
-              size="sm"
-              aria-expanded={manage}
-              onClick={() => setManage(!manage)}
-            >
-              <Link2 />
-              {t("管理资源关联")}
-            </Button>
-          </div>
-        </header>
-      ) : (
-        <div className="resource-graph-intro">
-          <p>{t("实线表示已保存关联，虚线表示文档绑定；号码和节点可直接关联其他资源。")}</p>
+        )}
+        <div className="resource-graph-actions">
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("图谱说明")}
+                title={t("图谱说明")}
+              >
+                <Info />
+              </Button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                className="resource-graph-help"
+                sideOffset={8}
+                align="end"
+                collisionPadding={12}
+              >
+                <h2>{t("图谱说明")}</h2>
+                <p>{t("实线表示已保存关联，虚线表示文档绑定；号码和节点可直接关联其他资源。")}</p>
+                <p>
+                  {t(
+                    "选择一个邮箱或账号，查看直接、间接关联及相连文档。搜索会保留已确认的关联链；建议需要确认后才进入图中。",
+                  )}
+                </p>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
           <Button
             variant="outline"
             size="sm"
@@ -257,13 +275,13 @@ export default function AssetGraph(props: {
             {t("管理资源关联")}
           </Button>
         </div>
-      )}
+      </header>
       <ResourceChainPanel
         resources={props.resources}
         relations={props.relations}
         focus={root || null}
         onFocus={onFocus}
-        compact={props.compact}
+        all={props.all}
       />
       {manage && <ResourceRelationsPanel resources={props.resources} relations={props.relations} />}
       {shown.length > 300 && (
@@ -277,6 +295,7 @@ export default function AssetGraph(props: {
           relations={props.relations}
           onFocus={onFocus}
           focus={root || null}
+          all={props.all}
           compact={props.compact}
         />
       </ReactFlowProvider>
@@ -289,12 +308,14 @@ function GraphCanvas({
   relations,
   onFocus,
   focus,
+  all,
   compact,
 }: {
   rows: ResourceRow[];
   relations: Relation[];
   onFocus: (ref: ResourceRef) => void;
   focus: ResourceRef | null;
+  all: boolean;
   compact?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
@@ -315,7 +336,6 @@ function GraphCanvas({
   const [frameSize, setFrameSize] = useState("");
   const [layoutRevision, setLayoutRevision] = useState(0);
   const focusKey = focus ? resourceKey(focus) : null;
-  const previousFocus = useRef(focusKey);
   const nodesInitialized = useNodesInitialized();
   const [linkMode, setLinkMode] = useState(false);
   const graph = useMemo(
@@ -456,21 +476,17 @@ function GraphCanvas({
         color: graphEdgeColor(appearance, chosen),
       }
     : null;
-  const selectedNodeInfo = selectedNode
-    ? {
-        label: nodes.find((node) => node.id === selectedNode)?.data.asset.name ?? t("已选资产"),
-        count: Math.max(0, selectedNodeIds.size - 1),
-      }
-    : null;
+  const selectedAsset = graph.nodes.find((node) => node.id === selectedNode)?.data.asset;
   const { fitBounds, getNodes, getNodesBounds, getZoom, zoomIn, zoomOut, setCenter } =
     useReactFlow();
   const theme = useSettings((s) => s.resolved);
   const duration = motionMode === "full" ? 180 : 0;
   useEffect(() => {
-    if (previousFocus.current === focusKey) return;
-    previousFocus.current = focusKey;
+    clearAssetSelection();
+    setSelectedEdge(null);
+    setAppearanceOpen(false);
     setLayoutRevision((revision) => revision + 1);
-  }, [focusKey]);
+  }, [all, focusKey, clearAssetSelection]);
   useEffect(() => {
     if (selectedEdge && !chosenEdge) setSelectedEdge(null);
   }, [selectedEdge, chosenEdge]);
@@ -515,30 +531,8 @@ function GraphCanvas({
           (node) => !expectedIds.has(node.id) || !node.measured?.width || !node.measured?.height,
         )
       )
-        return;
-      let target = current;
-      if (readable && graph.edges.length) {
-        const adjacency = new Map<string, Set<string>>(current.map((node) => [node.id, new Set()]));
-        for (const edge of graph.edges) {
-          adjacency.get(edge.source)?.add(edge.target);
-          adjacency.get(edge.target)?.add(edge.source);
-        }
-        const start = [...adjacency.entries()].sort(
-          ([a, left], [b, right]) => right.size - left.size || a.localeCompare(b),
-        )[0]?.[0];
-        if (start) {
-          const component = new Set([start]);
-          const queue = [start];
-          for (let index = 0; index < queue.length; index++)
-            for (const next of adjacency.get(queue[index]) ?? []) {
-              if (component.has(next)) continue;
-              component.add(next);
-              queue.push(next);
-            }
-          target = current.filter((node) => component.has(node.id));
-        }
-      }
-      const bounds = getNodesBounds(target);
+        return false;
+      const bounds = getNodesBounds(current);
       // 适配须纳入外侧绕线，不能只按卡片边界缩放，否则窄屏会裁掉跨列关联。
       void fitBounds(
         {
@@ -549,13 +543,29 @@ function GraphCanvas({
         },
         { padding: 0.12, duration: transition },
       ).then(() => {
-        if (!readable || getZoom() >= 0.55 || !current.length) return;
-        // 大图初次进入优先保持卡片可读；用户可用“适应画布”看全图。
-        void setCenter(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, {
-          zoom: 0.55,
-          duration: transition,
-        });
+        if (!readable || getZoom() >= 0.55) return;
+        // 大图优先定位到聚焦资源或关联最多的节点，避免停在分组之间的空白处。
+        const degree = new Map<string, number>();
+        for (const { source, target } of graph.edges) {
+          degree.set(source, (degree.get(source) ?? 0) + 1);
+          degree.set(target, (degree.get(target) ?? 0) + 1);
+        }
+        const anchor =
+          current.find((node) => node.id === encodeURIComponent(focusKey ?? "")) ??
+          current.reduce((best, node) =>
+            (degree.get(node.id) ?? 0) > (degree.get(best.id) ?? 0) ? node : best,
+          );
+        const anchorBounds = getNodesBounds([anchor]);
+        void setCenter(
+          anchorBounds.x + anchorBounds.width / 2,
+          anchorBounds.y + anchorBounds.height / 2,
+          {
+            zoom: 0.55,
+            duration: transition,
+          },
+        );
       });
+      return true;
     },
     [
       fitBounds,
@@ -564,6 +574,7 @@ function GraphCanvas({
       getZoom,
       setCenter,
       topology,
+      focusKey,
       graph.edges,
       routeMargin,
       vertical,
@@ -582,26 +593,50 @@ function GraphCanvas({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
-    const changed = () => setFullscreen(document.fullscreenElement === container.current);
+    const changed = (event: Event) => {
+      if (event.target !== container.current) return;
+      setFullscreen(document.fullscreenElement === container.current);
+      setLayoutRevision((revision) => revision + 1);
+    };
     document.addEventListener("fullscreenchange", changed);
     return () => document.removeEventListener("fullscreenchange", changed);
   }, []);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const escape = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Escape" ||
+        event.defaultPrevented ||
+        appearanceOpen ||
+        document.querySelector('[role="dialog"], [role="listbox"]')
+      )
+        return;
+      event.preventDefault();
+      if (document.fullscreenElement === container.current)
+        void document
+          .exitFullscreen()
+          .catch((error) => toast.error(t("无法退出图谱全屏：{0}", String(error.message))));
+    };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [fullscreen, appearanceOpen]);
   useEffect(() => {
     // 数据更新保留拖动位置；筛选导致节点集合变化时重新布局并适配。
     const preserve = previousTopology.current === topology;
     if (!preserve) setHovered(null);
     previousTopology.current = topology;
-    setNodes((previous) =>
-      graph.nodes.map((node) => {
-        const old = previous.find((item) => item.id === node.id);
+    setNodes((previous) => {
+      const previousById = new Map(previous.map((node) => [node.id, node]));
+      return graph.nodes.map((node) => {
+        const old = previousById.get(node.id);
         return {
           ...old,
           ...node,
           data: { ...node.data, focus: onFocus },
           position: (preserve && old?.position) || node.position,
         };
-      }),
-    );
+      });
+    });
   }, [graph.nodes, setNodes, topology, onFocus]);
   const fitted = useRef(false);
   const lastFitRevision = useRef(-1);
@@ -609,10 +644,12 @@ function GraphCanvas({
     if (!nodesInitialized) return;
     // 初次进入和明确触发的重排才 fit；后台数据刷新不能重置用户视口。
     if (fitted.current && lastFitRevision.current === layoutRevision) return;
-    fitted.current = true;
-    lastFitRevision.current = layoutRevision;
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => fitGraph(0, true));
+      frame = requestAnimationFrame(() => {
+        if (!fitGraph(0, true)) return;
+        fitted.current = true;
+        lastFitRevision.current = layoutRevision;
+      });
     });
     return () => cancelAnimationFrame(frame);
   }, [fitGraph, nodesInitialized, frameSize, layoutRevision]);
@@ -682,14 +719,23 @@ function GraphCanvas({
         onNodeMouseEnter={(_, node) => setHovered(node.id)}
         onNodeMouseLeave={() => setHovered(null)}
       >
-        {selectedNodeInfo && !chosenInfo && (
+        {selectedAsset && !chosenInfo && (
           <Panel position="bottom-left" className="graph-selection-info">
             <div role="status">
               <b>{t("聚焦资产")}</b>
-              <span title={selectedNodeInfo.label}>
-                {selectedNodeInfo.label} · {t("直接关联 {0} 项", selectedNodeInfo.count)}
-              </span>
+              <span title={selectedAsset.name}>{selectedAsset.name}</span>
+              <small>{t("直接关联 {0} 项", selectedNodeIds.size - 1)}</small>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={t("打开资产 {0}", selectedAsset.name)}
+              title={t("打开资产 {0}", selectedAsset.name)}
+              onClick={(event) => openGraphResource(selectedAsset, event)}
+            >
+              <ArrowUpRight />
+              <span className="graph-open-label">{t("打开资源")}</span>
+            </Button>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -722,6 +768,12 @@ function GraphCanvas({
               <X />
             </Button>
           </Panel>
+        )}
+        {rows.length === 0 && (
+          <div className="graph-empty-state" role="status">
+            <Network aria-hidden="true" />
+            <p>{t("当前范围没有资源")}</p>
+          </div>
         )}
         {chosenInfo && (
           <Panel position="bottom-left" className="graph-selection-info">
@@ -776,7 +828,7 @@ function GraphCanvas({
             </Button>
           </Panel>
         )}
-        {appearance.showLegend && (
+        {appearance.showLegend && graph.edges.length > 0 && (
           <Panel position="top-left" className="graph-color-legend" aria-label={t("连线颜色图例")}>
             {graphColorLegend(
               appearance,

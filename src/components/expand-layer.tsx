@@ -199,8 +199,13 @@ function AssetDetail({ asset }: { asset: ExpandState }) {
   let body: ReactNode;
   if (currentServer && serverTab !== "overview") {
     body = (
-      <div className="detail-block">
-        <h1 className="detail-tab-asset-name">{currentServer.name}</h1>
+      <div className="detail-block detail-tab-block">
+        <div className="detail-tab-header">
+          <h1 className="detail-tab-asset-name">{currentServer.name}</h1>
+          <span className="detail-tab-badge">
+            {t(SERVER_TABS.find(([id]) => id === serverTab)?.[1] ?? "")}
+          </span>
+        </div>
         <Suspense fallback={<DetailLoading />}>
           {serverTab === "services" && <ServerServicesPanel server={currentServer} />}
           {serverTab === "nodes" && (

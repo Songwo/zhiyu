@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 重新验证并发布的现有正式标签（例如 v1.17.13）
+        description: 重新验证并发布的现有正式标签（例如 v1.17.14）
         required: true
-        default: "v1.17.13"
+        default: "v1.17.14"
         type: string
 permissions:
   contents: read
@@ -95,7 +95,7 @@ jobs:
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
           $app = "release/v$version/win-unpacked/Zhiyu.exe"
-          foreach ($script in @('sidebar-groups-integration', 'cards-desktop-integration', 'research-document-desktop-integration', 'document-editor-regression')) {
+          foreach ($script in @('sidebar-groups-integration', 'cards-desktop-integration', 'research-document-desktop-integration', 'document-editor-regression', 'graph-desktop-window-integration')) {
             node "scripts/$script.mjs" $app
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
