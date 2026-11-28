@@ -135,11 +135,22 @@ try {
   assert.deepEqual(saved.content, doc.content);
   await page.getByRole("button", { name: "管理资源关联", exact: true }).click();
   const focus = page.getByRole("combobox", { name: "聚焦关联资源", exact: true });
+  const chain = page.getByRole("region", { name: "关联链路", exact: true });
+  const closedDetails = chain.getByRole("button", {
+    name: "链路详情",
+    exact: true,
+    expanded: false,
+  });
+  const summary = chain.getByText(/直接关联 1 项 · 间接关联 3 项 · 涉及文档 1 篇/);
   await focus.click();
   await page.getByRole("option").filter({ hasText: mail.address }).click();
-  const chain = page.getByRole("region", { name: "关联链路", exact: true });
-  await chain.getByText(/直接关联 1 项/).waitFor();
-  assert.match(await chain.innerText(), /运维账号.*↔.*恢复运维手册/s);
+  await closedDetails.waitFor();
+  await summary.waitFor({ state: "hidden" });
+  await closedDetails.click();
+  await summary.waitFor();
+  await chain
+    .getByText(`${mail.address} ↔ ${secret.name} ↔ ${doc.title}`, { exact: true })
+    .waitFor();
   await page.screenshot({ path: "screenshots/web-mail-account-document-chain.png" });
   await page.reload();
   await page.locator('[data-app-ready="true"]').waitFor();
@@ -160,14 +171,15 @@ try {
     false,
   );
   assert.deepEqual(after.content, doc.content);
-  // 只有独立关系图页收起说明；服务器里的图谱布局保持原有行为。
+  // 独立关系图和资产页内的关系图均默认收起链路详情。
   await page.getByRole("button", { name: "管理资源关联", exact: true }).click();
   await focus.click();
   await page.getByRole("option").filter({ hasText: mail.address }).click();
   await page.locator(".resource-graph-compact").waitFor();
-  assert.equal(await chain.locator(".resource-chain-details").count(), 0);
-  await chain.getByRole("button", { name: "链路详情", exact: true }).click();
-  await chain.getByText(/直接关联 1 项/).waitFor();
+  await closedDetails.waitFor();
+  await summary.waitFor({ state: "hidden" });
+  await closedDetails.click();
+  await summary.waitFor();
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify(

@@ -10,11 +10,11 @@
 
 [GitHub Pages 下载页](https://songwo.github.io/zhiyu/)使用 `site/` 下的模板和图片，版本、日期、更新摘要、安装包、插件及校验文件地址由最新已发布的 GitHub 正式版生成，不读取尚未发布的 `package.json` 版本。
 
-`产品主页` 工作流在 main 的页面源码改动、以及 `Windows 正式版` 流水线成功后自动部署，也支持从 main 手动运行。Pages 环境仅允许 main 部署；不能直接用 `release` 标签事件部署，否则会在分配 runner 前被环境保护规则拒绝。正式发布由 `workflow_run` 接续；单独编辑 Release 说明后执行 `gh workflow run pages.yml --ref main` 同步页面。草稿、预发布、缺失或尚未上传完成的附件会使页面构建失败，现有线上页面保留。
+`产品主页` 工作流会在 main 的页面源码改动或「全平台正式版」成功后自动部署，也可从 main 手动运行。Pages 环境只允许 main 部署，正式发布由 `workflow_run` 接续。单独编辑 Release 说明后执行 `gh workflow run pages.yml --ref main` 同步页面。草稿、预发布、附件缺失或上传未完成时，页面构建会失败并保留现有线上页面。
 
 本地预览先将 `gh api repos/Songwo/zhiyu/releases/latest` 的 JSON 保存到 `release/pages-latest.json`，执行 `node scripts/build-site.mjs release/pages-latest.json release/site`，再使用静态服务器查看 `release/site`。页面为完整静态 HTML，访客无需请求 GitHub API；所有下载入口绑定同一个正式版本，资源使用内容摘要更新缓存。
 
-界面改动后，在开发预览已启动时运行 `node scripts/capture-site.mjs`，重新生成资产总览、文档阅读、用量图表与浏览器密码迁移四张展示图。只更新迁移界面可使用 `--passwords-only`。脚本只使用独立浏览器上下文和示例资料，不连接真实桌面数据或外部账号。检查图片后随 `site/` 一起提交；截图不会在每次发布时自动重拍。
+界面改动后，在开发预览已启动时运行 `node scripts/capture-site.mjs`，重新生成 README、产品主页和使用指南共用的界面截图。只更新密码迁移界面可使用 `--passwords-only`。脚本只使用独立浏览器上下文和示例资料，不连接真实桌面数据或外部账号。检查图片后随 `site/` 一起提交；截图不会在每次发布时自动重拍。
 
 ## 发布后验收
 

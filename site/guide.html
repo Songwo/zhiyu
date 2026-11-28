@@ -81,23 +81,36 @@
 
         <section id="install" class="guide-section">
           <h2>下载与安装</h2>
-          <p>知屿是 Windows 桌面应用，资料默认保存在本机，无需注册账号。</p>
+          <p>知屿支持 Windows x64 和 macOS，资料默认保存在本机，无需注册账号。</p>
           <div class="guide-cards">
             <a class="guide-card" href="{{INSTALLER_URL}}"
-              ><strong>安装版（推荐）</strong
+              ><strong>Windows 离线安装版</strong
               ><span
                 >下载 <code>Zhiyu-{{VERSION}}-setup.exe</code>，运行后选择安装位置。之后可以在「设置
-                → 关于知屿」直接检查更新并重启安装。</span
+                → 关于知屿」检查更新，再确认安装。</span
               ></a
             >
             <a class="guide-card" href="{{PORTABLE_URL}}"
-              ><strong>便携版</strong
+              ><strong>Windows 便携版</strong
               ><span
                 >下载 <code>portable-x64.zip</code> 解压即用，资料保存在程序旁的
                 <code>data</code> 文件夹，适合放在 U 盘或不想安装的电脑上。</span
               ></a
             >
           </div>
+          <p><a href="{{ONLINE_INSTALLER_URL}}">Windows 在线安装器</a> · {{ONLINE_INSTALLER_NOTE}}</p>
+          <h3>macOS</h3>
+          <ul class="guide-list">
+            <li>
+              Apple Silicon（M 系列）可下载 <a href="{{MAC_ARM64_DMG_URL}}">DMG</a> 或
+              <a href="{{MAC_ARM64_ZIP_URL}}">ZIP</a>。
+            </li>
+            <li>
+              Intel 可下载 <a href="{{MAC_X64_DMG_URL}}">DMG</a> 或
+              <a href="{{MAC_X64_ZIP_URL}}">ZIP</a>。
+            </li>
+          </ul>
+          <p>{{MAC_DOWNLOAD_NOTE}}</p>
           <ol class="guide-steps">
             <li>
               安装包目前没有代码签名，Windows 可能弹出提示。请只从 GitHub Releases 下载，并对照
@@ -110,8 +123,8 @@
               >）。
             </li>
             <li>
-              不需要安装 Node.js 或其他运行环境。macOS 目前只提供未签名的测试包，见
-              <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 说明</a>。
+              安装知屿无需 Node.js。Mac 用户可查看
+              <a href="https://github.com/Songwo/zhiyu/blob/main/docs/MAC-BUILD.md">macOS 安装说明</a>。
             </li>
           </ol>
         </section>
@@ -141,10 +154,7 @@
         <section id="tour" class="guide-section">
           <h2>界面导览</h2>
           <p>
-            左侧导航按用途分成四组：<strong>工作台</strong>（资产总览、费用与续费、文档、AI
-            助手）、<strong>基础设施</strong>（服务器、节点、域名、证书、服务资产）、<strong>账号与订阅</strong>（AI
-            订阅、用量记录、邮箱、号码、支付卡与
-            eSIM）和<strong>安全与整理</strong>（密钥库、标签）。默认收起，点击组名展开；软件记住各组状态，当前页面入口仍保留。
+            桌面侧栏常驻资产总览、费用与续费、邮箱和文档资产。打开<strong>全部功能</strong>，可以按工作台、基础设施、账号与订阅、安全与整理、工具浏览完整目录。打开其他页面后，侧栏会显示「当前页面」入口。
           </p>
           <ul class="guide-list">
             <li>
@@ -253,27 +263,34 @@
           <figure class="shot guide-shot">
             <img
               src="./detail.png?v={{ASSET_REVISION}}"
-              width="1920"
-              height="1200"
+              width="1480"
+              height="940"
               loading="lazy"
               alt="服务器详情页：左侧监控与指标，右侧关联资产与凭据位置"
             />
           </figure>
           <p>
-            详情页左列是资产本身和监控指标，右列是<strong>关联资产</strong>、关联文档和凭据位置。服务器还有自建节点、服务文档、绑定密钥、运维工具和
-            SFTP 分页。
+            服务器详情的主区可切换监控概览、端口与容器、自建节点、服务文档、绑定密钥、运维工具和 SFTP。宽窗口右侧集中显示<strong>关联资产</strong>和关联文档，窄窗口中可向下滚动查看。
           </p>
           <ol class="guide-steps">
             <li>
-              在右列「关联资产」里选择另一项资产并添加，比如把网站、证书、数据库只读账号都关联到它所在的主机。
+              在「关联资产」点「管理关联」，选择另一项资产并添加，比如把网站、证书、数据库只读账号都关联到所在主机。
             </li>
             <li>点「搜索与多选关联」可以一次关联多项。</li>
             <li>
-              之后打开「工作台 →
-              资产关系图」或任意列表的关系图视图，查看已确认的连接；开启「连接资产」后可拖动连接点。号码、支付卡、eSIM、节点与文档都可直接关联，两篇文档之间也能关联。
+              打开「全部功能 → 资产关系图」，或切换资产列表的关系图视图。通过图上的范围按钮查看当前资产及关联或全部资源。聚焦某项资源后，点「链路详情」查看直接及间接关联。桌面全屏时按 <kbd>Esc</kbd> 返回窗口。
             </li>
             <li>「发现关联」会根据相同主机地址、共同标签或文档标题给出建议，勾选确认后才写入。</li>
           </ol>
+          <figure class="shot">
+            <img
+              src="./relations.png?v={{ASSET_REVISION}}"
+              width="1480"
+              height="940"
+              loading="lazy"
+              alt="资产关系图中的资源节点、已确认关联和图谱工具栏"
+            />
+          </figure>
           <p>
             使用 1.17.9
             新增关联时，请将同步设备一同升级。保存失败会保留草稿，可重试；关联与解除不会改写文档正文。设置
@@ -286,8 +303,8 @@
           <figure class="shot guide-shot">
             <img
               src="./renewals.png?v={{ASSET_REVISION}}"
-              width="1920"
-              height="1200"
+              width="1480"
+              height="940"
               loading="lazy"
               alt="续费日历月视图与所选日期的续费事项"
             />
@@ -501,8 +518,8 @@
           <figure class="shot guide-shot">
             <img
               src="./usage.png?v={{ASSET_REVISION}}"
-              width="1920"
-              height="1200"
+              width="1480"
+              height="940"
               loading="lazy"
               alt="用量记录：指标卡片、每日趋势与来源构成"
             />
@@ -538,8 +555,8 @@
           <figure class="shot guide-shot">
             <img
               src="./documents.png?v={{ASSET_REVISION}}"
-              width="1920"
-              height="1200"
+              width="1480"
+              height="940"
               loading="lazy"
               alt="文档阅读：居中正文、字数与阅读时长、目录"
             />
@@ -568,6 +585,15 @@
             <li>网站账号支持 TOTP 动态验证码；浏览器插件在登录页给出同站账号建议，选中后填写。</li>
             <li>AI 助手只知道「凭据在哪里」，不会读取密钥库里的密码。</li>
           </ul>
+          <figure class="shot">
+            <img
+              src="./passwords.png?v={{ASSET_REVISION}}"
+              width="1480"
+              height="940"
+              loading="lazy"
+              alt="浏览器密码迁移预览，分别标记新增、重复及冲突账号"
+            />
+          </figure>
         </section>
 
         <section id="backup" class="guide-section">

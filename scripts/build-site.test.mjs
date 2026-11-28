@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 import { releaseDetails, renderSite } from "./build-site.mjs";
 
 function publishedRelease(version = "1.2.3") {
@@ -150,8 +155,41 @@ test("没有正文时回退到发布标题，长说明保持简短", () => {
   );
 });
 
+test("产品主页和指南同步本地截图与四个 Mac 下载入口", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "zhiyu-pages-"));
+  const release = join(directory, "release.json");
+  const output = join(directory, "site");
+  const stable = publishedRelease("1.17.14");
+  const macFiles = ["mac-arm64.dmg", "mac-arm64.zip", "mac-x64.dmg", "mac-x64.zip"].map(
+    (suffix) => `Zhiyu-1.17.14-${suffix}`,
+  );
+  for (const name of macFiles) {
+    stable.assets.push({
+      name,
+      size: 120_000_000,
+      state: "uploaded",
+      browser_download_url: `https://github.com/Songwo/zhiyu/releases/download/v1.17.14/${name}`,
+    });
+  }
+  try {
+    await writeFile(release, JSON.stringify(stable));
+    await promisify(execFile)(process.execPath, ["scripts/build-site.mjs", release, output]);
+    for (const file of ["index.html", "guide.html"]) {
+      const html = await readFile(join(output, file), "utf8");
+      const images = [...html.matchAll(/(?:src|srcset)="\.\/([^"?]+\.(?:png|jpg))\?v=/g)];
+      assert.ok(images.length > 0, file);
+      for (const [, image] of images) {
+        assert.ok((await readFile(join(output, image))).length > 0, image);
+      }
+      for (const asset of stable.assets.filter(({ name }) => macFiles.includes(name)))
+        assert.ok(html.includes(`href="${asset.browser_download_url}"`), `${file}: ${asset.name}`);
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("同步协议动画：分镜自洽，动画 SVG 与分镜同步，页面模板的占位符都有值", async () => {
-  const { readFile } = await import("node:fs/promises");
   const { buildSvg } = await import("./build-zsp-svg.mjs");
   const storyboard = JSON.parse(await readFile("site/zsp-steps.json", "utf8"));
   const chapters = new Set(storyboard.chapters.map((chapter) => chapter.id));

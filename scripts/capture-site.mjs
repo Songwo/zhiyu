@@ -20,6 +20,58 @@ output("passwords");
 await mkdir(outputDirectory, { recursive: true });
 const errors = [];
 const modules = {};
+const captured = [];
+const snapshot = demoSnapshot();
+const containerPort = { hostIp: "0.0.0.0", hostPort: 8080, containerPort: 80, proto: "tcp" };
+snapshot.servers[0].serviceScan = {
+  collectedAt: new Date().toISOString(),
+  ports: [
+    { proto: "tcp", address: "0.0.0.0", scope: "public", port: 8080, process: "docker-proxy" },
+  ],
+  docker: {
+    available: true,
+    containers: [
+      {
+        id: "demo-container-web",
+        name: "starbridge-web",
+        image: "nginx:stable",
+        state: "running",
+        status: "Up",
+        health: "healthy",
+        restartCount: 0,
+        ports: [containerPort],
+      },
+    ],
+  },
+};
+snapshot.services = [
+  {
+    id: "demo-gallery-web",
+    name: "星桥商城前台",
+    category: "custom",
+    status: "online",
+    provider: "本地演示",
+    url: "https://starbridge.example",
+    notes: "公开展示用的示例服务",
+    tags: ["演示"],
+    endpoint: { serverId: snapshot.servers[0].id, port: 8080, container: "starbridge-web" },
+  },
+  ...[
+    ["projects", "星桥项目 · 支付卡", "Visa", "4242", "2028-02"],
+    ["subscriptions", "订阅服务 · 月度支出", "Mastercard", "0183", "2028-06"],
+    ["travel", "差旅预算 · 备用卡", "银联", "6208", "2028-10"],
+  ].map(([id, name, network, last4, expiryMonth]) => ({
+    id: `demo-gallery-card-${id}`,
+    name,
+    category: "custom",
+    status: "online",
+    provider: "演示发卡方",
+    url: "",
+    notes: "仅展示卡片资料与到期日",
+    tags: ["演示"],
+    card: { kind: "payment", network, last4, expiryMonth },
+  })),
+];
 let page;
 try {
   const context = await browser.newContext({
@@ -40,16 +92,23 @@ try {
       "sinan-settings-v1",
       JSON.stringify({ state: { theme: "light", locale: "zh", assetLayout: "cards" }, version: 0 }),
     );
-  }, demoSnapshot());
+  }, snapshot);
   page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  const capture = async (name) => {
+    await page.screenshot({ path: output(name), animations: "disabled" });
+    captured.push(name);
+  };
   // 跟随 Vite 的实际模块地址，避免 HMR 时间戳产生第二份状态实例。
   page.on("request", (request) => {
     const url = new URL(request.url());
-    const name = /\/src\/lib\/(profile|store|documents|vault-state)\.ts$/.exec(url.pathname)?.[1];
+    const name = /\/src\/lib\/(profile|store|documents|settings)\.ts$/.exec(url.pathname)?.[1];
     if (name && url.origin === origin) modules[name] = request.url();
   });
-  await page.goto(origin, { waitUntil: "networkidle" });
+  await page.goto(origin, { waitUntil: "domcontentloaded" });
   await page.locator('[data-app-ready="true"]').waitFor();
   assert.ok(modules.profile && modules.store, "未找到开发版的工作区状态模块");
   await page.evaluate(async (paths) => {
@@ -59,7 +118,23 @@ try {
   }, modules);
   await page.getByText("知屿演示空间", { exact: true }).waitFor();
   if (!passwordsOnly) {
-    await page.screenshot({ path: output("overview"), animations: "disabled" });
+    await capture("overview");
+    const setTheme = (theme) =>
+      page.evaluate(async (next) => {
+        const { useSettings } = await import(window.__siteModules.settings);
+        useSettings.getState().setTheme(next);
+      }, theme);
+    await setTheme("dark");
+    await page.locator('html[data-theme="dark"]').waitFor({ state: "attached" });
+    await capture("overview-dark");
+    await setTheme("light");
+    await page.locator('html[data-theme="light"]').waitFor({ state: "attached" });
+    await page.getByRole("button", { name: "新建资产", exact: true }).first().click();
+    const picker = page.getByRole("dialog", { name: "选择资产类型", exact: true });
+    await picker.getByRole("heading", { name: "从常用订阅开始" }).scrollIntoViewIfNeeded();
+    await capture("onboarding");
+    await page.keyboard.press("Escape");
+    await picker.waitFor({ state: "hidden" });
     await page.evaluate(async () => {
       const { useDocuments } = await import(window.__siteModules.documents);
       const { useAppStore } = await import(window.__siteModules.store);
@@ -107,7 +182,49 @@ try {
       useAppStore.getState().setView("docs");
     });
     await page.getByRole("button", { name: "编辑文档", exact: true }).waitFor();
-    await page.screenshot({ path: output("documents"), animations: "disabled" });
+    await capture("documents");
+    await page.evaluate(async () => {
+      const { useAppStore } = await import(window.__siteModules.store);
+      const { useSettings } = await import(window.__siteModules.settings);
+      useAppStore.getState().setView("servers");
+      useSettings.getState().setAssetLayout("table");
+    });
+    await page.locator('tr[data-asset-id="demo-server-0"]').waitFor();
+    await capture("table");
+    await page.evaluate(async () => {
+      const { useAppStore } = await import(window.__siteModules.store);
+      const { useSettings } = await import(window.__siteModules.settings);
+      useSettings.getState().setAssetLayout("cards");
+      useAppStore.getState().setExpanded({ kind: "server", id: "demo-server-0" });
+    });
+    const details = page.getByRole("region", { name: "资产详情", exact: true });
+    await details.getByRole("region", { name: "关联资产", exact: true }).waitFor();
+    await capture("detail");
+    await details.getByRole("button", { name: /端口与容器/ }).click();
+    await details.getByText("starbridge-web", { exact: true }).first().waitFor();
+    await capture("services");
+
+    const openView = (view) =>
+      page.evaluate(async (next) => {
+        const { useAppStore } = await import(window.__siteModules.store);
+        useAppStore.getState().setView(next);
+      }, view);
+    await openView("renewals");
+    const calendar = page.getByRole("region", { name: "续费日历", exact: true });
+    await calendar.waitFor();
+    const renewalDays = calendar.getByRole("button", { name: /项续费/ });
+    if ((await renewalDays.count()) === 0)
+      await calendar.getByRole("button", { name: "下个月", exact: true }).click();
+    await renewalDays.first().click();
+    await capture("renewals");
+    await openView("relations");
+    const graph = page.getByRole("region", { name: "资产关系图", exact: true });
+    await graph.locator(".asset-graph-node").first().waitFor();
+    await graph.getByRole("button", { name: "适应画布", exact: true }).click();
+    await capture("relations");
+    await openView("cards");
+    await page.locator('[data-asset-id="demo-gallery-card-projects"]').waitFor();
+    await capture("cards");
     await page.evaluate(async () => {
       const records = Array.from({ length: 7 }, (_, index) => {
         const date = new Date();
@@ -142,7 +259,7 @@ try {
       () => document.querySelectorAll(".recharts-bar-rectangle path").length > 0,
     );
     await page.getByRole("region", { name: "用量图表", exact: true }).scrollIntoViewIfNeeded();
-    await page.screenshot({ path: output("usage"), animations: "disabled" });
+    await capture("usage");
   }
   await page.evaluate(async () => {
     // 仅模拟系统文件选择后的无密码预览，实际界面仍由应用组件渲染。
@@ -208,18 +325,21 @@ try {
     const { useAppStore } = await import(window.__siteModules.store);
     useAppStore.getState().setView("vault");
   });
-  await page.getByRole("button", { name: "浏览器密码", exact: true }).click();
+  const browserPasswords = page.getByRole("button", { name: "浏览器密码", exact: true });
+  await browserPasswords.waitFor();
+  if (!passwordsOnly) await capture("vault");
+  await browserPasswords.click();
   const transfer = page.getByRole("dialog", { name: "浏览器密码", exact: true });
   await transfer.getByRole("button", { name: "选择 CSV 文件", exact: true }).click();
   await transfer.getByRole("button", { name: "导入 3 个账号", exact: true }).waitFor();
   assert.equal(await transfer.getByRole("row").count(), 7);
   assert.equal(await transfer.locator('input[type="password"]').count(), 0);
-  await page.screenshot({ path: output("passwords"), animations: "disabled" });
+  await capture("passwords");
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({
       ok: true,
-      screenshots: passwordsOnly ? ["passwords"] : ["overview", "documents", "usage", "passwords"],
+      screenshots: captured,
       synthetic: true,
       privateData: false,
       pageErrors: errors,
@@ -227,9 +347,18 @@ try {
   );
 } catch (error) {
   console.error(
-    JSON.stringify({ pageErrors: errors, visibleText: await page?.locator("body").innerText() }),
+    JSON.stringify({
+      pageErrors: errors,
+      captured,
+      visibleText: await page
+        ?.locator("body")
+        .innerText({ timeout: 2_000 })
+        .catch(() => null),
+    }),
   );
-  await page?.screenshot({ path: "screenshots/site-capture-failure.png" });
+  await page
+    ?.screenshot({ path: "screenshots/site-capture-failure.png", timeout: 2_000 })
+    .catch(() => {});
   throw error;
 } finally {
   await browser.close();

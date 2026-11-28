@@ -30,7 +30,7 @@
 
 ## 最新版本：1.17.14
 
-- **桌面布局**：侧栏聚焦常用入口，资产总览、功能页和资产详情的查找与操作路径更统一。
+- **桌面布局**：侧栏常驻资产总览、费用与续费、邮箱和文档资产。其他页面从「全部功能」打开，资产详情集中显示关联资产和文档。
 - **关系图**：切换范围和打开资源更直接。短窗口的底部工具栏可见，桌面版支持进入和退出关系图全屏。
 - **启动与包体**：模型客户端按需加载，桌面包移除 SDK 开发源码和调试映射。详见 [1.17.14 发布说明](docs/releases/v1.17.14.md)。Mac 未签名、未公证。
 
@@ -234,12 +234,14 @@
 | ![表格视图](site/table.png)      | ![深色模式](site/overview-dark.png) |
 | **快速上手与订阅模板**           | **密钥库**                          |
 | ![订阅模板](site/onboarding.png) | ![密钥库](site/vault.png)           |
+| **资产关系图**                   | **浏览器密码迁移**                  |
+| ![资产关系图](site/relations.png) | ![浏览器密码迁移](site/passwords.png) |
 
 界面截图使用独立演示数据，不含私人账号和资产。宣传片见 [产品主页](https://songwo.github.io/zhiyu/#video)，从安装到每个功能的用法见 [使用指南](https://songwo.github.io/zhiyu/guide.html)。
 
 ## 安装与首次使用
 
-1. 在 GitHub Releases 下载当前正式版 `Zhiyu-1.17.14-setup.exe`，适用于 Windows x64。也可以下载便携版 `Zhiyu-1.17.14-portable-x64.zip`。
+1. Windows x64 可选[离线安装版](https://github.com/Songwo/zhiyu/releases/download/v1.17.14/Zhiyu-1.17.14-setup.exe)、[在线安装版](https://github.com/Songwo/zhiyu/releases/download/v1.17.14/Zhiyu-1.17.14-online-setup.exe)或[便携版](https://github.com/Songwo/zhiyu/releases/download/v1.17.14/Zhiyu-1.17.14-portable-x64.zip)。
 2. 运行安装程序，选择安装位置。当前安装包未做代码签名，请核对发布者、下载地址和 Release 中的 SHA256 校验文件。
 3. 首次启动可选择「使用 Linux.do 登录」绑定主身份，也可直接使用默认工作区名称。创建 10 至 256 位本地主密码并再次确认，头像可稍后设置；Linux.do 登录不代替主密码，也不能找回主密码。
 4. 已有密钥库的用户确认工作区名称及原主密码即可继续，升级不会自动删除资产或演示记录。
