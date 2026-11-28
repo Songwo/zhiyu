@@ -1,3 +1,4 @@
+import { normalizeExpiryReminder } from "./expiry-reminders.mjs";
 import { normalizeIntegrationRef } from "./integration-ref.mjs";
 import { calendarDay, normalizeBilling } from "./renewals.mjs";
 import { normalizeFieldValues } from "./asset-types.mjs";
@@ -113,6 +114,9 @@ export function normalizeService(value) {
     ...(item.integration == null ? {} : { integration: normalizeIntegrationRef(item.integration) }),
     ...(expiresAt ? { expiresAt } : {}),
     ...(billing ? { billing } : {}),
+    ...(item.expiryReminder !== undefined
+      ? { expiryReminder: normalizeExpiryReminder(item.expiryReminder, false) }
+      : {}),
     ...(typeId ? { typeId } : {}),
     ...(fields ? { fields } : {}),
     ...(endpoint ? { endpoint } : {}),

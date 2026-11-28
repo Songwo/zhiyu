@@ -35,6 +35,11 @@ export type BillingCurrency = "CNY" | "USD";
 export type BillingCycle = "month" | "year" | "once";
 
 /** 用户填写的续费金额。旧记录没有这个字段，视为未填写。 */
+export interface ExpiryReminder {
+  enabled: boolean;
+  leadDays: number;
+}
+
 export interface Billing {
   amount: number;
   currency: BillingCurrency;
@@ -42,6 +47,7 @@ export interface Billing {
 }
 
 export interface ServiceAsset extends Taggable {
+  expiryReminder?: ExpiryReminder;
   /** 卡片复用服务资产的关联、文档、费用、备份与同步，只保存可公开的卡片元信息。 */
   card?: ManagedCard;
   integration?: import("./integrations").IntegrationRef;
@@ -157,6 +163,7 @@ export interface BoundSecretItem {
 }
 
 export interface Server extends ProbeMeta, Taggable {
+  expiryReminder?: ExpiryReminder;
   integration?: import("./integrations").IntegrationRef;
   sshConfigured?: boolean;
   /** false：关闭自动采集，不探测也不告警（本机连不上这台主机时）。 */
@@ -196,6 +203,7 @@ export interface Server extends ProbeMeta, Taggable {
 }
 
 export interface Domain extends ProbeMeta, Taggable {
+  expiryReminder?: ExpiryReminder;
   integration?: import("./integrations").IntegrationRef;
   id: string;
   name: string;
@@ -229,6 +237,7 @@ export interface Mailbox extends Taggable {
 }
 
 export interface AiAsset extends Taggable {
+  expiryReminder?: ExpiryReminder;
   oauthAccountId?: string;
   oauthProvider?: import("./ai-accounts").AiProvider;
   oauthDisconnected?: boolean;
@@ -267,6 +276,7 @@ export interface Secret extends Taggable {
 }
 
 export interface Certificate extends ProbeMeta, Taggable {
+  expiryReminder?: ExpiryReminder;
   id: string;
   cn: string;
   issuer: string;
@@ -299,6 +309,7 @@ export type AnyAsset =
   | { kind: "cert"; data: Certificate };
 
 export interface PhoneNumber {
+  expiryReminder?: ExpiryReminder;
   id: string;
   number: string;
   label: string;

@@ -1,3 +1,4 @@
+import { assetExpiryReminders } from "./expiry-reminders.mjs";
 import { phoneExpiry } from "./phone-numbers.mjs";
 import { extraExpiryCandidates } from "./renewals.mjs";
 import { dueReminders } from "./reminders.mjs";
@@ -72,7 +73,7 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
     ["ai", snapshot.aiAssets],
   ]) {
     for (const x of list ?? []) {
-      if (x.demo) continue;
+      if (x.demo || x.expiryReminder !== undefined) continue;
       const date = kind === "ai" ? x.renewsAt : x.expiresAt;
       const days = Math.ceil((Date.parse(date) - now) / 86_400_000);
       if (!Number.isFinite(days) || days > leadDays) continue;
@@ -88,6 +89,7 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
   }
   // 服务器（VPS）和服务资产的到期日是可选字段，只在填写后提醒。
   for (const x of extraExpiryCandidates(snapshot, new Date(now), leadDays)) {
+    if (x.expiryReminder !== undefined) continue;
     out.push({
       key: `${x.kind}:${x.id}:expiry:${x.date}:${x.days <= 0 ? "expired" : x.days <= 7 ? "week" : "soon"}`,
       kind: x.kind,
@@ -98,6 +100,7 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
     });
   }
   for (const phone of snapshot.phoneNumbers ?? []) {
+    if (phone.expiryReminder !== undefined) continue;
     const { days, status } = phoneExpiry(phone.expiresAt, new Date(now));
     if (days === null || days > Math.max(30, leadDays)) continue;
     out.push({
@@ -107,6 +110,18 @@ export function notificationCandidates(snapshot, now = Date.now(), { leadDays = 
       name: phone.label || "••••" + phone.number.replace(/\D/g, "").slice(-4),
       reason: "expiry",
       days,
+    });
+  }
+  for (const asset of assetExpiryReminders(snapshot, new Date(now))) {
+    const setting = asset.expiryReminder;
+    if (!setting?.enabled || asset.days > setting.leadDays) continue;
+    out.push({
+      key: `${asset.key}:${asset.date}`,
+      kind: asset.kind,
+      id: asset.id,
+      name: asset.name,
+      reason: "expiry",
+      days: asset.days,
     });
   }
   for (const { reminder, days } of dueReminders(snapshot.reminders, new Date(now))) {

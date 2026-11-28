@@ -61,27 +61,52 @@ function markRenewed(entry: RenewalEntry, step: NonNullable<ReturnType<typeof re
     const asset = state.servers.find((item) => item.id === entry.id);
     if (!asset) return;
     state.upsertServer({ ...asset, expiresAt: step.next });
-    undo = () => useAppStore.getState().upsertServer(asset);
+    undo = () => {
+      const latest = useAppStore.getState();
+      const current = latest.servers.find((item) => item.id === asset.id);
+      if (current) latest.upsertServer({ ...current, expiresAt: asset.expiresAt });
+    };
   } else if (entry.kind === "domain") {
     const asset = state.domains.find((item) => item.id === entry.id);
     if (!asset) return;
     state.upsertDomain({ ...asset, expiresAt: step.next, status: expiryStatus(step.next) });
-    undo = () => useAppStore.getState().upsertDomain(asset);
+    undo = () => {
+      const latest = useAppStore.getState();
+      const current = latest.domains.find((item) => item.id === asset.id);
+      if (current)
+        latest.upsertDomain({
+          ...current,
+          expiresAt: asset.expiresAt,
+          status: expiryStatus(asset.expiresAt),
+        });
+    };
   } else if (entry.kind === "service") {
     const asset = state.services.find((item) => item.id === entry.id);
     if (!asset) return;
     state.upsertService({ ...asset, expiresAt: step.next });
-    undo = () => useAppStore.getState().upsertService(asset);
+    undo = () => {
+      const latest = useAppStore.getState();
+      const current = latest.services.find((item) => item.id === asset.id);
+      if (current) latest.upsertService({ ...current, expiresAt: asset.expiresAt });
+    };
   } else if (entry.kind === "ai") {
     const asset = state.aiAssets.find((item) => item.id === entry.id);
     if (!asset || asset.oauthAccountId) return;
     state.upsertAi({ ...asset, renewsAt: keepTime(asset.renewsAt, step.next) });
-    undo = () => useAppStore.getState().upsertAi(asset);
+    undo = () => {
+      const latest = useAppStore.getState();
+      const current = latest.aiAssets.find((item) => item.id === asset.id);
+      if (current) latest.upsertAi({ ...current, renewsAt: asset.renewsAt });
+    };
   } else if (entry.kind === "phone") {
     const record = state.phoneNumbers.find((item) => item.id === entry.id);
     if (!record) return;
     state.upsertPhoneNumber({ ...record, expiresAt: step.next });
-    undo = () => useAppStore.getState().upsertPhoneNumber(record);
+    undo = () => {
+      const latest = useAppStore.getState();
+      const current = latest.phoneNumbers.find((item) => item.id === record.id);
+      if (current) latest.upsertPhoneNumber({ ...current, expiresAt: record.expiresAt });
+    };
   }
   if (!undo) return;
   const restore = undo;

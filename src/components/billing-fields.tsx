@@ -1,3 +1,4 @@
+import { ExpiryReminderFields } from "./expiry-reminder-fields";
 import { Field, Input, Select } from "./ui/input";
 import { CYCLE_LABEL } from "@/lib/billing";
 import { t } from "@/lib/i18n";
@@ -10,11 +11,13 @@ export function BillingFields({
   values,
   set,
   date,
+  reminderDate,
 }: {
   values: Record<string, unknown>;
   set: (key: string, value: string) => void;
   /** 需要在这里一起填写到期日时传入；域名和号码的到期日已有自己的输入框。 */
   date?: { key: string; label: string };
+  reminderDate?: string;
 }) {
   return (
     <fieldset className="rounded-xl border border-line p-3 sm:col-span-2">
@@ -62,6 +65,15 @@ export function BillingFields({
           />
         </Field>
       </div>
+      {values.expiryReminderMode !== undefined && (
+        <div className="mt-3">
+          <ExpiryReminderFields
+            values={values}
+            set={set}
+            date={reminderDate ?? String(values[date?.key ?? "expiresAt"] ?? "")}
+          />
+        </div>
+      )}
     </fieldset>
   );
 }

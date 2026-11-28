@@ -103,7 +103,14 @@ export function bindResource(snapshot, connection, resource, assetId) {
     "cloud-" + createHash("sha256").update(JSON.stringify(integration)).digest("hex").slice(0, 32);
   if (!selected && items.some((a) => a.id === id))
     throw new Error("导入标识已存在，请选择已有资产绑定。");
-  const base = { id, name: resource.name, tags: [], notes: "", integration };
+  const base = {
+    id,
+    name: resource.name,
+    tags: [],
+    notes: "",
+    integration,
+    expiryReminder: { enabled: true, leadDays: 3 },
+  };
   let item;
   if (selected) item = { ...selected, integration };
   else if (kind === "domain")

@@ -84,3 +84,15 @@ test("不同账号不会合并，额外的令牌字段不会进入资产导出",
   assert.equal(JSON.stringify(first).includes("secret-token-for-test"), false);
   assert.equal("tokens" in first, false);
 });
+
+test("订阅同步保留提醒偏好，旧记录仍继承，新记录默认开启", () => {
+  const initial = subscriptionFromAccount(account);
+  assert.deepEqual(initial.expiryReminder, { enabled: true, leadDays: 3 });
+  const previous = { ...initial, expiryReminder: { enabled: false, leadDays: 7 } };
+  assert.deepEqual(
+    subscriptionFromAccount(account, previous).expiryReminder,
+    previous.expiryReminder,
+  );
+  delete initial.expiryReminder;
+  assert.equal(subscriptionFromAccount(account, initial).expiryReminder, undefined);
+});

@@ -1,3 +1,7 @@
+import {
+  expiryReminderFormValues,
+  expiryReminderFromForm,
+} from "../../electron/services/expiry-reminders.mjs";
 import { WorkspaceControls, WorkspaceHeader, WorkspaceSearch } from "./ui/workspace-layout";
 import { useMotionPolicy } from "@/lib/motion";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -424,6 +428,7 @@ export function CardEditor({
     notes: existing?.notes ?? "",
     tags: existing?.tags.join(", ") ?? "",
     ...billingFormValues(existing?.billing),
+    ...expiryReminderFormValues(existing, !existing),
     ...Object.fromEntries(
       Object.entries(existing?.card ?? {}).map(([key, value]) => [key, String(value)]),
     ),
@@ -512,6 +517,7 @@ export function CardEditor({
           cycle: form.billingCycle,
         }),
         card,
+        expiryReminder: expiryReminderFromForm(form),
       });
       const owner = { kind: "service", id: data.id } as ResourceRef;
       const finalTargets = normalizeRelationSelection(relationResources, relationTargets, owner);
@@ -858,7 +864,11 @@ export function CardEditor({
               value={form.tags}
               onChange={(value) => set("tags", value)}
             />
-            <BillingFields values={form} set={set} />
+            <BillingFields
+              values={form}
+              set={set}
+              reminderDate={managedCardExpiry(preview.card!)}
+            />
             <div className="sm:col-span-2">
               <Label>{t("备注")}</Label>
               <Textarea

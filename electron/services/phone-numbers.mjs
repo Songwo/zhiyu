@@ -1,3 +1,4 @@
+import { normalizeExpiryReminder } from "./expiry-reminders.mjs";
 import { normalizeBilling } from "./renewals.mjs";
 /** @param {unknown} value @param {number} limit */
 function text(value, limit) {
@@ -48,6 +49,9 @@ export function normalizePhoneNumber(input) {
     createdAt,
     updatedAt,
     ...(billing ? { billing } : {}),
+    ...(value.expiryReminder !== undefined
+      ? { expiryReminder: normalizeExpiryReminder(value.expiryReminder, false) }
+      : {}),
   };
 }
 /** @param {unknown} value @param {boolean} [strict] @returns {import("../../src/lib/types").PhoneNumber[]} */
