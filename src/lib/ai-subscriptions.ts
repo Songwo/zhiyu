@@ -28,6 +28,8 @@ export function subscriptionFromAccount(account: AiAccount, previous?: AiAsset):
       ? `${absolute.label}: ${absolute.remaining} ${absolute.unit ?? ""}`.trim()
       : undefined,
     // 令牌到期、额度重置都不是续费日期。
+    expiryReminder:
+      previous?.expiryReminder ?? (previous ? undefined : { enabled: true, leadDays: 3 }),
     renewsAt: previous?.renewsAt ?? "",
     subscriptionExpiresAt: account.subscriptionExpiresAt,
     tags: previous?.tags ?? [],

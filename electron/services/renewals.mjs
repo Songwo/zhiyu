@@ -10,7 +10,7 @@ export const OVERDUE_DAYS = 30;
  * @typedef {"month" | "year" | "once"} BillingCycle
  * @typedef {{ amount: number, currency: BillingCurrency, cycle: BillingCycle }} Billing
  * @typedef {"server" | "domain" | "cert" | "ai" | "service" | "phone"} RenewalKind
- * @typedef {{ key: string, kind: RenewalKind, id: string, name: string, date: string, days: number, billing?: Billing, demo?: boolean, fixedExpiry?: boolean }} RenewalEntry
+ * @typedef {{ key: string, kind: RenewalKind, id: string, name: string, date: string, days: number, billing?: Billing, demo?: boolean, expiryReminder?: import("../../src/lib/types").ExpiryReminder, fixedExpiry?: boolean }} RenewalEntry
  * @typedef {{ kind: RenewalKind, id: string, name: string, billing: Billing }} BilledItem
  * @typedef {{ monthly: number, yearly: number, once: number, count: number }} CurrencyTotals
  * @typedef {{ byCurrency: Record<BillingCurrency, CurrencyTotals>, unpriced: number }} SpendSummary
@@ -96,10 +96,10 @@ function aiBilling(asset) {
 /**
  * 所有带续费或到期日期的资产，以及它们的费用（如果填写了）。
  * @param {any} snapshot
- * @returns {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean, fixedExpiry?: boolean }[]}
+ * @returns {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean, expiryReminder?: import("../../src/lib/types").ExpiryReminder, fixedExpiry?: boolean }[]}
  */
-function renewableAssets(snapshot) {
-  /** @type {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean, fixedExpiry?: boolean }[]} */
+export function renewableAssets(snapshot) {
+  /** @type {{ kind: RenewalKind, id: string, name: string, date: string, billing?: Billing, demo?: boolean, expiryReminder?: import("../../src/lib/types").ExpiryReminder, fixedExpiry?: boolean }[]} */
   const out = [];
   /** @param {RenewalKind} kind @param {any} x @param {string} name @param {unknown} date @param {Billing | undefined} billing */
   const add = (kind, x, name, date, billing) => {
@@ -111,6 +111,7 @@ function renewableAssets(snapshot) {
       date: calendarDay(date),
       ...(billing ? { billing } : {}),
       ...(x.demo ? { demo: true } : {}),
+      ...(x.expiryReminder !== undefined ? { expiryReminder: x.expiryReminder } : {}),
       ...(x.card ? { fixedExpiry: true } : {}),
     });
   };

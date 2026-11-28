@@ -1,3 +1,4 @@
+import { normalizeExpiryReminder } from "./expiry-reminders.mjs";
 import { normalizeServices } from "./service-assets.mjs";
 import { normalizeAssetTypes } from "./asset-types.mjs";
 import { normalizeReminders } from "./reminders.mjs";
@@ -143,11 +144,18 @@ export function normalizeSnapshotImages(
   const wrapped = Boolean(outer.state && typeof outer.state === "object");
   const state = /** @type {Record<string, unknown>} */ (wrapped ? outer.state : outer);
   const result = { ...state };
-  if ("services" in state) result.services = normalizeServices(state.services, strict);
+  for (const key of ["servers", "domains", "certs", "aiAssets", "services", "phoneNumbers"]) {
+    if (Array.isArray(result[key]))
+      result[key] = result[key].map((asset) => {
+        if (!asset || typeof asset !== "object" || asset.expiryReminder === undefined) return asset;
+        return { ...asset, expiryReminder: normalizeExpiryReminder(asset.expiryReminder, strict) };
+      });
+  }
+  if ("services" in state) result.services = normalizeServices(result.services, strict);
   if ("assetTypes" in state) result.assetTypes = normalizeAssetTypes(state.assetTypes, strict);
   if ("reminders" in state) result.reminders = normalizeReminders(state.reminders, strict);
   if ("phoneNumbers" in state)
-    result.phoneNumbers = normalizePhoneNumbers(state.phoneNumbers, strict);
+    result.phoneNumbers = normalizePhoneNumbers(result.phoneNumbers, strict);
   if ("links" in state)
     result.links = normalizeResourceLinks(
       state.links,
