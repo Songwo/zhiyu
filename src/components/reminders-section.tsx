@@ -1,3 +1,5 @@
+import { AssetExpiryReminderCards } from "./asset-expiry-reminders";
+import { useAssetExpiryReminders } from "@/lib/asset-expiry-reminders";
 import { BellRing, Check, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -30,6 +32,7 @@ function blank(title = "", repeat: Reminder["repeat"] = "none", leadDays = 3): R
 
 /** 费用与续费页的「备忘提醒」：自己写的事项与日期，大号倒计时。 */
 export function RemindersSection({ sectionId }: { sectionId: string }) {
+  const assetReminders = useAssetExpiryReminders();
   const reminders = useAppStore((s) => s.reminders);
   const hydrated = useAppStore((s) => s.hydrated);
   const [editing, setEditing] = useState<Reminder | null>(null);
@@ -49,7 +52,7 @@ export function RemindersSection({ sectionId }: { sectionId: string }) {
       id={sectionId}
       tabIndex={-1}
       title={t("备忘提醒")}
-      description={t("自己写的事项与日期：证件、保修、交费、续费……到期前按设定天数提醒")}
+      description={t("资产到期与普通事项统一查看；到期提醒跟随资产更新。")}
       aria-label={t("备忘提醒")}
       action={
         <div className="flex items-center gap-2">
@@ -61,7 +64,7 @@ export function RemindersSection({ sectionId }: { sectionId: string }) {
         </div>
       }
     >
-      {active.length === 0 ? (
+      {active.length === 0 && assetReminders.length === 0 ? (
         <div className="reminder-empty">
           <BellRing aria-hidden="true" />
           <p>{t("还没有提醒。从常见事项开始：")}</p>
@@ -79,6 +82,7 @@ export function RemindersSection({ sectionId }: { sectionId: string }) {
         </div>
       ) : (
         <div className="reminder-grid">
+          <AssetExpiryReminderCards rows={assetReminders} />
           {active.map(({ r, days }) => (
             <article
               key={r.id}
@@ -93,7 +97,8 @@ export function RemindersSection({ sectionId }: { sectionId: string }) {
               <div className="min-w-0 flex-1">
                 <h3>{r.title}</h3>
                 <p className="reminder-meta">
-                  {r.dueAt} · {t(REPEAT_LABEL[r.repeat])} · {t("提前 {0} 天提醒", r.leadDays)}
+                  {t("普通提醒")} · {r.dueAt} · {t(REPEAT_LABEL[r.repeat])} ·{" "}
+                  {t("提前 {0} 天提醒", r.leadDays)}
                 </p>
                 {r.note && <p className="reminder-note">{r.note}</p>}
               </div>

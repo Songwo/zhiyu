@@ -1,3 +1,7 @@
+import {
+  expiryReminderFormValues,
+  expiryReminderFromForm,
+} from "../../electron/services/expiry-reminders.mjs";
 import { WorkspaceControls, WorkspaceHeader, WorkspaceSearch } from "./ui/workspace-layout";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
@@ -457,6 +461,7 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
     notes: record?.notes ?? "",
     subscriptionIds: record?.subscriptionIds ?? [],
     ...billingFormValues(record?.billing),
+    ...expiryReminderFormValues(record, !record),
   }));
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
@@ -471,6 +476,7 @@ function PhoneEditor({ record, onClose }: { record?: PhoneNumber; onClose: () =>
       await savePhoneRelations(
         {
           ...fields,
+          expiryReminder: expiryReminderFromForm(form),
           id,
           createdAt: record?.createdAt ?? now,
           updatedAt: now,

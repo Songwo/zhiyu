@@ -1,3 +1,8 @@
+import {
+  expiryReminderFormValues,
+  expiryReminderFromForm,
+} from "../../electron/services/expiry-reminders.mjs";
+import { ExpiryReminderFields } from "./expiry-reminder-fields";
 import { vaultApi } from "@/lib/vault-api";
 import { X, LogIn, Pencil, ChartNoAxesCombined, ArrowLeft, Link2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -1011,6 +1016,12 @@ function kindFields(
         return [
           F("name", t("名称")),
           F("monthlyUsd", t("月费 USD")),
+          <ExpiryReminderFields
+            key="_expiry"
+            values={form}
+            set={set}
+            date={form.subscriptionExpiresAt}
+          />,
           F("tags", t("标签（逗号分隔）"), { span: true }),
           F("notes", t("说明"), { span: true, area: true }),
         ];
@@ -1022,6 +1033,7 @@ function kindFields(
         F("keyHint", t("密钥末位")),
         F("usagePct", t("用量 %")),
         F("renewsAt", t("续费日"), { span: true }),
+        <ExpiryReminderFields key="_expiry" values={form} set={set} date={form.renewsAt} />,
         F("tags", t("标签（逗号分隔）"), { span: true }),
         F("notes", t("说明"), { span: true, area: true }),
       ];
@@ -1058,6 +1070,7 @@ function kindFields(
         F("port", t("端口")),
         F("issuer", t("签发者")),
         F("expiresAt", t("到期日")),
+        <ExpiryReminderFields key="_expiry" values={form} set={set} date={form.expiresAt} />,
         F("sans", t("SAN（逗号分隔）"), { span: true }),
         F("tags", t("标签（逗号分隔）"), { span: true }),
         F("notes", t("说明"), { span: true, area: true }),
@@ -1086,6 +1099,18 @@ function findAsset(kind: AssetKind, id: string | null, s: Snapshot): unknown {
 }
 
 function defaults(kind: AssetKind, existing: unknown): Record<string, string> {
+  return {
+    ...assetDefaults(kind, existing),
+    ...(["server", "domain", "cert", "ai", "service"].includes(kind)
+      ? expiryReminderFormValues(
+          existing as { expiryReminder?: import("@/lib/types").ExpiryReminder } | null,
+          !existing,
+        )
+      : {}),
+  };
+}
+
+function assetDefaults(kind: AssetKind, existing: unknown): Record<string, string> {
   if (existing && typeof existing === "object") {
     const o = existing as Record<string, unknown>;
     const out: Record<string, string> = {};
@@ -1187,6 +1212,15 @@ function persist(
   documentLinkTargets: ResourceRef[],
 ) {
   const s = useAppStore.getState();
+  const saveAsset: typeof s.upsertAssetWithRelations = (assetKind, asset, relations, documents) => {
+    const renewable = ["server", "domain", "cert", "ai", "service"].includes(assetKind);
+    s.upsertAssetWithRelations(
+      assetKind,
+      renewable ? { ...asset, expiryReminder: expiryReminderFromForm(form) } : asset,
+      relations,
+      documents,
+    );
+  };
   const statusOf = (iso?: string) => {
     if (!iso) return "online" as const;
     const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -1206,7 +1240,7 @@ function persist(
         pendingLabel: t("未采集"),
         mode: serverMode,
       });
-      s.upsertAssetWithRelations(
+      saveAsset(
         "server",
         {
           ...item,
@@ -1234,7 +1268,7 @@ function persist(
         status: statusOf(form.expiresAt),
         notes: form.notes,
       };
-      s.upsertAssetWithRelations("domain", item, targets, documentLinkTargets);
+      saveAsset("domain", item, targets, documentLinkTargets);
       break;
     }
     case "mail": {
@@ -1277,13 +1311,13 @@ function persist(
             ? { imap: previous.imap }
             : {}),
       };
-      s.upsertAssetWithRelations("mail", item, targets, documentLinkTargets);
+      saveAsset("mail", item, targets, documentLinkTargets);
       break;
     }
     case "ai": {
       const previous = existing as AiAsset | null;
       if (previous?.oauthAccountId) {
-        s.upsertAssetWithRelations(
+        saveAsset(
           "ai",
           {
             ...previous,
@@ -1314,7 +1348,7 @@ function persist(
         status: usage >= 90 ? "warning" : "online",
         notes: form.notes,
       };
-      s.upsertAssetWithRelations("ai", item, targets, documentLinkTargets);
+      saveAsset("ai", item, targets, documentLinkTargets);
       break;
     }
     case "secret": {
@@ -1338,11 +1372,11 @@ function persist(
         notes: form.notes,
         ...(form.kind === "account" ? accountMetadataFromForm(form) : {}),
       };
-      s.upsertAssetWithRelations("secret", item, targets, documentLinkTargets);
+      saveAsset("secret", item, targets, documentLinkTargets);
       break;
     }
     case "service": {
-      s.upsertAssetWithRelations(
+      saveAsset(
         "service",
         normalizeService({
           id,
@@ -1396,7 +1430,7 @@ function persist(
         probedAt: prev?.probedAt,
         probeError: prev?.probeError,
       };
-      s.upsertAssetWithRelations("cert", item, targets, documentLinkTargets);
+      saveAsset("cert", item, targets, documentLinkTargets);
       break;
     }
   }

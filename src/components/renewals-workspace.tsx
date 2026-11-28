@@ -1,3 +1,4 @@
+import { expiryReminderLabel } from "@/lib/asset-expiry-reminders";
 import { useId, useMemo, useState } from "react";
 import {
   CalendarArrowDown,
@@ -353,6 +354,7 @@ function TimelineRow({ entry, projected = false }: { entry: RenewalEntry; projec
           <span className="mt-1 block truncate text-sm text-muted">
             {kindLabel(entry.kind)}
             {entry.billing ? ` · ${formatBilling(entry.billing)}` : ""}
+            {` · ${expiryReminderLabel(entry.expiryReminder)}`}
             {projected && <span className="calendar-projected">{t("按周期推算")}</span>}
           </span>
         </span>

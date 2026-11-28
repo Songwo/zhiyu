@@ -1,3 +1,4 @@
+import { normalizeExpiryReminder } from "../../electron/services/expiry-reminders.mjs";
 import { isWeb } from "./web";
 import { webStorage, flushWebStore } from "./web-store";
 import { trackPersistence } from "./persist-barrier.mjs";
@@ -83,6 +84,11 @@ export interface AppState extends Snapshot {
   services: ServiceAsset[];
   upsertService: (s: ServiceAsset) => void;
   assetTypes: AssetType[];
+  setAssetExpiryReminder: (
+    kind: import("../../electron/services/renewals.mjs").RenewalKind,
+    id: string,
+    setting: import("./types").ExpiryReminder | undefined,
+  ) => void;
   reminders: Reminder[];
   upsertReminder: (reminder: Reminder) => void;
   removeReminder: (id: string) => void;
@@ -530,6 +536,27 @@ export const useAppStore = create<AppState>()(
       upsertSecret: (s) => set({ secrets: upsert(get().secrets, s) }),
       upsertCert: (s) => set({ certs: upsert(get().certs, s) }),
       upsertService: (s) => set({ services: upsert(get().services, s) }),
+      setAssetExpiryReminder: (kind, id, setting) =>
+        set((state) => {
+          const key = (
+            {
+              server: "servers",
+              domain: "domains",
+              cert: "certs",
+              ai: "aiAssets",
+              service: "services",
+              phone: "phoneNumbers",
+            } as const
+          )[kind];
+          if (!state[key].some((asset) => asset.id === id))
+            throw new Error(t("该资产已被删除，请重新打开"));
+          const expiryReminder = normalizeExpiryReminder(setting);
+          return {
+            [key]: state[key].map((asset) =>
+              asset.id === id ? { ...asset, expiryReminder } : asset,
+            ),
+          };
+        }),
       upsertReminder: (reminder) =>
         set({
           reminders: normalizeReminders(upsert(get().reminders, normalizeReminder(reminder))),

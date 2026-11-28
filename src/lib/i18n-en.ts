@@ -21,6 +21,25 @@ import { BIOMETRIC_EN } from "./i18n-biometric-en.ts";
  * not agree on where a possessive or a count belongs.
  */
 export const EN: Record<string, string> = {
+  "资产到期与普通事项统一查看；到期提醒跟随资产更新。":
+    "View asset expiries and personal reminders together. Expiry reminders stay in sync with assets.",
+  "资产到期：{0}": "Asset expiry: {0}",
+  资产到期: "Asset expiry",
+  "到期日期、名称和费用跟随资产更新。": "The due date, name and cost stay in sync with the asset.",
+  沿用系统提醒规则: "Use system reminder rules",
+  已关闭到期提醒: "Expiry reminders off",
+  当天提醒: "Remind on the due date",
+  到期提醒: "Expiry reminder",
+  开启到期提醒: "Enable expiry reminders",
+  关闭到期提醒: "Disable expiry reminders",
+  提前提醒时间: "Remind me before expiry",
+  填写到期日期后生效: "Takes effect after a due date is provided",
+  "关闭提醒后，续费日历仍保留到期记录。":
+    "The due date stays on the renewal calendar when reminders are off.",
+  "保存后自动关联此资产，无需单独创建提醒。":
+    "Linked to this asset when saved. No separate reminder needed.",
+  普通提醒: "Manual reminder",
+
   自动加载邮件外部图片: "Automatically load remote images in email",
   "已记住 {0} 封邮件的外部图片授权。关闭自动加载后，仅这些邮件仍会自动显示图片。":
     "Remembered remote-image permissions for {0} emails. When automatic loading is off, only those emails will still show remote images automatically.",
